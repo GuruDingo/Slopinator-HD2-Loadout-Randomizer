@@ -630,6 +630,33 @@ test("Empty slots: a stratagem that only misses because of the faction filter is
     assert(l.factionOverridden);
   }
 });
+test("Empty slots: item caps never leave a slot empty while an owned stratagem is available", () => {
+  // MG-43 and Orbital Precision Strike (always owned) + the AC-8 Autocannon: two regular support weapons break a preference
+  // (at most one), but the third stratagem is still brought; only one slot is empty.
+  const keep = ["MG-43 Machine Gun", "Orbital Precision Strike", "AC-8 Autocannon"];
+  const excluded = new Set(engine.pools.strategems.filter((s) => !keep.includes(s.name)).map((s) => s.name));
+  for (let i = 0; i < 40; i++) {
+    const l = engine.generateLoadoutRelaxed({ faction: "any", excluded });
+    assert.strictEqual(l.emptySlots, 1, l.strategems.map((s) => s.name).join());
+    keep.forEach((n) => assert(l.strategems.some((s) => s.name === n), n));
+  }
+});
+test("Empty slots: the in-game limits and the player's own max rules still apply when stratagems are few", () => {
+  const two = ["M-102 Gunner FRV", "M-103 Supply FRV"].map(pick);
+  const keep = ["Orbital Precision Strike", "MG-43 Machine Gun"].concat(two.map((x) => x.name));
+  const excluded = new Set(engine.pools.strategems.filter((s) => !keep.includes(s.name)).map((s) => s.name));
+  for (let i = 0; i < 30; i++) {
+    const l = engine.generateLoadoutRelaxed({ faction: "any", excluded });
+    assert.strictEqual(l.strategems.filter((s) => HD2Engine.has(s, "frv")).length, 1, "never two FRVs");
+    assert.strictEqual(l.emptySlots, 1);
+  }
+  // the player's own "at most" rule also holds: no backpack means the AC-8 stays out even though it is owned
+  const keep3 = ["MG-43 Machine Gun", "Orbital Precision Strike", "AC-8 Autocannon"];
+  const ex3 = new Set(engine.pools.strategems.filter((s) => !keep3.includes(s.name)).map((s) => s.name));
+  const noPack = engine.generateLoadoutRelaxed({ faction: "any", excluded: ex3, requirements: { backpack: { max: 0 } } });
+  assert(!noPack.strategems.some((s) => s.name === "AC-8 Autocannon"));
+  assert.strictEqual(noPack.emptySlots, 2);
+});
 test("Empty slots: owning enough stratagems never produces one", () => {
   for (let i = 0; i < 300; i++) {
     const l = engine.generateLoadoutRelaxed({ faction: i % 2 ? "bug" : "squid" });

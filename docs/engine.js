@@ -537,12 +537,37 @@
         });
         var holders = new Set(owned);
         chosen.forEach(function (c) { if (c && !c.empty) holders.add(c); });
-        if (holders.size >= 4) return null;
-        var soFarEnd = [primary, secondary, throwable].concat(chosen.filter(Boolean));
-        var offFaction = owned.some(function (x) {
-          return chosen.indexOf(x) === -1 && !worksFor(x, faction) && admit(x, Object.assign({}, st), soFarEnd);
+        // How many different stratagems could be brought at all: at most one FRV, one tank and one exosuit count.
+        var limitKinds = {}, bringable = 0;
+        holders.forEach(function (x) {
+          var kind = IN_GAME_LIMITS.filter(function (t) { return has(x, t); })[0];
+          if (kind) limitKinds[kind] = true; else bringable++;
         });
+        bringable += Object.keys(limitKinds).length;
+        if (bringable >= 4) return null;
+        // Which stratagems may still be added when there are fewer than four to bring: the in-game limits and the player's own
+        // "at most" rules still hold, but the default item caps (one regular support weapon, one backpack, ...) are only
+        // preferences. They must not leave a slot empty while an owned stratagem is available; a cap that ends up broken is
+        // flagged by the rule checks below like any other unmet rule.
+        var ownUpperRules = customRules.filter(isUpperOnly);
+        function mayAdd(x) {
+          var soFar = [primary, secondary, throwable].concat(chosen.filter(Boolean));
+          for (var g = 0; g < IN_GAME_LIMITS.length; g++) if (has(x, IN_GAME_LIMITS[g]) && st[IN_GAME_LIMITS[g]] >= 1) return false;
+          for (var m2 = 0; m2 < maxTags.length; m2++) {
+            if (has(x, maxTags[m2]) && soFar.filter(function (i) { return has(i, maxTags[m2]); }).length >= requirements[maxTags[m2]].max) return false;
+          }
+          var after = { primary: primary, secondary: secondary, throwable: throwable, strats: soFar.slice(3).concat([x]) };
+          for (var u = 0; u < ownUpperRules.length; u++) if (touchesStrat(ownUpperRules[u], x) && evalRule(ownUpperRules[u], after)) return false;
+          return true;
+        }
+        var offFaction = owned.some(function (x) { return chosen.indexOf(x) === -1 && !worksFor(x, faction) && mayAdd(x); });
         if (offFaction) return null;
+        for (var q = 0; q < stratPool.length && freeSlots.length; q++) {
+          var extra = stratPool[q];
+          if (chosen.indexOf(extra) !== -1 || !mayAdd(extra)) continue;
+          chosen[freeSlots.shift()] = extra;
+          IN_GAME_LIMITS.forEach(function (t) { if (has(extra, t)) st[t] += 1; });
+        }
         chosen = chosen.map(function (c) { return c || makeEmptySlot(); });
       }
 
