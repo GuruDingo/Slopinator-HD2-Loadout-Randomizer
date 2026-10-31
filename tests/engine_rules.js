@@ -73,7 +73,7 @@ test("best-effort build gets as close to a hard requirement as it can (demo:7)",
 });
 
 test("faction relax still preferred over flagging rules (bug + no premium warbonds is strict, off-faction flagged)", () => {
-  const l = engine.generateLoadoutRelaxed({ faction: "bug", ownedWarbonds: ["base","req_p","req_o","req_h","req_b","req_e","req_r","fomo"] });
+  const l = engine.generateLoadoutRelaxed({ faction: "bug", ownedWarbonds: ["base","req_p","req_o","req_h","req_b","req_e","req_r","super_citizen"] });
   assert.deepStrictEqual(l.unmet, []);
   assert.strictEqual(l.factionOverridden, true);
 });
@@ -595,6 +595,54 @@ test("Odds: malformed odds rules are dropped, the last one per selector + scope 
   assert.strictEqual(N([null, 5, {}, { sel: "nope", factor: 2 }, { sel: "tag:fire", factor: 0 }, { sel: "tag:fire", factor: 99 }, { sel: "tag:fire", scope: "moon", factor: 2 }, { sel: "cat:nothing", factor: 2 }]).length, 0);
   assert.deepStrictEqual(N([{ sel: "tag:fire", factor: 2 }, { sel: "tag:fire", scope: "all", factor: 0.5 }, { sel: "tag:arc", scope: "strats", factor: 1.5 }]),
     [{ sel: "tag:fire", scope: "all", factor: 0.5 }, { sel: "tag:arc", scope: "strats", factor: 1.5 }]);
+});
+
+test("Empty slots: owning fewer than 4 stratagems leaves the rest empty (allowed), without an error", () => {
+  const real = engine.pools.strategems.filter((s) => s.warbond === "base" || s.alwaysOwned);
+  assert.strictEqual(real.length, 2);
+  for (let i = 0; i < 100; i++) {
+    const l = engine.generateLoadoutRelaxed({ faction: "any", ownedWarbonds: ["base"] });
+    assert.strictEqual(l.strategems.length, 4);
+    assert.strictEqual(l.emptySlots, 2);
+    const empties = l.strategems.filter((s) => s.empty);
+    assert.strictEqual(empties.length, 2);
+    assert(empties[0] !== empties[1], "empty slots must be separate objects");
+    assert(empties.every((e) => e.name === "Empty Slot" && e.tags.length === 0));
+    real.forEach((r) => assert(l.strategems.includes(r), r.name + " should be in the build"));
+  }
+});
+test("Empty slots: blocked stratagems count as not owned; locks count as owned", () => {
+  const allNames = engine.pools.strategems.map((s) => s.name);
+  const keep = ["Eagle Airstrike", "Orbital Gas Strike", "Orbital Smoke Strike"];
+  const excluded = new Set(allNames.filter((n) => !keep.includes(n)));
+  const l = engine.generateLoadoutRelaxed({ faction: "any", excluded });
+  assert.strictEqual(l.emptySlots, 1);
+  keep.forEach((n) => assert(l.strategems.some((s) => s.name === n), n));
+  const locked = engine.generateLoadoutRelaxed({ faction: "any", excluded, locks: { strat1: pick("Eagle Cluster Bomb") } });
+  assert.strictEqual(locked.emptySlots, 0, "a locked stratagem fills the fourth slot");
+});
+test("Empty slots: a stratagem that only misses because of the faction filter is used (faction relaxed), not left empty", () => {
+  // Base gear only has MG-43 (bug, squid) and Orbital Precision Strike (any): against bots the MG-43 is off-faction but still better than a hole.
+  for (let i = 0; i < 50; i++) {
+    const l = engine.generateLoadoutRelaxed({ faction: "bot", ownedWarbonds: ["base"] });
+    assert(l.strategems.some((s) => s.name === "MG-43 Machine Gun"), "MG-43 should be kept");
+    assert.strictEqual(l.emptySlots, 2);
+    assert(l.factionOverridden);
+  }
+});
+test("Empty slots: owning enough stratagems never produces one", () => {
+  for (let i = 0; i < 300; i++) {
+    const l = engine.generateLoadoutRelaxed({ faction: i % 2 ? "bug" : "squid" });
+    assert.strictEqual(l.emptySlots, 0);
+    assert(l.strategems.every((s) => !s.empty));
+  }
+});
+test("Empty slots: the repair step and seeded builds accept empty slots", () => {
+  // an unmeetable request (Vehicle >= 2 with so few stratagems) is still built and flagged
+  const l = engine.generateLoadoutRelaxed({ faction: "any", ownedWarbonds: ["base"], requirements: { vehicle: { min: 1 } } });
+  assert.strictEqual(l.strategems.length, 4);
+  assert(ids(l).includes("require"), ids(l));
+  assert.strictEqual(l.emptySlots, 2);
 });
 
 console.log("\n" + passed + " engine rule tests passed" + (process.exitCode ? " (with failures)" : ""));

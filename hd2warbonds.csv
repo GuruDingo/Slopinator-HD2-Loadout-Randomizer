@@ -1,6 +1,5 @@
 key,name
 base,Base Game
-super_citizen,Super Citizen Edition
 req_p,Requisition: Patriotic Administration Center
 req_o,Requisition: Orbital Cannons
 req_h,Requisition: Hangar
@@ -8,7 +7,7 @@ req_b,Requisition: Bridge
 req_e,Requisition: Engineering Bay
 req_r,Requisition: Robotics Workshop
 superstore,Superstore
-fomo,Campaign/Event Rewards
+super_citizen,Super Citizen/Event Rewards
 helldivers_mobilize,Helldivers Mobilize
 steeled_veterans,Steeled Veterans
 cutting_edge,Cutting Edge

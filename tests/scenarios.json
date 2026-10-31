@@ -23,7 +23,7 @@
   "name": "bug / free sources only, no premium warbonds (fallback expected)",
   "faction": "bug",
   "warbonds": [
-   "base","req_p","req_o","req_h","req_b","req_e","req_r","fomo"
+   "base","req_p","req_o","req_h","req_b","req_e","req_r","super_citizen"
   ],
   "n": 8000
  },
@@ -31,7 +31,7 @@
   "name": "any / free sources + 3 warbonds",
   "faction": "any",
   "warbonds": [
-   "base","req_p","req_o","req_h","req_b","req_e","req_r","fomo",
+   "base","req_p","req_o","req_h","req_b","req_e","req_r","super_citizen",
    "helldivers_mobilize",
    "steeled_veterans",
    "cutting_edge"
