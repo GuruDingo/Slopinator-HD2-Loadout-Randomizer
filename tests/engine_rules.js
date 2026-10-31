@@ -72,10 +72,12 @@ test("best-effort build gets as close to a hard requirement as it can (demo:7)",
   assert(avg >= 4, "average demo count " + avg.toFixed(1) + " is lower than expected");
 });
 
-test("faction relax still preferred over flagging rules (bug + no premium warbonds is strict, off-faction flagged)", () => {
-  const l = engine.generateLoadoutRelaxed({ faction: "bug", ownedWarbonds: ["base","req_p","req_o","req_h","req_b","req_e","req_r","super_citizen"] });
-  assert.deepStrictEqual(l.unmet, []);
-  assert.strictEqual(l.factionOverridden, true);
+test("faction relax still preferred over flagging rules (bug with only the starting gear and two small warbonds: relaxed, off-faction flagged)", () => {
+  for (let i = 0; i < 20; i++) {
+    const l = engine.generateLoadoutRelaxed({ faction: "bug", ownedWarbonds: ["base", "cutting_edge", "urban_legends"] });
+    assert.deepStrictEqual(l.unmet, []);
+    assert.strictEqual(l.factionOverridden, true);
+  }
 });
 
 test("a build with no eligible items at all throws a GenerationError", () => {
@@ -622,10 +624,13 @@ test("Empty slots: blocked stratagems count as not owned; locks count as owned",
   assert.strictEqual(locked.emptySlots, 0, "a locked stratagem fills the fourth slot");
 });
 test("Empty slots: a stratagem that only misses because of the faction filter is used (faction relaxed), not left empty", () => {
-  // Base gear only has MG-43 (bug, squid) and Orbital Precision Strike (any): against bots the MG-43 is off-faction but still better than a hole.
+  // Own only one stratagem that does not work against bots plus Orbital Precision Strike: against bots it is off-faction but still better than a hole.
+  const offFaction = engine.pools.strategems.find((x) => !HD2Engine.worksFor(x, "bot") && x.factions.indexOf("none") === -1);
+  const keep = ["Orbital Precision Strike", offFaction.name];
+  const excluded = new Set(engine.pools.strategems.filter((x) => !keep.includes(x.name)).map((x) => x.name));
   for (let i = 0; i < 50; i++) {
-    const l = engine.generateLoadoutRelaxed({ faction: "bot", ownedWarbonds: ["base"] });
-    assert(l.strategems.some((s) => s.name === "MG-43 Machine Gun"), "MG-43 should be kept");
+    const l = engine.generateLoadoutRelaxed({ faction: "bot", excluded });
+    assert(l.strategems.some((x) => x.name === offFaction.name), offFaction.name + " should be kept");
     assert.strictEqual(l.emptySlots, 2);
     assert(l.factionOverridden);
   }

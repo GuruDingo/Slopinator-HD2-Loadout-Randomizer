@@ -466,10 +466,10 @@ function check(label, cond, extra) {
 
   console.log("Faction fallback");
   setFaction("bug");
-  ownOnly(FREE_SOURCES);
-  check("free sources only -> small pool, premium warbonds not owned", (() => { const m = /Rolling from (\d+) of (\d+)/.exec(poolText()); return m && Number(m[1]) > 6 && Number(m[1]) < Number(m[2]) / 2; })(), poolText());
+  ownOnly(["base", "cutting_edge", "urban_legends"]);
+  check("a small collection -> small pool, most warbonds not owned", (() => { const m = /Rolling from (\d+) of (\d+)/.exec(poolText()); return m && Number(m[1]) > 6 && Number(m[1]) < Number(m[2]) / 2; })(), poolText());
   generate();
-  check("bug + free sources only (no premium warbonds) -> off-faction banner shown", !!doc.querySelector("#results .faction-warning"));
+  check("bug + a small collection with too little for bugs -> off-faction banner shown", !!doc.querySelector("#results .faction-warning"));
   check("...with a Why? detail that names the reason", /Why\?/.test((doc.querySelector("#results .faction-warning details.why") || {}).textContent || ""), (doc.querySelector("#results .faction-warning") || {}).textContent);
   check("...and each OFF-FACTION badge on a card explains itself", Array.from(doc.querySelectorAll("#results .item-card .suboptimal-badge, #results .item-card2 .suboptimal-badge")).every((b) => /meant for/.test(b.title)), "");
 
