@@ -296,8 +296,9 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
 .disclaimer .feedback a { color: #9ab; }
 .blocked-section { margin-top: 1rem; }
 .blocked-head { padding: .6rem .75rem; border-bottom: 1px solid #2a2a2a; display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .75rem; }
-.blocked-head h3 { margin: 0; font-size: 1rem; color: #ff8a80; }
-.blocked-total { color: #aaa; font-weight: normal; }
+.blocked-head h3 { margin: 0; font-size: 1rem; color: #ff4d4d; }
+.blocked-total { color: inherit; font-weight: normal; }
+.blocked-items { padding: .25rem 0; }
 .blocked-row { display: flex; align-items: center; gap: .75rem; padding: .3rem .75rem; border-bottom: 1px solid #1e1e1e; }
 .blocked-row:last-child { border-bottom: none; }
 .blocked-row .tr-name { flex: 1; min-width: 0; }

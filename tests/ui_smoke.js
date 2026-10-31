@@ -983,6 +983,7 @@ function check(label, cond, extra) {
     check("blocking it from one loadout replaces it in the others too", loadouts().length === 3 && loadouts().every((l) => !hasItem(l, "MG-43 Machine Gun")), loadouts().map((l) => hasItem(l, "MG-43 Machine Gun")).join());
     check("...and the message says how many others changed", /Also replaced in 2 other loadouts/.test($("messages").textContent), $("messages").textContent);
     check("the Blocked items section appears with it listed once", !$("blocked-section").hidden && rows().join() === "MG-43 Machine Gun" && /\(1\)/.test($("blocked-count").textContent), rows().join());
+    check("...and its rows are actually visible (not collapsed like a warbond body)", win.getComputedStyle($("blocked-list")).display !== "none");
     check("...it sits after the warbond list", $("gear-list").compareDocumentPosition($("blocked-section")) & 4);
     click(doc.querySelector('#blocked-list [data-unblock="MG-43 Machine Gun"]'));
     check("Unblock in the section unblocks it in the list and hides the section", blockBtn("MG-43 Machine Gun").getAttribute("aria-pressed") === "false" && $("blocked-section").hidden === true);
