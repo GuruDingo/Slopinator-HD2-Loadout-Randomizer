@@ -294,6 +294,14 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
 .b-row .chip-x:hover { color: #f44336; }
 .disclaimer .feedback { margin: 0 0 .6rem; font-size: .8rem; }
 .disclaimer .feedback a { color: #9ab; }
+.blocked-section { margin-top: 1rem; }
+.blocked-head { padding: .6rem .75rem; border-bottom: 1px solid #2a2a2a; display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .75rem; }
+.blocked-head h3 { margin: 0; font-size: 1rem; color: #ff8a80; }
+.blocked-total { color: #aaa; font-weight: normal; }
+.blocked-row { display: flex; align-items: center; gap: .75rem; padding: .3rem .75rem; border-bottom: 1px solid #1e1e1e; }
+.blocked-row:last-child { border-bottom: none; }
+.blocked-row .tr-name { flex: 1; min-width: 0; }
+.blocked-row .tr-type { color: #888; font-size: .75rem; }
 .rules-subtitle { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: #888; margin: .9rem 0 .2rem; }
 .data-row { align-items: center; }
 .data-row .hint { margin: 0; flex: 1 1 14rem; }

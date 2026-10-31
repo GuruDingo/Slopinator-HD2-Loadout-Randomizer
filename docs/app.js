@@ -369,7 +369,7 @@
 
   // `callLocks` = the slots to hold fixed for this one build; `avoid` = the item being replaced (so a reroll
   // actually changes it when another choice exists).
-  function rebuild(entry, callLocks, avoid, what, firstNote) {
+  function rebuild(entry, callLocks, avoid, what, firstNote, quiet) {
     var excluded = excludedNames();
     // Anything held fixed stays even if you blocked it since (it's already on screen).
     Object.keys(callLocks).forEach(function (k) { excluded.delete(callLocks[k].name); });
@@ -384,19 +384,21 @@
       if (avoid && (lo.emptySlots || 0) + (lo.emptyWeapons || 0) > (entry.lo.emptySlots || 0) + (entry.lo.emptyWeapons || 0)) throw new Engine.GenerationError("no other item");
     } catch (e) {
       if (!(e instanceof Engine.GenerationError)) throw e;
-      if (!avoid) { showMessages([e.message]); return; }
+      if (!avoid) { if (!quiet) showMessages([e.message]); return false; }
       try {
         base.excluded = excluded;
         lo = engine.generateLoadoutRelaxed(base);
         note = "There is no other " + what + " available with your current gear, locks and requirements.";
       } catch (e2) {
         if (!(e2 instanceof Engine.GenerationError)) throw e2;
-        showMessages([e2.message]); return;
+        if (!quiet) showMessages([e2.message]);
+        return false;
       }
     }
     entry.lo = lo;
-    showMessages([firstNote, note].filter(Boolean), "info");
+    if (!quiet) showMessages([firstNote, note].filter(Boolean), "info");
     redraw(entry);
+    return true;
   }
 
   function rerollSlot(entry, key) {
@@ -413,9 +415,24 @@
     if (!item || item.empty) return;
     blocked[item.name] = true;
     onGearChange();
-    var callLocks = {};
-    SLOT_KEYS.forEach(function (k) { if (k !== key) callLocks[k] = itemAt(entry.lo, k); });
-    rebuild(entry, callLocks, item, "item for this slot", "Blocked " + item.name + " in My Gear. Unblock it there to roll it again.");
+    // The same item in any other loadout on screen is replaced too (unless that slot is locked).
+    var others = 0, kept = 0;
+    lastRun.entries.forEach(function (other) {
+      if (other === entry) return;
+      SLOT_KEYS.forEach(function (k) {
+        if ((itemAt(other.lo, k) || {}).name !== item.name) return;
+        if (other.locks[k]) { kept++; return; }
+        var cl = {};
+        SLOT_KEYS.forEach(function (j) { if (j !== k) cl[j] = itemAt(other.lo, j); });
+        if (rebuild(other, cl, item, "item for this slot", null, true)) others++;
+      });
+    });
+    var cl = {};
+    SLOT_KEYS.forEach(function (k) { if (k !== key) cl[k] = itemAt(entry.lo, k); });
+    var msg = "Blocked " + item.name + " in My Gear. Unblock it there to roll it again.";
+    if (others) msg += " Also replaced in " + others + " other loadout" + (others === 1 ? "" : "s") + ".";
+    if (kept) msg += " Kept in " + kept + " locked slot" + (kept === 1 ? "" : "s") + ".";
+    rebuild(entry, cl, item, "item for this slot", msg);
   }
 
   function rerollUnlocked(entry) {
@@ -1379,6 +1396,26 @@
   }
   function onGearChange() { saveGear(); refreshGear(); }
 
+  // The "Blocked items" list at the bottom of My Gear: every blocked item in one place, with an Unblock button. Hidden when empty.
+  function updateBlockedSection() {
+    var items = ALL_ITEMS.filter(function (i) { return blocked[i.name]; });
+    var sec = $("blocked-section");
+    sec.hidden = items.length === 0;
+    $("blocked-count").textContent = items.length ? "(" + items.length + ")" : "";
+    var list = $("blocked-list");
+    list.textContent = "";
+    items.forEach(function (item) {
+      var btn = h("button", { type: "button", class: "block-btn unblock-btn", "data-unblock": item.name, "aria-pressed": "true",
+        title: "Unblock: allow this item to roll again" }, "Unblock");
+      btn.addEventListener("click", function () { delete blocked[item.name]; onGearChange(); });
+      list.appendChild(h("div", { class: "blocked-row" },
+        gearThumb(item),
+        h("span", { class: "tr-name" }, item.name),
+        h("span", { class: "tr-type" }, warbondName[item.warbond] || item.warbond),
+        btn));
+    });
+  }
+
   // Make the checkboxes, block buttons, counts and the randomizer's pool line match the model.
   function refreshGear() {
     facBulkRefreshers.forEach(function (fn) { fn(); });
@@ -1414,6 +1451,7 @@
     $("grand-total").textContent = st.owned + " / " + st.total + " items owned";
     $("gear-detail").textContent = "Rolling from " + st.pool + (st.blocked ? " (" + st.blocked + " blocked)" : "");
     updateFacTools();
+    updateBlockedSection();
     updatePoolLine();
   }
 

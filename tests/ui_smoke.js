@@ -963,6 +963,34 @@ function check(label, cond, extra) {
     click(blockBtn(before));   // unblock again for the later tests
     check("unblocking in My Gear works as before", blockBtn(before).getAttribute("aria-pressed") === "false");
   }
+  console.log("Blocked items section, block across loadouts, contact links");
+  {
+    // the earlier tests left the AC-8 Autocannon blocked: the section lists exactly that
+    const rows = () => Array.from(doc.querySelectorAll("#blocked-list .blocked-row")).map((r) => r.querySelector(".tr-name").textContent);
+    check("the Blocked items section lists what is blocked (only the AC-8 so far)", !$("blocked-section").hidden && rows().join() === "AC-8 Autocannon" && /\(1\)/.test($("blocked-count").textContent), rows().join());
+    click(doc.querySelector('#blocked-list [data-unblock="AC-8 Autocannon"]'));
+    check("unblocking the last one hides the section", $("blocked-section").hidden === true && rows().length === 0);
+    // owning only the starting gear: Orbital Precision Strike and the MG-43 are in every loadout
+    click($("gear-clear"));
+    setFaction("any");
+    $("count").value = "3";
+    generate();
+    const loadouts = () => Array.from(doc.querySelectorAll("#results .loadout"));
+    const hasItem = (lo, n) => Array.from(lo.querySelectorAll(".item-name")).some((e) => e.textContent === n);
+    check("the same stratagem is in all three loadouts", loadouts().length === 3 && loadouts().every((l) => hasItem(l, "MG-43 Machine Gun")), loadouts().length);
+    const mgCard = Array.from(loadouts()[0].querySelectorAll(".item-card, .item-card2")).find((c) => c.querySelector(".item-name").textContent === "MG-43 Machine Gun");
+    click(mgCard.querySelector(".block-slot-btn"));
+    check("blocking it from one loadout replaces it in the others too", loadouts().length === 3 && loadouts().every((l) => !hasItem(l, "MG-43 Machine Gun")), loadouts().map((l) => hasItem(l, "MG-43 Machine Gun")).join());
+    check("...and the message says how many others changed", /Also replaced in 2 other loadouts/.test($("messages").textContent), $("messages").textContent);
+    check("the Blocked items section appears with it listed once", !$("blocked-section").hidden && rows().join() === "MG-43 Machine Gun" && /\(1\)/.test($("blocked-count").textContent), rows().join());
+    check("...it sits after the warbond list", $("gear-list").compareDocumentPosition($("blocked-section")) & 4);
+    click(doc.querySelector('#blocked-list [data-unblock="MG-43 Machine Gun"]'));
+    check("Unblock in the section unblocks it in the list and hides the section", blockBtn("MG-43 Machine Gun").getAttribute("aria-pressed") === "false" && $("blocked-section").hidden === true);
+    const links = Array.from(doc.querySelectorAll("footer .feedback a"));
+    check("the footer has the bug link and a Reddit message link to u/gurudingo", links.length === 2 && /gurudingo/.test(links[1].textContent) && /reddit\.com\/message\/compose\/\?to=gurudingo$/.test(links[1].getAttribute("href")), links.map((a) => a.href).join(" "));
+    click($("gear-select-all"));
+    click(blockBtn("AC-8 Autocannon"));   // back to the state the later tests expect
+  }
   console.log("Saved images");
   {
     // a page whose data lists saved copies: those are used for every kind of picture; anything not listed keeps its wiki link
