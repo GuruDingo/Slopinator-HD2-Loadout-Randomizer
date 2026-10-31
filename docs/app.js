@@ -298,10 +298,19 @@
           h("summary", null, "Why?"),
           h("p", { class: "why-line" }, "The generator tries up to " + 1000 + " builds and keeps the one that breaks the least important rules " +
             "(your own rules first, then high, medium and low priority). None of them could follow everything at once."),
+          (lo.emptySlots || lo.emptyWeapons)
+            ? h("p", { class: "why-line" }, "You don\u2019t own enough gear to follow every rule: filling the slots took priority, and only the game\u2019s own limits " +
+                "(one FRV, one tank, one exosuit, no stratagem twice) were kept. The rules above are the ones that gave way.")
+            : null,
           lockNote(),
           h("p", { class: "why-line" }, "To fix it: loosen or remove a rule in Rules, tick more warbonds in My Gear, or unlock a slot."))));
     }
     box.appendChild(h("h3", { class: "section-title" }, "Weapons"));
+    if (lo.emptyWeapons) {
+      box.appendChild(h("p", { class: "hint empty-note" },
+        lo.emptyWeapons + " weapon slot" + (lo.emptyWeapons === 1 ? " is" : "s are") + " empty: nothing you own (and have not blocked in My Gear) fits " +
+        (lo.emptyWeapons === 1 ? "it." : "them.")));
+    }
     box.appendChild(h("div", { class: "card-row" },
       card("primary", "Primary", { wide: true }),
       card("secondary", "Secondary"),
@@ -359,7 +368,7 @@
       base.excluded = ex;
       lo = engine.generateLoadoutRelaxed(base);
       // Taking the item out must not leave the slot empty when it could have kept the old item.
-      if (avoid && (lo.emptySlots || 0) > (entry.lo.emptySlots || 0)) throw new Engine.GenerationError("no other item");
+      if (avoid && (lo.emptySlots || 0) + (lo.emptyWeapons || 0) > (entry.lo.emptySlots || 0) + (entry.lo.emptyWeapons || 0)) throw new Engine.GenerationError("no other item");
     } catch (e) {
       if (!(e instanceof Engine.GenerationError)) throw e;
       if (!avoid) { showMessages([e.message]); return; }

@@ -466,10 +466,10 @@ function check(label, cond, extra) {
 
   console.log("Faction fallback");
   setFaction("bug");
-  ownOnly(FREE_SOURCES);
-  check("free sources only -> small pool, premium warbonds not owned", (() => { const m = /Rolling from (\d+) of (\d+)/.exec(poolText()); return m && Number(m[1]) > 6 && Number(m[1]) < Number(m[2]) / 2; })(), poolText());
+  ownOnly(["base", "cutting_edge", "urban_legends"]);
+  check("a small collection -> small pool, most warbonds not owned", (() => { const m = /Rolling from (\d+) of (\d+)/.exec(poolText()); return m && Number(m[1]) > 6 && Number(m[1]) < Number(m[2]) / 2; })(), poolText());
   generate();
-  check("bug + free sources only (no premium warbonds) -> off-faction banner shown", !!doc.querySelector("#results .faction-warning"));
+  check("bug + a small collection with too little for bugs -> off-faction banner shown", !!doc.querySelector("#results .faction-warning"));
   check("...with a Why? detail that names the reason", /Why\?/.test((doc.querySelector("#results .faction-warning details.why") || {}).textContent || ""), (doc.querySelector("#results .faction-warning") || {}).textContent);
   check("...and each OFF-FACTION badge on a card explains itself", Array.from(doc.querySelectorAll("#results .item-card .suboptimal-badge, #results .item-card2 .suboptimal-badge")).every((b) => /meant for/.test(b.title)), "");
 
@@ -913,6 +913,15 @@ function check(label, cond, extra) {
     if (blockBtn("AC-8 Autocannon").getAttribute("aria-pressed") !== "true") click(blockBtn("AC-8 Autocannon"));
     generate();
     check("owning plenty of stratagems never leaves an empty slot", doc.querySelectorAll("#results .is-empty").length === 0 && !doc.querySelector("#results .empty-note"));
+    // a weapon slot with nothing left to roll is an Empty Slot too, with its own note
+    win.HD2_DATA.items.filter((i) => i.cat === "secondary" && i.factions.indexOf("none") === -1).forEach((i) => {
+      const b = blockBtn(i.name); if (b && b.getAttribute("aria-pressed") !== "true") click(b);
+    });
+    generate();
+    const weaponRow = () => Array.from(doc.querySelectorAll("#results .loadout .card-row")[0].querySelectorAll(".item-card, .item-card2"));
+    check("with every secondary blocked the build still succeeds and the secondary slot is empty",
+      errors().length === 0 && weaponRow()[1].classList.contains("is-empty"), errors().join(" | "));
+    check("...and a note says a weapon slot is empty", /1 weapon slot is empty/.test(doc.querySelector("#results .empty-note").textContent));
   }
   console.log("Saved images");
   {

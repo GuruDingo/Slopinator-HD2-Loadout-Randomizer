@@ -72,10 +72,12 @@ test("best-effort build gets as close to a hard requirement as it can (demo:7)",
   assert(avg >= 4, "average demo count " + avg.toFixed(1) + " is lower than expected");
 });
 
-test("faction relax still preferred over flagging rules (bug + no premium warbonds is strict, off-faction flagged)", () => {
-  const l = engine.generateLoadoutRelaxed({ faction: "bug", ownedWarbonds: ["base","req_p","req_o","req_h","req_b","req_e","req_r","super_citizen"] });
-  assert.deepStrictEqual(l.unmet, []);
-  assert.strictEqual(l.factionOverridden, true);
+test("faction relax still preferred over flagging rules (bug with only the starting gear and two small warbonds: relaxed, off-faction flagged)", () => {
+  for (let i = 0; i < 20; i++) {
+    const l = engine.generateLoadoutRelaxed({ faction: "bug", ownedWarbonds: ["base", "cutting_edge", "urban_legends"] });
+    assert.deepStrictEqual(l.unmet, []);
+    assert.strictEqual(l.factionOverridden, true);
+  }
 });
 
 test("a build with no eligible items at all throws a GenerationError", () => {
@@ -622,13 +624,62 @@ test("Empty slots: blocked stratagems count as not owned; locks count as owned",
   assert.strictEqual(locked.emptySlots, 0, "a locked stratagem fills the fourth slot");
 });
 test("Empty slots: a stratagem that only misses because of the faction filter is used (faction relaxed), not left empty", () => {
-  // Base gear only has MG-43 (bug, squid) and Orbital Precision Strike (any): against bots the MG-43 is off-faction but still better than a hole.
+  // Own only one stratagem that does not work against bots plus Orbital Precision Strike: against bots it is off-faction but still better than a hole.
+  const offFaction = engine.pools.strategems.find((x) => !HD2Engine.worksFor(x, "bot") && x.factions.indexOf("none") === -1);
+  const keep = ["Orbital Precision Strike", offFaction.name];
+  const excluded = new Set(engine.pools.strategems.filter((x) => !keep.includes(x.name)).map((x) => x.name));
   for (let i = 0; i < 50; i++) {
-    const l = engine.generateLoadoutRelaxed({ faction: "bot", ownedWarbonds: ["base"] });
-    assert(l.strategems.some((s) => s.name === "MG-43 Machine Gun"), "MG-43 should be kept");
+    const l = engine.generateLoadoutRelaxed({ faction: "bot", excluded });
+    assert(l.strategems.some((x) => x.name === offFaction.name), offFaction.name + " should be kept");
     assert.strictEqual(l.emptySlots, 2);
     assert(l.factionOverridden);
   }
+});
+test("Empty slots: item caps never leave a slot empty while an owned stratagem is available", () => {
+  // MG-43 and Orbital Precision Strike (always owned) + the AC-8 Autocannon: two regular support weapons break a preference
+  // (at most one), but the third stratagem is still brought; only one slot is empty.
+  const keep = ["MG-43 Machine Gun", "Orbital Precision Strike", "AC-8 Autocannon"];
+  const excluded = new Set(engine.pools.strategems.filter((s) => !keep.includes(s.name)).map((s) => s.name));
+  for (let i = 0; i < 40; i++) {
+    const l = engine.generateLoadoutRelaxed({ faction: "any", excluded });
+    assert.strictEqual(l.emptySlots, 1, l.strategems.map((s) => s.name).join());
+    keep.forEach((n) => assert(l.strategems.some((s) => s.name === n), n));
+  }
+});
+test("Empty slots: only the in-game limits hold when stratagems are few; the player's own max rules are flagged instead", () => {
+  const two = ["M-102 Gunner FRV", "M-103 Supply FRV"].map(pick);
+  const keep = ["Orbital Precision Strike", "MG-43 Machine Gun"].concat(two.map((x) => x.name));
+  const excluded = new Set(engine.pools.strategems.filter((s) => !keep.includes(s.name)).map((s) => s.name));
+  for (let i = 0; i < 30; i++) {
+    const l = engine.generateLoadoutRelaxed({ faction: "any", excluded });
+    assert.strictEqual(l.strategems.filter((s) => HD2Engine.has(s, "frv")).length, 1, "never two FRVs");
+    assert.strictEqual(l.emptySlots, 1);
+  }
+  // the player's own "at most" rule gives way rather than leave an owned stratagem unused, and the build says so
+  const keep3 = ["MG-43 Machine Gun", "Orbital Precision Strike", "AC-8 Autocannon"];
+  const ex3 = new Set(engine.pools.strategems.filter((s) => !keep3.includes(s.name)).map((s) => s.name));
+  const noPack = engine.generateLoadoutRelaxed({ faction: "any", excluded: ex3, requirements: { backpack: { max: 0 } } });
+  assert(noPack.strategems.some((s) => s.name === "AC-8 Autocannon"));
+  assert.strictEqual(noPack.emptySlots, 1);
+  assert(noPack.unmet.some((u) => u.id === "require"), JSON.stringify(noPack.unmet));
+});
+test("Best effort: owning only support weapons fills all four slots and flags the support-weapon limit", () => {
+  const keep = ["MG-43 Machine Gun", "M-105 Stalwart", "RS-422 Railgun", "FLAM-40 Flamethrower"];
+  const excluded = new Set(engine.pools.strategems.filter((s) => !keep.includes(s.name)).map((s) => s.name));
+  for (let i = 0; i < 20; i++) {
+    const l = engine.generateLoadoutRelaxed({ faction: "any", excluded });
+    assert.strictEqual(l.emptySlots, 0);
+    keep.forEach((n) => assert(l.strategems.some((s) => s.name === n), n));
+    assert(l.unmet.some((u) => u.id === "capRegular"), JSON.stringify(l.unmet));
+  }
+});
+test("Best effort: a weapon slot with nothing owned for it is left empty instead of failing the build", () => {
+  const sec = engine.pools.secondaries.map((x) => x.name);
+  const excluded = new Set(sec);
+  const l = engine.generateLoadoutRelaxed({ faction: "any", excluded });
+  assert(l.secondary.empty && l.secondary.name === "Empty Slot");
+  assert.strictEqual(l.emptyWeapons, 1);
+  assert(l.primary && !l.primary.empty);
 });
 test("Empty slots: owning enough stratagems never produces one", () => {
   for (let i = 0; i < 300; i++) {
