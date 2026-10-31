@@ -581,6 +581,14 @@ function check(label, cond, extra) {
   check("clearing search shows everything again", doc.querySelectorAll("#gear-list .gear-row[hidden]").length === 0 && doc.querySelectorAll("#gear-list .wb-block[hidden]").length === 0);
   click(doc.querySelector('.tab[data-view="randomizer"]'));
 
+  check("Super Citizen/Event Rewards: MP-98 first, then the event items in release order; the retired FRV is not listed", (() => {
+    const names = Array.from(blockBlock("Super Citizen/Event Rewards").querySelectorAll("input[data-item]")).map((i) => i.getAttribute("data-item"));
+    return names.join("|") === "MP-98 Knight|R-4 Hyena|Eagle Gas Airstrike|TD-110 Maelstrom|AR-23L Liberator Legacy";
+  })());
+  check("the merged warbond sits directly below Superstore", (() => {
+    const labels = Array.from(doc.querySelectorAll("#gear-list > .wb-block .wb-name")).map((e) => e.textContent);
+    return labels[labels.indexOf("Superstore") + 1] === "Super Citizen/Event Rewards";
+  })());
   console.log("Requisition group");
   click(doc.querySelector('.tab[data-view="gear"]'));
   const grp = () => doc.querySelector("#gear-list .wb-group");
