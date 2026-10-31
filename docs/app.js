@@ -95,8 +95,11 @@
   // Shorter label for the pill on a loadout card (the warbond lists and the tracker keep the full names).
   var warbondPillName = {
     req_p: "Requisition", req_o: "Requisition", req_h: "Requisition",
-    req_b: "Requisition", req_e: "Requisition", req_r: "Requisition"
+    req_b: "Requisition", req_e: "Requisition", req_r: "Requisition",
+    super_citizen: "Event Reward"
   };
+  // Items whose pill differs from the rest of their warbond: the MP-98 Knight was the Super Citizen Edition bonus.
+  var itemPillName = { "MP-98 Knight": "Super Citizen Edition" };
 
   // ---------------------------------------------------------------------------
   // Tabs
@@ -176,7 +179,7 @@
     var cls = (opts.wide ? "item-card2" : "item-card") + (suboptimal ? " suboptimal" : "") + (locked ? " is-locked" : "") + (item.empty ? " is-empty" : "");
     var warbondRow = item.warbond !== "base"
       ? h("div", { class: "warbond-row" },
-          h("span", { class: "tag-pill", style: "background:#2a2a2a;border:1px solid #555" }, warbondPillName[item.warbond] || warbondName[item.warbond] || item.warbond))
+          h("span", { class: "tag-pill", style: "background:#2a2a2a;border:1px solid #555" }, itemPillName[item.name] || warbondPillName[item.warbond] || warbondName[item.warbond] || item.warbond))
       : null;
     // Lock and reroll controls only exist on cards that belong to a generated loadout (opts.onLock / opts.onReroll).
     var lockBtn = opts.onLock && !item.empty   // an empty slot has nothing to keep

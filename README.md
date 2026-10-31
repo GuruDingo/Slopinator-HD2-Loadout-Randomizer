@@ -66,7 +66,7 @@ that you can send to a friend as-is.
 
 ## My Gear: warbond groups
 
-The six Requisition shops are shown under one collapsible **Requisition** header (with the Requisition Slip icon and its own Own / Block buttons and count), and inside it each shop appears by its short name (Hangar, Bridge, ...). The data is unchanged: the CSV still calls them `Requisition: Hangar` etc., which is what search and the loadout-card pill use, so typing "requisition" still finds all of them. Which warbonds group together is the `WARBOND_GROUPS` list in `docs/app.js`.
+The six Requisition shops are shown under one collapsible **Requisition** header (with the Requisition Slip icon and its own Own / Block buttons and count), and inside it each shop appears by its short name (Hangar, Bridge, ...). The data is unchanged: the CSV still calls them `Requisition: Hangar` etc., which is what search and the loadout-card pill use, so typing "requisition" still finds all of them. Which warbonds group together is the `WARBOND_GROUPS` list in `docs/app.js`. The merged Super Citizen/Event Rewards warbond has two pill labels: the MP-98 Knight reads **Super Citizen Edition** and the other items read **Event Reward** (`itemPillName` and `warbondPillName` in `docs/app.js`).
 
 ## What the page stores
 

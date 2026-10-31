@@ -478,6 +478,19 @@ function check(label, cond, extra) {
   $("count").value = "5"; generate();
   const pills = Array.from(doc.querySelectorAll("#results .warbond-row .tag-pill")).map((p) => p.textContent);
   check("Requisition sources show the short pill label", pills.length > 0 && pills.includes("Requisition") && pills.every((t) => !/^Requisition: /.test(t)), JSON.stringify(Array.from(new Set(pills))) + " errors=" + JSON.stringify(errors()) + " cards=" + cards());
+  {
+    // the merged Super Citizen/Event Rewards warbond keeps two pill labels: the MP-98 Knight is the Super Citizen Edition, the rest are Event Rewards
+    click($("gear-select-all"));
+    $("count").value = "1";
+    $("lock-primary").value = "MP-98 Knight"; $("lock-strat1").value = "TD-110 Maelstrom";
+    generate();
+    const pillsOf = (card) => Array.from(card.querySelectorAll(".warbond-row .tag-pill")).map((p) => p.textContent);
+    const cardNamed = (n) => Array.from(doc.querySelectorAll("#results .item-card, #results .item-card2")).find((c) => c.querySelector(".item-name").textContent === n);
+    check("the MP-98 Knight's warbond pill says Super Citizen Edition", cardNamed("MP-98 Knight") && pillsOf(cardNamed("MP-98 Knight")).join() === "Super Citizen Edition", cardNamed("MP-98 Knight") && pillsOf(cardNamed("MP-98 Knight")).join());
+    check("...and the other items of that warbond say Event Reward", cardNamed("TD-110 Maelstrom") && pillsOf(cardNamed("TD-110 Maelstrom")).join() === "Event Reward", cardNamed("TD-110 Maelstrom") && pillsOf(cardNamed("TD-110 Maelstrom")).join());
+    $("lock-primary").value = ""; $("lock-strat1").value = "";
+    ownOnly(["base", "cutting_edge", "urban_legends"]);
+  }
   const reqGroup = doc.querySelector("#gear-list .wb-group");
   const reqSubNames = Array.from(reqGroup.querySelectorAll(".wb-group-body .wb-block .wb-name")).map((n) => n.textContent);
   check("the Requisition group lists the six shops by short name, in order", reqSubNames.join("|") === "Patriotic Administration Center|Orbital Cannons|Hangar|Bridge|Engineering Bay|Robotics Workshop", reqSubNames.join("|"));
