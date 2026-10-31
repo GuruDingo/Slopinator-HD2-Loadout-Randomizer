@@ -127,11 +127,12 @@
     return item.tags.indexOf(tag) !== -1;
   }
 
-  // An empty stratagem slot. Players who own fewer than four stratagems can legitimately go in with fewer, so the slots they
-  // cannot fill hold this placeholder: no tags (it counts toward nothing), works for every faction, and a fresh object per slot
-  // so two empty slots are never mistaken for the same stratagem twice.
-  function makeEmptySlot() {
-    return { id: "empty", cat: "empty", name: "Empty Slot", nicknames: [], tags: [], factions: ["any"], warbond: "base",
+  // An empty slot. A player with fewer than four stratagems can still bring a loadout in the game, and a player with nothing
+  // owned for a weapon slot has nothing to put there, so the slots that cannot be filled hold this placeholder: no tags (it counts
+  // toward nothing), works for every faction, and a fresh object per slot so two empty slots are never mistaken for the same
+  // item twice. `cat` is the slot's own category ("primary", "secondary", "throwable") or "empty" for a stratagem slot.
+  function makeEmptySlot(cat) {
+    return { id: "empty", cat: cat || "empty", name: "Empty Slot", nicknames: [], tags: [], factions: ["any"], warbond: "base",
       released: "", imgUrl: "https://helldivers.wiki.gg/images/Super_Earth_Icon.svg", armorPen: [], menuOrder: null, alwaysOwned: true, empty: true };
   }
 
@@ -389,12 +390,24 @@
 
       // Weapons
       var primary = seed ? seed.primary : (locks.primary || null);
-      if (!primary) { var pp = pool(primaries); primary = pp.length ? pickFor(pp, "primary") : null; }
+      // A weapon slot with nothing owned for it (in any faction) is left empty. If something is owned but only for another faction,
+      // the build is incomplete and the caller relaxes the faction instead.
+      function ownedAny(list) {
+        return list.some(function (x) { return (ownedSet.has(x.warbond) || x.alwaysOwned) && !excluded.has(x.name) && x.factions.indexOf("none") === -1; });
+      }
+      function weaponFor(list, slot) {
+        var wp = pool(list);
+        if (wp.length) return pickFor(wp, slot);
+        return ownedAny(list) ? null : makeEmptySlot(slot);
+      }
+      if (!primary) primary = weaponFor(primaries, "primary");
       var secondary = seed ? seed.secondary : (locks.secondary || null);
-      if (!secondary) { var sp = pool(secondaries); secondary = sp.length ? pickFor(sp, "secondary") : null; }
+      if (!secondary) secondary = weaponFor(secondaries, "secondary");
       var throwable = seed ? seed.throwable : (locks.throwable || null);
-      if (!throwable) { var tp = pool(throwables); throwable = tp.length ? pickFor(tp, "throwable") : null; }
+      if (!throwable) throwable = weaponFor(throwables, "throwable");
       if (!primary || !secondary || !throwable) return null;
+      // Nothing owned at all is not a loadout; that is an error rather than a screen of empty slots.
+      if (primary.empty && secondary.empty && throwable.empty) return null;
 
       // Stratagems
       var lockedStrats = [1, 2, 3, 4].map(function (n) { return locks["strat" + n] || null; });
@@ -528,38 +541,20 @@
         st = trial;
         chosen[freeSlots.shift()] = s;
       }
+      // Slots the rules left open. Rules are not allowed to leave a slot empty while an owned stratagem is available: the only things
+      // that still hold are the in-game limits (one FRV, one tank, one exosuit; no stratagem twice). Everything else (the item caps,
+      // the player's own "at most" rules) gives way, and the rule checks below flag whatever ended up broken. A slot that no owned
+      // stratagem can fill is simply empty, which is allowed in the game.
+      var forced = false;
       if (chosen.some(function (s) { return !s; })) {
-        // Couldn't fill every slot. If the player has fewer than four stratagems to bring at all, the rest are simply empty
-        // (allowed in the game). Not if an owned stratagem is only missing because of the faction filter: then the build is
-        // incomplete and the caller relaxes the faction instead.
         var owned = strategems.filter(function (x) {
           return (ownedSet.has(x.warbond) || x.alwaysOwned) && !excluded.has(x.name) && x.factions.indexOf("none") === -1;
         });
-        var holders = new Set(owned);
-        chosen.forEach(function (c) { if (c && !c.empty) holders.add(c); });
-        // How many different stratagems could be brought at all: at most one FRV, one tank and one exosuit count.
-        var limitKinds = {}, bringable = 0;
-        holders.forEach(function (x) {
-          var kind = IN_GAME_LIMITS.filter(function (t) { return has(x, t); })[0];
-          if (kind) limitKinds[kind] = true; else bringable++;
-        });
-        bringable += Object.keys(limitKinds).length;
-        if (bringable >= 4) return null;
-        // Which stratagems may still be added when there are fewer than four to bring: the in-game limits and the player's own
-        // "at most" rules still hold, but the default item caps (one regular support weapon, one backpack, ...) are only
-        // preferences. They must not leave a slot empty while an owned stratagem is available; a cap that ends up broken is
-        // flagged by the rule checks below like any other unmet rule.
-        var ownUpperRules = customRules.filter(isUpperOnly);
-        function mayAdd(x) {
-          var soFar = [primary, secondary, throwable].concat(chosen.filter(Boolean));
+        var mayAdd = function (x) {
           for (var g = 0; g < IN_GAME_LIMITS.length; g++) if (has(x, IN_GAME_LIMITS[g]) && st[IN_GAME_LIMITS[g]] >= 1) return false;
-          for (var m2 = 0; m2 < maxTags.length; m2++) {
-            if (has(x, maxTags[m2]) && soFar.filter(function (i) { return has(i, maxTags[m2]); }).length >= requirements[maxTags[m2]].max) return false;
-          }
-          var after = { primary: primary, secondary: secondary, throwable: throwable, strats: soFar.slice(3).concat([x]) };
-          for (var u = 0; u < ownUpperRules.length; u++) if (touchesStrat(ownUpperRules[u], x) && evalRule(ownUpperRules[u], after)) return false;
           return true;
-        }
+        };
+        // An owned stratagem that is only missing because of the faction filter: the build is incomplete, the caller relaxes the faction.
         var offFaction = owned.some(function (x) { return chosen.indexOf(x) === -1 && !worksFor(x, faction) && mayAdd(x); });
         if (offFaction) return null;
         for (var q = 0; q < stratPool.length && freeSlots.length; q++) {
@@ -567,6 +562,7 @@
           if (chosen.indexOf(extra) !== -1 || !mayAdd(extra)) continue;
           chosen[freeSlots.shift()] = extra;
           IN_GAME_LIMITS.forEach(function (t) { if (has(extra, t)) st[t] += 1; });
+          forced = true;
         }
         chosen = chosen.map(function (c) { return c || makeEmptySlot(); });
       }
@@ -641,6 +637,15 @@
         });
       });
 
+      // A build that had to be completed past the item caps: the support limits (enforced while picking, so never flagged otherwise)
+      // are checked here, so a broken one is reported.
+      if (forced) {
+        RULES.forEach(function (r) {
+          if (!r.rules || !r.fill || !ruleOn(r.id)) return;
+          r.rules.forEach(function (rule) { if (evalRule(rule, ctx)) fail(r.id, r.label); });
+        });
+      }
+
       // The player's own generic rules (scoped counts, if/then). Locks are never changed to satisfy them: a lock that
       // breaks one just gets it reported, like any other rule.
       customRules.forEach(function (rule) {
@@ -653,6 +658,7 @@
       return {
         primary: primary, secondary: secondary, throwable: throwable, strategems: chosen,
         emptySlots: chosen.filter(function (c) { return c.empty; }).length,
+        emptyWeapons: [primary, secondary, throwable].filter(function (c) { return c.empty; }).length,
         coversArmor: coversArmor, coversMed: coversMed, coversChaff: coversChaff,
         coversDemo: coversDemo, coversPanic: coversPanic,
         unmet: unmet,                                  // [] for a build that follows every rule

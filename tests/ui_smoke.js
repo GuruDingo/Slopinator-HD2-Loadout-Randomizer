@@ -913,6 +913,15 @@ function check(label, cond, extra) {
     if (blockBtn("AC-8 Autocannon").getAttribute("aria-pressed") !== "true") click(blockBtn("AC-8 Autocannon"));
     generate();
     check("owning plenty of stratagems never leaves an empty slot", doc.querySelectorAll("#results .is-empty").length === 0 && !doc.querySelector("#results .empty-note"));
+    // a weapon slot with nothing left to roll is an Empty Slot too, with its own note
+    win.HD2_DATA.items.filter((i) => i.cat === "secondary" && i.factions.indexOf("none") === -1).forEach((i) => {
+      const b = blockBtn(i.name); if (b && b.getAttribute("aria-pressed") !== "true") click(b);
+    });
+    generate();
+    const weaponRow = () => Array.from(doc.querySelectorAll("#results .loadout .card-row")[0].querySelectorAll(".item-card, .item-card2"));
+    check("with every secondary blocked the build still succeeds and the secondary slot is empty",
+      errors().length === 0 && weaponRow()[1].classList.contains("is-empty"), errors().join(" | "));
+    check("...and a note says a weapon slot is empty", /1 weapon slot is empty/.test(doc.querySelector("#results .empty-note").textContent));
   }
   console.log("Saved images");
   {
