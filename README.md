@@ -1,20 +1,20 @@
 # Helldivers 2 Slopinator
 
-A loadout randomizer fan project for Helldivers 2.
+A loadout randomizer fan project.
 
 **Use it online: https://gurudingo.github.io/Slopinator-HD2-Loadout-Randomizer/**
 
 ## Preface: A Note from the "Author"
 
-What was once an experimental attempt at learning how to use AI to apply minimal python coding in an otherwise low-coding work environment, has now become an absolute failure on all fronts. I learned no Python, my co-workers proved AI's applications elsewhere without my input, and this project ended up pivoting out of any professionally usable coding language entirely. 
+What was once an experimental attempt at learning how to use AI to utilize some small amount of Python coding in an otherwise low-coding work environment, has now become an absolute failure on nearly all fronts. I learned no Python, my co-workers proved AI's applications elsewhere without my input, and this project ended up pivoting out of any professionally usable coding language entirely. 
 
 ...but hey, the tool ended up working.
 
 **The Slopinator** is a vibe coded nonsense project that creates customizable, randomized loadouts for Helldivers 2. It allows you to specify rules to create well rounded, effective loadouts, randomly generated based on your pool of unlocked weapons. It runs in a a static website, entirely in the visitor's browser. No server, no accounts, nothing to host except the files in `docs/`.
 
-Is it too good to be true? Hell no, I participated in the boiling of oceans and poisoning of communities in making this thing. It is our AI nightmares made true, regurgitating a half baked vision into Javascript nightmares. It's internal logics are barely known to me, it's end result is hardly worth the trouble. By the time I had come to regret it's creation, I had already gone to far to stop. The road to damnation is paved with good intentions, and while I do not regret the vision I set out to make real, I do feel shame at the roads end, for I earned my reward and learned nothing for it.
+Is it too good to be true? Hell no, I participated in the boiling of oceans and poisoning of communities in making this thing. It is our AI nightmares made true, regurgitating a half baked vision into Javascript nightmares. It's internal logics are barely known to me, it's end result is hardly worth the trouble. By the time I had come to regret it's creation, I had already gone too far to stop. The road to damnation is paved with good intentions, and while I stand by the idea I set out to make real, I feel shame at the roads end, for I earned my reward and learned nothing for it.
 
-It deserves no praise or love, but may it amuse you, my fellow brave divers. May the fun it brings you make it worth it some day.
+It deserves no praise or love, but may it amuse you, my fellow divers. May the fun it brings you make it worth it some day.
 
  - GuruDingo
 
