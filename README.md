@@ -6,13 +6,13 @@ A loadout randomizer fan project.
 
 ## Preface: A Note from the "Author"
 
-What was once an experimental attempt at learning how to use AI to utilize some small amount of Python coding in an otherwise low-coding work environment, has now become an absolute failure on nearly all fronts. I learned no Python, my co-workers proved AI's applications elsewhere without my input, and this project ended up pivoting out of any professionally usable coding language entirely. 
+What was once an experimental attempt at learning how to use AI to utilize some small amount of Python coding in an otherwise low-coding work environment has now become an absolute failure on nearly all fronts. I learned no Python, my co-workers proved AI's applications elsewhere without my input, and this project ended up pivoting out of any professionally usable coding language entirely. 
 
 ...but hey, the tool ended up working.
 
-**The Slopinator** is a vibe coded nonsense project that creates customizable, randomized loadouts for Helldivers 2. It allows you to specify rules to create well rounded, effective loadouts, randomly generated based on your pool of unlocked weapons. It runs in a a static website, entirely in the visitor's browser. No server, no accounts, nothing to host except the files in `docs/`.
+**The Slopinator** is a vibe-coded nonsense project that creates customizable, randomized loadouts for Helldivers 2. It allows you to specify rules to create well rounded, effective loadouts, randomly generated based on your pool of unlocked weapons. It runs in a static website, entirely in the visitor's browser. No server, no accounts, nothing to host except the files in `docs/`.
 
-Is it too good to be true? Hell no, I participated in the boiling of oceans and poisoning of communities in making this thing. It is our AI nightmares made true, regurgitating a half baked vision into Javascript nightmares. It's internal logics are barely known to me, it's end result is hardly worth the trouble. By the time I had come to regret it's creation, I had already gone too far to stop. The road to damnation is paved with good intentions, and while I stand by the idea I set out to make real, I feel shame at the roads end, for I earned my reward and learned nothing for it.
+Is it too good to be true? Hell no, I participated in the boiling of oceans and poisoning of communities in making this thing. It is our AI nightmares made true, regurgitating a half-baked vision into JavaScript nightmares. Its internal logic is barely known to me, its end result is hardly worth the trouble. By the time I had come to regret its creation, I had already gone too far to stop. The road to damnation is paved with good intentions, and while I stand by the idea I set out to make real, I feel shame at the road's end, for I earned my reward and learned nothing for it.
 
 It deserves no praise or love, but may it amuse you, my fellow divers. May the fun it brings you make it worth it some day.
 
@@ -48,10 +48,10 @@ Do this when a release adds weapons, stratagems or a warbond. The wiki's page fo
 1. **Collect the data for each new item**: name, category (`primary`, `secondary`, `throwable`, `support`, `backpack`, `vehicle`, `eagle`, `orbital`, `sentry`, `defensive`), the warbond it belongs to, its picture address (the weapon's "Render" image, or the stratagem icon image), and its armor penetration (below).
 2. **Add a row to `hd2gear.csv`** (Excel is fine; keep the file's line endings). Columns: `id` (permanent: the highest id so far + 1, see "Permanent ids"), `category`, `name`, `nicknames` (lower case, comma separated, each unique across the game), `tags`, `factions` (`any`, or a list of `bug`, `bot`, `squid`), `warbond` (a key from `hd2warbonds.csv`, or `base`), `img_url` (the wiki address), `armor_pen`, `release_date` (YYYY-MM-DD, the day it was added to the game), `menu_order` (optional: the item's place inside its warbond block on the My Gear list, 1, 2, 3..., unique per warbond; blank items follow in file order; filled in for the six Requisition shops, in the game's own menu order) and `always_owned` (`yes` or blank: counts as owned whatever the warbond, used for MG-43 and Orbital Precision Strike, which sit in the Patriotic Administration Center and Bridge shops but are free from the start). Tags and factions are judgment calls; copy a similar item. A new item gets the next free id (highest + 1) and can go anywhere in the file (the end is easiest); the order of the rows doesn't matter, because release order is the `release_date` column.
    - `armor_pen` is the main attack's armor-penetration icon number (-1 no hitbox, 0 unarmored, 2 light, 3 medium, 4 heavy, 5-10 anti-tank I-VI, 11 indestructible), two numbers joined by `/` for a two-mode weapon (`2/4`), blank for something that does no damage. For stratagems, use the AP icon the wiki page leads with, not the structure's own armor (`AV`) icons.
-3. **If there is a new warbond**: add a row to `hd2warbonds.csv` (key, display name; the key is what the items' `warbond` column uses), and add its title icon to `WARBOND_ICONS` in `docs/app.js`. Only a new Requisition shop needs more: add its key to `warbondPillName` and `WARBOND_GROUPS` in `docs/app.js` (ask me). The UI tests work out the item count from the data, but they still hard-code the number of warbonds (36) and top-level My Gear blocks (31), so those two numbers need updating when a warbond is added.
+3. **If there is a new warbond**: add a row to `hd2warbonds.csv` (key, display name; the key is what the items' `warbond` column uses), and add its title icon to `WARBOND_ICONS` in `docs/app.js`. Only a new Requisition shop needs more: add its key to `warbondPillName` and `WARBOND_GROUPS` in `docs/app.js` (follow the existing entries as a pattern). The UI tests work out the item count from the data, but they still hard-code the number of warbonds (36) and top-level My Gear blocks (31), so those two numbers need updating when a warbond is added.
 4. **Rebuild**: `python tools/build_gear.py`. It checks for typos (unknown category or warbond, duplicate names or nicknames, bad `armor_pen`) and rebuilds `docs/gear-data.js`; it writes nothing if it finds an error. Warnings about a missing picture or `armor_pen` are only reminders.
 5. **Save the new pictures**: GitHub's Actions tab -> "Fetch images" -> Run workflow (or `python tools/fetch_images.py`), then merge the `images-fetched` branch it creates. Only missing files are downloaded. Until that is done the new items show their wiki pictures, so nothing breaks. See "Saved images".
-6. **Check the tags** (this is a manual step, not part of the build): run `python tools/tag_checks.py`. It flags missing implied tags and tags used by fewer than three items; nothing is changed without your say-so.
+6. **Check the tags** (this is a manual step, not part of the build): run `python tools/tag_checks.py`. It flags missing implied tags and tags used by fewer than three items; nothing is changed automatically.
    - A new **meme tag** (an elemental or themed build tag such as fire, arc, gas, stealth, explosive, laser or plasma) also needs a row in `hd2tags.csv` with a `group` (the section it sits under in the rule builder's dropdowns, e.g. Damage type), a title, a one-line `description` (shown under the dropdown with the item count and a few examples), a `pill_color` (like `#c8541a`) and a `pill_order` (the next free number; the lowest is leftmost on a card); all meme tags get pills. Any other new tag only needs a row with a group, a title and a description (leave `pill_color` and `pill_order` blank for no pill) if it should appear in the Rules dropdown. Sections appear in the order they first show up in the file, and tags appear in file order inside each section (so you decide the order). The build checks for duplicate tags, missing titles, descriptions or groups, malformed colours and clashing pill orders.
 7. **Re-save the odds baseline and run every test**: `node tests/regression.js --update-baseline`, then `node tests/run_all.js`. New items change the odds, so the regression test's baseline needs refreshing after an intentional change like this.
 8. **Publish**: commit the CSVs, `docs/gear-data.js`, `docs/img/` and `tests/baseline.json` on a branch, open a pull request (the test run attaches a downloadable build so you can try it first), merge it, and hard-refresh the live site.
@@ -78,16 +78,16 @@ Base Game gear is always owned. A browser with no saved data starts with everyth
 
 ## Publishing on GitHub Pages
 
-Repo -> Settings -> Pages -> Source: "Deploy from a branch" -> Branch `main`, folder `/docs` -> Save.
+Repository -> Settings -> Pages -> Source: "Deploy from a branch" -> Branch `main`, folder `/docs` -> Save.
 The site appears at `https://<your-user>.github.io/<repo-name>/` after a minute or so.
 
-## Saved images (no more hotlinking)
+## Saved images
 
 The page shows pictures from the Helldivers wiki: item art (about 200), the faction emblems, the warbond title icons, the Requisition slip and the 13 armor-penetration icons. `tools/fetch_images.py` saves them all into `docs/img/` so the published site serves its own copies and keeps working if the wiki changes a file or blocks hotlinking.
 
 ```
 pip install pillow                       # once, for resizing
-python tools/fetch_images.py             # download what is missing (about 280 files, a few minutes; polite rate limit)
+python tools/fetch_images.py             # download what is missing (about 250 files, a few minutes; polite rate limit)
 python tools/build_gear.py               # copies the list into docs/gear-data.js
 python tools/fetch_images.py --list      # what is saved / still missing, no downloading
 python tools/fetch_images.py --from-dir D   # use pictures you downloaded yourself into folder D (by wiki file name)
@@ -105,7 +105,7 @@ python tools/fetch_images.py --from-dir D   # use pictures you downloaded yourse
 
 ```
 npm install jsdom                 # once, for the UI test (not needed to run the site)
-node tests/run_all.js             # rebuild + every test, ~12 seconds
+node tests/run_all.js             # rebuild + every test, about a minute
 ```
 
 `run_all.js` runs, in order: the build (`tools/build_gear.py --bundle`), `fetch_images_test.py` (the image tool, offline; needs Pillow, skipped without it), `engine_rules.js` (best-effort builds, lock
@@ -149,13 +149,13 @@ The **x** on a row removes it (a removed default stays removed). **Reset to syst
 
 **Your own rules** all come from one form, the collapsible **Add your own rule** at the top of the panel, above the rows. Pick what to count (a tag, a category or a group), where (the whole loadout or a slot), and **at least**, **at most** or **exactly** N (0 to 7; "at least 0" is refused). A plain count of one tag over the whole loadout (say Anti-Tank at most 2) edits that tag's row instead of adding a separate rule: "at least" and "at most" on the same tag make a range (`Chaff Killer 2-3`), a default row's number is replaced (and its cap lifted when you ask for more), and "exactly 0" bans the tag - for the backpack tag it also replaces "exactly one backpack". Everything else becomes a rule of its own:
 
-- A **selector** says what is counted: a tag, a category (primary, secondary, throwable, support, backpack, vehicle, eagle, orbital, sentry, defensive); there are no named groups any more. The two old groups are ordinary tags now: `noammo` (charge or expendable primaries, secondaries, support weapons and Rovers) and `nonexp` ("Non-Expendable Support": support weapons that aren't expendable, no pill). A saved rule that still says `grp:noAmmo` or `grp:regularSupport` is read as the matching tag. The tag check makes sure every support weapon has exactly one of `expendable` / `nonexp`.
+- A **selector** says what is counted: a tag, a category (primary, secondary, throwable, support, backpack, vehicle, eagle, orbital, sentry, defensive); there are no named groups, only tags: `noammo` (charge or expendable primaries, secondaries, support weapons and Rovers) and `nonexp` ("Non-Expendable Support": support weapons that aren't expendable, no pill). The tag check makes sure every support weapon has exactly one of `expendable` / `nonexp`.
 - A **scope** says where: the whole loadout, weapons, primary + secondary, stratagems, or one weapon slot.
 - A rule is a count that must hold (at least / at most / exactly), optionally preceded by up to two **if** conditions ("if Eagle >= 2 (stratagems), then Sentry <= 0"). If the "if" part doesn't hold, the rule isn't checked.
 
 **Locks win.** A locked item is never swapped out for a rule. Default rows the locks break stay silent (a hand-held shield locked with no one-handed primary or melee weapon is not nagged about; locking an all-stratagem build waives the support rule). A rule of your own that the locks make impossible is built as well as possible and listed in the banner above the loadout ("Rule: Anti-Tank >= 7 (this build has 2)"). Rules that can't all hold are treated the same way.
 
-Rows, edits, removals and your own rules are saved in this browser in `hd2_settings` (`disabledRules`, `requirements` and `customRules`, validated on load; damaged entries are skipped) and cleared by Reset options. The old combined `capSupport` switch in saved settings maps to the three support-limit rows. Rerolls use the rules the loadout was generated with. In code: `generateLoadout(..., { disabledRules, requirements, customRules })`.
+Rows, edits, removals and your own rules are saved in this browser in `hd2_settings` (`disabledRules`, `requirements`, `customRules` and `weights`, validated on load; damaged entries are skipped) and cleared by Reset options. Rerolls use the rules the loadout was generated with. In code: `generateLoadout(..., { disabledRules, requirements, customRules, weights })`.
 
 ## Armor penetration (`armor_pen` column)
 
@@ -185,7 +185,7 @@ Icons come from the wiki (saved locally once `tools/fetch_images.py` has been ru
 
 While filling stratagem slots the engine keeps a few item caps: one non-expendable support weapon, two expendable ones (never mixed with a regular one), one backpack-slot item, one vehicle, two Eagles, one mine. A **required tag overrides the cap for its own tag** - e.g. `Eagle 3` allows three Eagles, `mines 2` allows two mines, `vehicle 3` allows several vehicles. Requiring one tag never loosens a different cap, and locks still bypass the caps.
 
-The exception is the **in-game limits**: only one FRV, one tank and one exosuit can be brought, and the same stratagem can never sit in two slots. These always win, so `vehicle 4` is unmeetable (it is built as well as possible and flagged), and locking two FRVs/tanks/exosuits (or the same stratagem twice) is rejected with an error. Note that `backpack 2` also relaxes the backpack cap (it is not an in-game limit yet), which can give a build the game would not allow; it is flagged as an unmet backpack rule.
+The exception is the **in-game limits**: only one FRV, one tank and one exosuit can be brought, and the same stratagem can never sit in two slots. These always win, so `vehicle 4` is unmeetable (it is built as well as possible and flagged), and locking two FRVs/tanks/exosuits (or the same stratagem twice) is rejected with an error. Note that `backpack 2` also relaxes the backpack cap (it is not treated as an in-game limit), which can give a build the game would not allow; it is flagged as an unmet backpack rule.
 
 ## Tag consistency checks
 
