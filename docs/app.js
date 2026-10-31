@@ -95,8 +95,11 @@
   // Shorter label for the pill on a loadout card (the warbond lists and the tracker keep the full names).
   var warbondPillName = {
     req_p: "Requisition", req_o: "Requisition", req_h: "Requisition",
-    req_b: "Requisition", req_e: "Requisition", req_r: "Requisition"
+    req_b: "Requisition", req_e: "Requisition", req_r: "Requisition",
+    super_citizen: "Event Reward"
   };
+  // Items whose pill differs from the rest of their warbond: the MP-98 Knight was the Super Citizen Edition bonus.
+  var itemPillName = { "MP-98 Knight": "Super Citizen Edition" };
 
   // ---------------------------------------------------------------------------
   // Tabs
@@ -176,7 +179,7 @@
     var cls = (opts.wide ? "item-card2" : "item-card") + (suboptimal ? " suboptimal" : "") + (locked ? " is-locked" : "") + (item.empty ? " is-empty" : "");
     var warbondRow = item.warbond !== "base"
       ? h("div", { class: "warbond-row" },
-          h("span", { class: "tag-pill", style: "background:#2a2a2a;border:1px solid #555" }, warbondPillName[item.warbond] || warbondName[item.warbond] || item.warbond))
+          h("span", { class: "tag-pill", style: "background:#2a2a2a;border:1px solid #555" }, itemPillName[item.name] || warbondPillName[item.warbond] || warbondName[item.warbond] || item.warbond))
       : null;
     // Lock and reroll controls only exist on cards that belong to a generated loadout (opts.onLock / opts.onReroll).
     var lockBtn = opts.onLock && !item.empty   // an empty slot has nothing to keep
@@ -195,15 +198,30 @@
           onclick: opts.onReroll,
         }, "\uD83C\uDFB2")
       : null;
+    // Markers: gear you don't own (a shared loadout can have any item) or have blocked since it was rolled.
+    var statusBadges = [];
+    if (!item.empty && !isOwned(item)) statusBadges.push(h("span", { class: "status-badge not-owned", title: "You don't own this item (My Gear)" }, "NOT OWNED"));
+    if (!item.empty && blocked[item.name]) statusBadges.push(h("span", { class: "status-badge is-blocked-badge", title: "You have blocked this item in My Gear" }, "BLOCKED"));
+    var statusRow = statusBadges.length ? h("div", { class: "status-row" }, statusBadges) : null;
+    // Block: marks the item blocked in My Gear (never rolled again) and rerolls this slot. Not on an empty slot, and not while locked.
+    var blockBtn = opts.onBlock && !item.empty
+      ? h("button", {
+          type: "button", class: "slot-btn block-slot-btn", disabled: locked ? true : null,
+          title: locked ? "Unlock this slot to block its item" : "Block this item in My Gear and reroll this slot",
+          "aria-label": "Block " + slotLabel + ": " + item.name,
+          onclick: opts.onBlock,
+        }, "\uD83D\uDEAB")
+      : null;
     return h("div", { class: cls },
       h("div", { class: "card-header", style: "background:" + (TYPE_COLORS[item.cat] || "#363426") },
         h("span", { class: "slot-label" }, slotLabel),
         suboptimal ? h("span", { class: "suboptimal-badge", title: "Not a good pick against " + (FACTION_NAMES[opts.faction] || "this faction") + " \u2014 it\u2019s meant for: " + factionsText(item) }, "\u26A0 OFF-FACTION") : null,
-        h("span", { class: "slot-btns" }, rerollBtn, lockBtn)),
+        h("span", { class: "slot-btns" }, rerollBtn, blockBtn, lockBtn)),
       item.empty ? h("div", { class: "empty-img" }, imageNode(item)) : imageNode(item),
       h("div", { class: "card-body" },
         h("div", { class: "name-row" }, h("div", { class: "item-name" }, item.name), apRow(item)),
         warbondRow,
+        statusRow,
         h("div", { class: "tag-row" }, tagPills(item))));
   }
 
@@ -251,7 +269,8 @@
       var item = itemAt(lo, key);
       var opts = { locked: !!locks[key], suboptimal: isOff(item), faction: faction, wide: !!(extra && extra.wide),
         onLock: function () { toggleLock(entry, key); },
-        onReroll: function () { rerollSlot(entry, key); } };
+        onReroll: function () { rerollSlot(entry, key); },
+        onBlock: function () { blockSlot(entry, key); } };
       return itemCard(item, slotLabel, opts);
     }
     var unlockedCount = SLOT_KEYS.filter(function (k) { return !locks[k]; }).length;
@@ -264,7 +283,17 @@
         type: "button", class: "ctrl-btn reroll-all-btn", disabled: unlockedCount ? null : true,
         title: unlockedCount ? "Keep the locked slots, reroll all the others" : "Every slot is locked",
         onclick: function () { rerollUnlocked(entry); },
-      }, "\uD83C\uDFB2 Reroll all unlocked (" + unlockedCount + ")")));
+      }, "\uD83C\uDFB2 Reroll all unlocked (" + unlockedCount + ")"),
+      h("button", {
+        type: "button", class: "ctrl-btn share-btn", title: "Copy a link to this loadout",
+        onclick: function () { shareLoadout(entry); },
+      }, "\uD83D\uDD17 Share")));
+    if (entry.shared) {
+      box.appendChild(h("div", { class: "shared-banner" },
+        "Shared loadout. It is shown as it was sent (Any faction, none of your rules applied). Items marked ",
+        h("span", { class: "status-badge not-owned" }, "NOT OWNED"),
+        " aren\u2019t in your gear; Generate makes a loadout of your own."));
+    }
     var lockedKeys = SLOT_KEYS.filter(function (k) { return locks[k]; });
     function lockNote() {
       return lockedKeys.length
@@ -327,14 +356,14 @@
     return box;
   }
 
-  function renderLoadouts(loadouts, faction, locks, requirements, disabledRules, customRules, weights) {
+  function renderLoadouts(loadouts, faction, locks, requirements, disabledRules, customRules, weights, shared) {
     var results = $("results");
     results.textContent = "";
     // Results keep the colour of the faction they were generated for, even if you switch faction afterwards.
     results.style.setProperty("--accent", FACTION_COLORS[faction] || FACTION_COLORS.any);
     lastRun = { faction: faction, requirements: JSON.parse(JSON.stringify(requirements)), disabledRules: (disabledRules || []).slice(), customRules: JSON.parse(JSON.stringify(customRules || [])), weights: JSON.parse(JSON.stringify(weights || [])), entries: [] };
     loadouts.forEach(function (lo, idx) {
-      var entry = { lo: lo, locks: Object.assign({}, locks), node: null };
+      var entry = { lo: lo, locks: Object.assign({}, locks), node: null, shared: !!shared };
       lastRun.entries.push(entry);
       entry.node = loadoutNode(entry, idx, loadouts.length);
       results.appendChild(entry.node);
@@ -356,7 +385,7 @@
 
   // `callLocks` = the slots to hold fixed for this one build; `avoid` = the item being replaced (so a reroll
   // actually changes it when another choice exists).
-  function rebuild(entry, callLocks, avoid, what) {
+  function rebuild(entry, callLocks, avoid, what, firstNote, quiet) {
     var excluded = excludedNames();
     // Anything held fixed stays even if you blocked it since (it's already on screen).
     Object.keys(callLocks).forEach(function (k) { excluded.delete(callLocks[k].name); });
@@ -371,19 +400,21 @@
       if (avoid && (lo.emptySlots || 0) + (lo.emptyWeapons || 0) > (entry.lo.emptySlots || 0) + (entry.lo.emptyWeapons || 0)) throw new Engine.GenerationError("no other item");
     } catch (e) {
       if (!(e instanceof Engine.GenerationError)) throw e;
-      if (!avoid) { showMessages([e.message]); return; }
+      if (!avoid) { if (!quiet) showMessages([e.message]); return false; }
       try {
         base.excluded = excluded;
         lo = engine.generateLoadoutRelaxed(base);
         note = "There is no other " + what + " available with your current gear, locks and requirements.";
       } catch (e2) {
         if (!(e2 instanceof Engine.GenerationError)) throw e2;
-        showMessages([e2.message]); return;
+        if (!quiet) showMessages([e2.message]);
+        return false;
       }
     }
     entry.lo = lo;
-    showMessages(note ? [note] : [], "info");
+    if (!quiet) showMessages([firstNote, note].filter(Boolean), "info");
     redraw(entry);
+    return true;
   }
 
   function rerollSlot(entry, key) {
@@ -393,10 +424,106 @@
     rebuild(entry, callLocks, itemAt(entry.lo, key), "item for this slot");
   }
 
+  // Block the item in this slot in My Gear (the same as the Block button there), then reroll the slot.
+  function blockSlot(entry, key) {
+    if (entry.locks[key]) return;
+    var item = itemAt(entry.lo, key);
+    if (!item || item.empty) return;
+    blocked[item.name] = true;
+    onGearChange();
+    // The same item in any other loadout on screen is replaced too (unless that slot is locked).
+    var others = 0, kept = 0;
+    lastRun.entries.forEach(function (other) {
+      if (other === entry) return;
+      SLOT_KEYS.forEach(function (k) {
+        if ((itemAt(other.lo, k) || {}).name !== item.name) return;
+        if (other.locks[k]) { kept++; return; }
+        var cl = {};
+        SLOT_KEYS.forEach(function (j) { if (j !== k) cl[j] = itemAt(other.lo, j); });
+        if (rebuild(other, cl, item, "item for this slot", null, true)) others++;
+      });
+    });
+    var cl = {};
+    SLOT_KEYS.forEach(function (k) { if (k !== key) cl[k] = itemAt(entry.lo, k); });
+    var msg = "Blocked " + item.name + " in My Gear. Unblock it there to roll it again.";
+    if (others) msg += " Also replaced in " + others + " other loadout" + (others === 1 ? "" : "s") + ".";
+    if (kept) msg += " Kept in " + kept + " locked slot" + (kept === 1 ? "" : "s") + ".";
+    rebuild(entry, cl, item, "item for this slot", msg);
+  }
+
   function rerollUnlocked(entry) {
     var callLocks = Object.assign({}, entry.locks);
     if (Object.keys(callLocks).length === SLOT_KEYS.length) return;
     rebuild(entry, callLocks, null, "");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Shared loadouts
+  // ---------------------------------------------------------------------------
+  // A link carries one loadout as its 7 permanent item ids in slot order (primary, secondary, throwable, four stratagems), 0 for an
+  // empty slot: ".../#l1=6.21.50.12.30.41.77". "l1" is the format version. The part after # never reaches a server.
+  var SHARE_KEY = "l1";
+  function shareHash(lo) {
+    var items = [lo.primary, lo.secondary, lo.throwable].concat(lo.strategems);
+    return "#" + SHARE_KEY + "=" + items.map(function (i) { return i.empty ? 0 : i.id; }).join(".");
+  }
+  // The 7 slot items for a hash, or { error } when the link is damaged or names an item this version doesn't have.
+  function parseShareHash(hash) {
+    var m = /^#?l1=([0-9.]*)$/.exec(String(hash || ""));
+    if (!m) return null;                                   // not a share link at all
+    var parts = m[1].split(".");
+    if (parts.length !== 7 || parts.some(function (p) { return !/^\d{1,6}$/.test(p); })) return { error: "That shared link is damaged, so it can\u2019t be shown." };
+    var items = [], missing = false;
+    parts.forEach(function (p, i) {
+      if (p === "0") { items.push(makeEmptyFor(i)); return; }
+      var it = ITEM_BY_ID[String(parseInt(p, 10))];
+      if (!it) { missing = true; return; }
+      items.push(it);
+    });
+    if (missing) return { error: "That shared link has items this version doesn\u2019t know about, so it can\u2019t be shown." };
+    var cats = ["primary", "secondary", "throwable"];
+    for (var k = 0; k < 7; k++) {
+      var it2 = items[k];
+      if (it2.empty) continue;
+      if (k < 3 ? it2.cat !== cats[k] : (it2.cat === "primary" || it2.cat === "secondary" || it2.cat === "throwable")) {
+        return { error: "That shared link has an item in the wrong slot, so it can\u2019t be shown." };
+      }
+    }
+    return { items: items };
+  }
+  function makeEmptyFor(slot) { return Engine.makeEmptySlot(slot < 3 ? ["primary", "secondary", "throwable"][slot] : undefined); }
+
+  function shareLoadout(entry) {
+    var url = location.href.replace(/#.*$/, "") + shareHash(entry.lo);
+    function manual() { showMessages(["Copy this link to share the loadout: " + url], "info"); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function () { showMessages(["Link to this loadout copied."], "info"); }, manual);
+        return;
+      }
+    } catch (e) { /* fall through */ }
+    manual();
+  }
+
+  // Shows the loadout a share link describes (or says why it can't). Returns true when the hash was a share link.
+  function showSharedFromHash() {
+    var parsed = parseShareHash(location.hash);
+    if (!parsed) return false;
+    try { history.replaceState(null, "", location.href.replace(/#.*$/, "")); } catch (e) { /* ignore */ }
+    if (parsed.error) { showMessages([parsed.error]); return true; }
+    var it = parsed.items, locks = { primary: it[0], secondary: it[1], throwable: it[2], strat1: it[3], strat2: it[4], strat3: it[5], strat4: it[6] };
+    var lo;
+    try {
+      // Every slot locked: the engine builds nothing, it only checks the loadout against the default rules.
+      lo = engine.generateLoadoutRelaxed({ faction: "any", locks: locks, excluded: new Set(), requirements: {}, disabledRules: [], customRules: [], weights: [] });
+    } catch (e) {
+      if (!(e instanceof Engine.GenerationError)) throw e;
+      showMessages([e.message]); return true;
+    }
+    showMessages([]);
+    showView("randomizer");
+    renderLoadouts([lo], "any", {}, {}, [], [], [], true);
+    return true;
   }
 
   // ---------------------------------------------------------------------------
@@ -1354,6 +1481,26 @@
   }
   function onGearChange() { saveGear(); refreshGear(); }
 
+  // The "Blocked items" list at the bottom of My Gear: every blocked item in one place, with an Unblock button. Hidden when empty.
+  function updateBlockedSection() {
+    var items = ALL_ITEMS.filter(function (i) { return blocked[i.name]; });
+    var sec = $("blocked-section");
+    sec.hidden = items.length === 0;
+    $("blocked-count").textContent = items.length ? "(" + items.length + ")" : "";
+    var list = $("blocked-list");
+    list.textContent = "";
+    items.forEach(function (item) {
+      var btn = h("button", { type: "button", class: "block-btn unblock-btn", "data-unblock": item.name, "aria-pressed": "true",
+        title: "Unblock: allow this item to roll again" }, "Unblock");
+      btn.addEventListener("click", function () { delete blocked[item.name]; onGearChange(); });
+      list.appendChild(h("div", { class: "blocked-row" },
+        gearThumb(item),
+        h("span", { class: "tr-name" }, item.name),
+        h("span", { class: "tr-type" }, warbondName[item.warbond] || item.warbond),
+        btn));
+    });
+  }
+
   // Make the checkboxes, block buttons, counts and the randomizer's pool line match the model.
   function refreshGear() {
     facBulkRefreshers.forEach(function (fn) { fn(); });
@@ -1389,7 +1536,9 @@
     $("grand-total").textContent = st.owned + " / " + st.total + " items owned";
     $("gear-detail").textContent = "Rolling from " + st.pool + (st.blocked ? " (" + st.blocked + " blocked)" : "");
     updateFacTools();
+    updateBlockedSection();
     updatePoolLine();
+    if (lastRun) lastRun.entries.forEach(redraw);   // the NOT OWNED / BLOCKED markers follow My Gear
   }
 
   // ---- Edit factions: switch, count and the two bulk buttons ----
@@ -1542,6 +1691,8 @@
     buildGear();
 
     $("controls").addEventListener("submit", onGenerate);
+    window.addEventListener("hashchange", showSharedFromHash);
+    showSharedFromHash();
     initRuleBuilder();
     $("presets-reset").addEventListener("click", resetPresets);
     $("custom-clear").addEventListener("click", clearCustom);

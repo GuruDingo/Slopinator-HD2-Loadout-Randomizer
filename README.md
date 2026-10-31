@@ -20,7 +20,7 @@ It deserves no praise or love, but may it amuse you, my fellow divers. May the f
 
 ## Feedback and contributing
 
-Found a bug or wrong data? Use the **Report a bug / wrong data** link at the bottom of the page, or open an issue in this repository (a GitHub account is needed; please don't include personal information). This is a personal fan project: the code and data are maintained by the repository owner, and pull requests are not being accepted. Suggestions are welcome as issues.
+Found a bug or wrong data? Use the **Report a bug / wrong data** link at the bottom of the page, or open an issue in this repository (a GitHub account is needed; please don't include personal information). Without a GitHub account you can message u/gurudingo on Reddit; the page has a link for that next to the bug link. This is a personal fan project: the code and data are maintained by the repository owner, and pull requests are not being accepted. Suggestions are welcome as issues.
 
 ## Layout
 
@@ -66,7 +66,7 @@ that you can send to a friend as-is.
 
 ## My Gear: warbond groups
 
-The six Requisition shops are shown under one collapsible **Requisition** header (with the Requisition Slip icon and its own Own / Block buttons and count), and inside it each shop appears by its short name (Hangar, Bridge, ...). The data is unchanged: the CSV still calls them `Requisition: Hangar` etc., which is what search and the loadout-card pill use, so typing "requisition" still finds all of them. Which warbonds group together is the `WARBOND_GROUPS` list in `docs/app.js`.
+The six Requisition shops are shown under one collapsible **Requisition** header (with the Requisition Slip icon and its own Own / Block buttons and count), and inside it each shop appears by its short name (Hangar, Bridge, ...). The data is unchanged: the CSV still calls them `Requisition: Hangar` etc., which is what search and the loadout-card pill use, so typing "requisition" still finds all of them. Which warbonds group together is the `WARBOND_GROUPS` list in `docs/app.js`. At the bottom of the list, a **Blocked items** section appears whenever at least one item is blocked and lists every blocked item in one place, each with an Unblock button. The merged Super Citizen/Event Rewards warbond has two pill labels: the MP-98 Knight reads **Super Citizen Edition** and the other items read **Event Reward** (`itemPillName` and `warbondPillName` in `docs/app.js`).
 
 ## What the page stores
 
@@ -131,11 +131,18 @@ On the My Gear tab, the **Edit factions** switch (top right) shows three ticks o
 
 ## Locking and rerolling slots in the results
 
-Each card in a generated loadout has a lock toggle (🔒/🔓) and a reroll button (🎲); each loadout has a **Reroll all unlocked** button.
+Each card in a generated loadout has a lock toggle (🔒/🔓), a reroll button (🎲) and a block button (🚫); each loadout has a **Reroll all unlocked** button.
 - Locked slots are kept; the Locks panel's entries start out locked.
 - 🎲 rerolls just that slot (always a different item when another choice exists) and keeps the other six exactly as they are, so the other six slots count as locked for that build. The usual rules still apply as far as the slot allows, and anything it can't meet is flagged.
+- 🚫 blocks that item in My Gear (the same as the Block button there, so it is saved and never rolled again) and rerolls the slot. If the same item is in other loadouts on screen it is replaced there too (a locked slot keeps it, and the message says so). Unblock it in My Gear to bring it back. It is disabled on a locked slot and absent on an empty one.
 - **Reroll all unlocked** keeps the locked slots and rebuilds the rest as a whole, so the rules can be met again.
 - Locks on cards belong to that loadout only (they are not copied into the Locks panel, and Generate starts fresh). Rerolls use the faction, rules (default rows, edits and your own) the loadout was generated with, but your current My Gear pool.
+
+## Sharing a loadout
+
+Each loadout has a **🔗 Share** button that copies a link to that one loadout. The link carries only the seven items (as their permanent ids, in slot order, `0` for an empty slot), for example `.../#l1=6.21.50.12.30.41.77`; `l1` is the format version. It holds no faction, rules or gear, and the part after `#` is never sent to a server. Anyone who opens it sees that loadout with a **Shared loadout** banner, shown as it was sent (Any faction, only the default rules checked), and can reroll, lock or block slots like in any other loadout. A damaged link, one with an item this version doesn't know, or one with an item in the wrong slot shows a short message instead. Because item ids never change, old links keep working.
+
+Cards carry two markers: **NOT OWNED** for an item that isn't in your My Gear (typical on a shared loadout) and **BLOCKED** for an item you have blocked, including one you blocked after it was rolled. They follow My Gear as you change it.
 
 ## Rules panel
 

@@ -812,6 +812,7 @@
     GenerationError: GenerationError,
     has: has,
     worksFor: worksFor,
+    makeEmptySlot: makeEmptySlot,
     RULE_TIER: RULE_TIER,
     TIER_NAMES: TIER_NAMES,
     RULES: RULES,

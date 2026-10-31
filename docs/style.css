@@ -116,12 +116,18 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
   font-size: .85rem; line-height: 1; padding: 4px 6px; cursor: pointer; min-width: 28px; min-height: 26px; }
 .slot-btn:hover:not(:disabled) { background: rgba(0,0,0,.6); border-color: var(--accent); }
 .slot-btn:disabled { opacity: .35; cursor: not-allowed; }
+.slot-btn.block-slot-btn:hover:not(:disabled) { border-color: #e57373; }
 .slot-btn.lock-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
 .item-card.is-locked, .item-card2.is-locked { box-shadow: 0 0 0 2px var(--accent); }
 .loadout-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 1.5rem 0 .5rem; flex-wrap: wrap; }
 .loadout-bar h2 { margin: 0; }
 .loadout-bar-title { font-size: 1.2rem; color: #aaa; text-transform: uppercase; letter-spacing: .1em; }
 .reroll-all-btn:disabled { opacity: .4; cursor: not-allowed; }
+.status-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.status-badge { font-size: .6rem; font-weight: 700; letter-spacing: .04em; padding: 1px 6px; border-radius: 9px; border: 1px solid; }
+.status-badge.not-owned { color: #bbb; border-color: #666; background: #262626; }
+.status-badge.is-blocked-badge { color: #ff6b6b; border-color: #8b0000; background: #3a1212; }
+.shared-banner { background: #14232e; border: 1px solid #3a6a8a; color: #9cc7e4; font-size: .82rem; padding: 8px 12px; border-radius: 6px; margin-bottom: .75rem; line-height: 1.4; }
 .suboptimal-badge { font-size: .6rem; color: #ff8c3c; font-weight: 700; }
 .item-card.suboptimal, .item-card2.suboptimal { border-color: #ff8c3c; }
 .faction-warning {
@@ -252,6 +258,11 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
   h1 { font-size: 1.2rem; letter-spacing: .1em; }
   .item-card { width: calc(50% - 6px); }
   .item-card2 { width: 100%; }
+  /* Half-width cards carry label + reroll + block + lock: tighten them so the last button isn't cut off. */
+  .card-header { padding: 6px 7px; gap: 4px; }
+  .slot-label { font-size: .62rem; letter-spacing: .05em; min-width: 0; }
+  .slot-btns { gap: 3px; }
+  .slot-btn { min-width: 22px; padding: 4px 3px; font-size: .75rem; }
   .item-img, .img-placeholder { height: 150px; }
   .generate-row { flex-wrap: wrap; }
   .primary-btn { flex: 1; }
@@ -293,6 +304,15 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
 .b-row .chip-x:hover { color: #f44336; }
 .disclaimer .feedback { margin: 0 0 .6rem; font-size: .8rem; }
 .disclaimer .feedback a { color: #9ab; }
+.blocked-section { margin-top: 1rem; }
+.blocked-head { padding: .6rem .75rem; border-bottom: 1px solid #2a2a2a; display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .75rem; }
+.blocked-head h3 { margin: 0; font-size: 1rem; color: #ff4d4d; }
+.blocked-total { color: inherit; font-weight: normal; }
+.blocked-items { padding: .25rem 0; }
+.blocked-row { display: flex; align-items: center; gap: .75rem; padding: .3rem .75rem; border-bottom: 1px solid #1e1e1e; }
+.blocked-row:last-child { border-bottom: none; }
+.blocked-row .tr-name { flex: 1; min-width: 0; }
+.blocked-row .tr-type { color: #888; font-size: .75rem; }
 .rules-subtitle { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: #888; margin: .9rem 0 .2rem; }
 .data-row { align-items: center; }
 .data-row .hint { margin: 0; flex: 1 1 14rem; }

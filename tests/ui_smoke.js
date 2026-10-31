@@ -478,6 +478,19 @@ function check(label, cond, extra) {
   $("count").value = "5"; generate();
   const pills = Array.from(doc.querySelectorAll("#results .warbond-row .tag-pill")).map((p) => p.textContent);
   check("Requisition sources show the short pill label", pills.length > 0 && pills.includes("Requisition") && pills.every((t) => !/^Requisition: /.test(t)), JSON.stringify(Array.from(new Set(pills))) + " errors=" + JSON.stringify(errors()) + " cards=" + cards());
+  {
+    // the merged Super Citizen/Event Rewards warbond keeps two pill labels: the MP-98 Knight is the Super Citizen Edition, the rest are Event Rewards
+    click($("gear-select-all"));
+    $("count").value = "1";
+    $("lock-primary").value = "MP-98 Knight"; $("lock-strat1").value = "TD-110 Maelstrom";
+    generate();
+    const pillsOf = (card) => Array.from(card.querySelectorAll(".warbond-row .tag-pill")).map((p) => p.textContent);
+    const cardNamed = (n) => Array.from(doc.querySelectorAll("#results .item-card, #results .item-card2")).find((c) => c.querySelector(".item-name").textContent === n);
+    check("the MP-98 Knight's warbond pill says Super Citizen Edition", cardNamed("MP-98 Knight") && pillsOf(cardNamed("MP-98 Knight")).join() === "Super Citizen Edition", cardNamed("MP-98 Knight") && pillsOf(cardNamed("MP-98 Knight")).join());
+    check("...and the other items of that warbond say Event Reward", cardNamed("TD-110 Maelstrom") && pillsOf(cardNamed("TD-110 Maelstrom")).join() === "Event Reward", cardNamed("TD-110 Maelstrom") && pillsOf(cardNamed("TD-110 Maelstrom")).join());
+    $("lock-primary").value = ""; $("lock-strat1").value = "";
+    ownOnly(["base", "cutting_edge", "urban_legends"]);
+  }
   const reqGroup = doc.querySelector("#gear-list .wb-group");
   const reqSubNames = Array.from(reqGroup.querySelectorAll(".wb-group-body .wb-block .wb-name")).map((n) => n.textContent);
   check("the Requisition group lists the six shops by short name, in order", reqSubNames.join("|") === "Patriotic Administration Center|Orbital Cannons|Hangar|Bridge|Engineering Bay|Robotics Workshop", reqSubNames.join("|"));
@@ -922,6 +935,118 @@ function check(label, cond, extra) {
     check("with every secondary blocked the build still succeeds and the secondary slot is empty",
       errors().length === 0 && weaponRow()[1].classList.contains("is-empty"), errors().join(" | "));
     check("...and a note says a weapon slot is empty", /1 weapon slot is empty/.test(doc.querySelector("#results .empty-note").textContent));
+    win.HD2_DATA.items.filter((i) => i.cat === "secondary" && i.factions.indexOf("none") === -1).forEach((i) => {
+      const b = blockBtn(i.name); if (b && b.getAttribute("aria-pressed") === "true") click(b);
+    });
+  }
+  console.log("Block from the results");
+  {
+    click($("gear-select-all"));
+    setFaction("any");
+    $("count").value = "1";
+    generate();
+    const slotCard = (i) => Array.from(doc.querySelectorAll("#results .loadout .item-card, #results .loadout .item-card2"))[i];
+    const nameAt = (i) => slotCard(i).querySelector(".item-name").textContent;
+    const before = nameAt(1);   // the secondary
+    check("every real card has a Block button", Array.from(doc.querySelectorAll("#results .loadout .item-card, #results .loadout .item-card2")).every((c) => c.querySelector(".block-slot-btn")));
+    click(slotCard(1).querySelector(".block-slot-btn"));
+    check("Block replaces the item in that slot", nameAt(1) !== before && errors().length === 0, before + " -> " + nameAt(1));
+    check("...marks it blocked in My Gear", blockBtn(before).getAttribute("aria-pressed") === "true");
+    check("...and says so", new RegExp("Blocked " + before.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&") + " in My Gear").test($("messages").textContent), $("messages").textContent);
+    check("...and it is saved (survives in the stored block list)", JSON.parse(win.localStorage.getItem("hd2_blocked")).includes(String(idOf(before))) || JSON.parse(win.localStorage.getItem("hd2_blocked")).includes(idOf(before)));
+    for (let i = 0; i < 40; i++) { click($("reroll-all") || doc.querySelector("#results .reroll-all-btn")); if (nameAt(1) === before) break; }
+    check("the blocked item never comes back on later rerolls", nameAt(1) !== before);
+    // a locked slot can't be blocked
+    click(slotCard(0).querySelector(".lock-btn"));
+    check("a locked slot's Block button is disabled", slotCard(0).querySelector(".block-slot-btn").disabled === true);
+    click(slotCard(0).querySelector(".lock-btn"));
+    click(blockBtn(before));   // unblock again for the later tests
+    check("unblocking in My Gear works as before", blockBtn(before).getAttribute("aria-pressed") === "false");
+  }
+  console.log("Blocked items section, block across loadouts, contact links");
+  {
+    // the earlier tests left the AC-8 Autocannon blocked: the section lists exactly that
+    const rows = () => Array.from(doc.querySelectorAll("#blocked-list .blocked-row")).map((r) => r.querySelector(".tr-name").textContent);
+    check("the Blocked items section lists what is blocked (only the AC-8 so far)", !$("blocked-section").hidden && rows().join() === "AC-8 Autocannon" && /\(1\)/.test($("blocked-count").textContent), rows().join());
+    click(doc.querySelector('#blocked-list [data-unblock="AC-8 Autocannon"]'));
+    check("unblocking the last one hides the section", $("blocked-section").hidden === true && rows().length === 0);
+    // owning only the starting gear: Orbital Precision Strike and the MG-43 are in every loadout
+    click($("gear-clear"));
+    setFaction("any");
+    $("count").value = "3";
+    generate();
+    const loadouts = () => Array.from(doc.querySelectorAll("#results .loadout"));
+    const hasItem = (lo, n) => Array.from(lo.querySelectorAll(".item-name")).some((e) => e.textContent === n);
+    check("the same stratagem is in all three loadouts", loadouts().length === 3 && loadouts().every((l) => hasItem(l, "MG-43 Machine Gun")), loadouts().length);
+    const mgCard = Array.from(loadouts()[0].querySelectorAll(".item-card, .item-card2")).find((c) => c.querySelector(".item-name").textContent === "MG-43 Machine Gun");
+    click(mgCard.querySelector(".block-slot-btn"));
+    check("blocking it from one loadout replaces it in the others too", loadouts().length === 3 && loadouts().every((l) => !hasItem(l, "MG-43 Machine Gun")), loadouts().map((l) => hasItem(l, "MG-43 Machine Gun")).join());
+    check("...and the message says how many others changed", /Also replaced in 2 other loadouts/.test($("messages").textContent), $("messages").textContent);
+    check("the Blocked items section appears with it listed once", !$("blocked-section").hidden && rows().join() === "MG-43 Machine Gun" && /\(1\)/.test($("blocked-count").textContent), rows().join());
+    check("...and its rows are actually visible (not collapsed like a warbond body)", win.getComputedStyle($("blocked-list")).display !== "none");
+    check("...it sits after the warbond list", $("gear-list").compareDocumentPosition($("blocked-section")) & 4);
+    click(doc.querySelector('#blocked-list [data-unblock="MG-43 Machine Gun"]'));
+    check("Unblock in the section unblocks it in the list and hides the section", blockBtn("MG-43 Machine Gun").getAttribute("aria-pressed") === "false" && $("blocked-section").hidden === true);
+    const links = Array.from(doc.querySelectorAll("footer .feedback a"));
+    check("the footer has the bug link and a Reddit message link to u/gurudingo", links.length === 2 && /gurudingo/.test(links[1].textContent) && /reddit\.com\/message\/compose\/\?to=gurudingo$/.test(links[1].getAttribute("href")), links.map((a) => a.href).join(" "));
+    click($("gear-select-all"));
+    click(blockBtn("AC-8 Autocannon"));   // back to the state the later tests expect
+  }
+  console.log("Shared loadouts and markers");
+  {
+    let copied = null;
+    Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { writeText: (t) => { copied = t; return Promise.resolve(); } } });
+    click($("gear-select-all"));
+    setFaction("bug");
+    $("count").value = "2";
+    generate();
+    const loadoutNames = (n) => Array.from(doc.querySelectorAll("#results .loadout")[n].querySelectorAll(".item-name")).map((e) => e.textContent);
+    const second = loadoutNames(1);
+    click(doc.querySelectorAll("#results .loadout")[1].querySelector(".share-btn"));
+    await new Promise((r) => setTimeout(r, 20));
+    check("Share copies a link with this loadout's 7 item ids", /#l1=\d+(\.\d+){6}$/.test(copied || ""), copied);
+    check("...and says it was copied", /copied/i.test($("messages").textContent), $("messages").textContent);
+    const hash = copied.slice(copied.indexOf("#"));
+    // open the link in "another visitor's" state: they own only the starting gear
+    click($("gear-clear"));
+    win.location.hash = hash.slice(1);
+    await new Promise((r) => setTimeout(r, 50));
+    check("opening the link shows that one loadout", doc.querySelectorAll("#results .loadout").length === 1 && loadoutNames(0).join("|") === second.join("|"), loadoutNames(0).join("|") + " vs " + second.join("|"));
+    check("...with a Shared loadout banner and no error", !!doc.querySelector("#results .shared-banner") && errors().length === 0, errors().join(" | "));
+    check("...and the link is cleared from the address bar", win.location.hash === "");
+    const ownedLess = doc.querySelectorAll("#results .status-badge.not-owned").length;
+    check("items the viewer doesn't own are marked NOT OWNED", ownedLess >= 1, ownedLess);
+    check("...but the starting gear isn't", Array.from(doc.querySelectorAll("#results .item-card, #results .item-card2")).filter((c) => /MG-43 Machine Gun|Orbital Precision Strike/.test(c.querySelector(".item-name").textContent)).every((c) => !c.querySelector(".not-owned")));
+    // a blocked marker follows My Gear
+    click($("gear-select-all"));
+    const someCard = doc.querySelector("#results .loadout .item-card");
+    const someName = someCard.querySelector(".item-name").textContent;
+    click(blockBtn(someName));
+    const markedCard = () => Array.from(doc.querySelectorAll("#results .item-card, #results .item-card2")).find((c) => c.querySelector(".item-name").textContent === someName);
+    check("blocking an item in My Gear marks it BLOCKED on the card", !!markedCard().querySelector(".is-blocked-badge"));
+    click(blockBtn(someName));
+    check("...and unblocking removes the marker", !markedCard().querySelector(".is-blocked-badge"));
+    // rerolling a slot of a shared loadout still works
+    click(doc.querySelector("#results .loadout .reroll-btn"));
+    check("a shared loadout can be rerolled like any other", errors().length === 0 && doc.querySelectorAll("#results .loadout").length === 1);
+    // damaged / unknown links
+    win.location.hash = "l1=1.2.3";
+    await new Promise((r) => setTimeout(r, 50));
+    check("a damaged link says so", /damaged/.test($("messages").textContent), $("messages").textContent);
+    win.location.hash = "l1=999999.2.3.4.5.6.7";
+    await new Promise((r) => setTimeout(r, 50));
+    check("a link with an unknown item says so", /doesn.t know about/.test($("messages").textContent), $("messages").textContent);
+    win.location.hash = "l1=" + ["1", "1", "1", "1", "1", "1", "1"].join(".");
+    await new Promise((r) => setTimeout(r, 50));
+    check("a link with items in the wrong slots says so", /wrong slot/.test($("messages").textContent), $("messages").textContent);
+    // a link with empty slots
+    const base = win.HD2_DATA.items.filter((i) => i.warbond === "base" || i.alwaysOwned);
+    const pri = base.find((i) => i.cat === "primary"), sec = base.find((i) => i.cat === "secondary"), thr = base.find((i) => i.cat === "throwable");
+    win.location.hash = "l1=" + [pri.id, sec.id, thr.id, idOf("Orbital Precision Strike"), 0, 0, 0].join(".");
+    await new Promise((r) => setTimeout(r, 50));
+    check("a link with empty slots shows them as Empty Slot cards", doc.querySelectorAll("#results .is-empty").length === 3 && errors().length === 0, doc.querySelectorAll("#results .is-empty").length);
+    generate();
+    check("Generate afterwards makes a normal loadout again", !doc.querySelector("#results .shared-banner"));
   }
   console.log("Saved images");
   {
