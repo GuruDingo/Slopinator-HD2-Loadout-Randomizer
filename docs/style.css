@@ -297,3 +297,9 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
 .data-row { align-items: center; }
 .data-row .hint { margin: 0; flex: 1 1 14rem; }
 .data-row .hint.bad { color: #f2776b; }
+
+/* Empty stratagem slot (the player owns fewer than four stratagems): a subtle grey Super Earth emblem and no pills. */
+.empty-img { background: #222323; }
+.is-empty .item-img { background: transparent; filter: brightness(0) invert(.32); opacity: .7; object-fit: contain; padding: 14%; box-sizing: border-box; }
+.item-card.is-empty .item-name, .item-card2.is-empty .item-name { color: #8a8a8a; font-style: italic; }
+.empty-note { margin: .2rem 0 .6rem; }

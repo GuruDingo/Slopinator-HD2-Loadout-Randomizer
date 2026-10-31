@@ -5,7 +5,7 @@
 //
 // Not a visual test: it checks that the page builds, buttons do what they should, errors show up
 // for bad input, and My Gear saves its state.
-const FREE_SOURCES = ["base","req_p","req_o","req_h","req_b","req_e","req_r","fomo"];
+const FREE_SOURCES = ["base","req_p","req_o","req_h","req_b","req_e","req_r","super_citizen"];
 const path = require("path");
 const fs = require("fs");
 const { JSDOM } = require("jsdom");
@@ -58,7 +58,7 @@ function check(label, cond, extra) {
 
   console.log("Page build");
   check("no script errors / HD2Engine loaded", typeof win.HD2Engine === "object");
-  check("My Gear: 36 warbonds, the six Requisition shops grouped under one header (31 top-level blocks)", doc.querySelectorAll("#gear-list .wb-block:not(.wb-group)").length === 36 && doc.querySelectorAll("#gear-list .wb-group").length === 1 && doc.querySelectorAll("#gear-list > .wb-block").length === 31, doc.querySelectorAll("#gear-list .wb-block").length);
+  check("My Gear: 35 warbonds, the six Requisition shops grouped under one header (30 top-level blocks)", doc.querySelectorAll("#gear-list .wb-block:not(.wb-group)").length === 35 && doc.querySelectorAll("#gear-list .wb-group").length === 1 && doc.querySelectorAll("#gear-list > .wb-block").length === 30, doc.querySelectorAll("#gear-list .wb-block").length);
   check(ACTIVE + " gear rows (every active item)", doc.querySelectorAll("#gear-list .gear-row").length === ACTIVE);
   check("every gear row has a lazy thumbnail from the item's image link", Array.from(doc.querySelectorAll("#gear-list .gear-row")).every((r) => { const i = r.querySelector("img.gear-thumb"); return i && i.getAttribute("loading") === "lazy" && /^https:\/\//.test(i.getAttribute("src")); }));
   { const t = rowOf("AR-23 Liberator").querySelector("img.gear-thumb"); t.dispatchEvent(new win.Event("error"));
@@ -167,7 +167,7 @@ function check(label, cond, extra) {
   click($("gear-clear"));
   check("own nothing -> only the 6 Base Game items left in the pool", new RegExp("Rolling from 6 of " + ACTIVE).test(poolText()), poolText());
   generate();
-  check("pool too small -> error pointing at My Gear, no cards", errors().some((e) => /My Gear/.test(e)) && cards() === 0, errors());
+  check("only the starting gear -> it still builds (two stratagems, two empty slots), no error", errors().length === 0 && cards() === 7 && doc.querySelectorAll("#results .is-empty").length === 2, errors());
   doc.querySelectorAll('#gear-list .gear-row').forEach((row) => { if (row.querySelector("input").disabled) click(row.querySelector(".block-btn")); });
   generate();
   check("empty pool -> clear error", errors().some((e) => /gear pool is empty/.test(e)), errors());
@@ -501,7 +501,7 @@ function check(label, cond, extra) {
   console.log("My Gear tab");
   click(doc.querySelector('.tab[data-view="gear"]'));
   check("gear view visible", !$("view-gear").hidden && $("view-randomizer").hidden);
-  const firstBlock = Array.from(doc.querySelectorAll("#gear-list .wb-block")).find((b) => b.querySelector("[data-all]"));
+  const firstBlock = blockBlock("Superstore");   // a plain warbond with owned / blocked buttons and only active items
   click(firstBlock.querySelector(".wb-header"));
   check("clicking a header opens that section", firstBlock.querySelector(".wb-items").classList.contains("open"));
   click($("gear-clear"));
@@ -741,7 +741,7 @@ function check(label, cond, extra) {
   check("Base Game gets the Super Earth emblem in white", wi["Base Game"] === "Super_Earth_Icon.svg (white)", wi["Base Game"]);
   check("the Requisition group header gets the Requisition Slip, in its own colours", wi["Requisition"] === "Requisition_Slip.svg", JSON.stringify(wi));
   check("...and the shops inside it carry no icon of their own", ["Patriotic Administration Center", "Orbital Cannons", "Hangar", "Bridge", "Engineering Bay", "Robotics Workshop"].every((n) => wi[n] === null), JSON.stringify(wi));
-  check("Super Citizen Edition, Superstore and Campaign/Event Rewards get their icons", wi["Super Citizen Edition"] === "Super_Citizen_Title_Icon.svg" && wi["Superstore"] === "Super_Credit.svg" && wi["Campaign/Event Rewards"] === "Medal.svg", JSON.stringify(wi));
+  check("Super Citizen/Event Rewards (one merged warbond) and Superstore get their icons", wi["Super Citizen/Event Rewards"] === "Super_Citizen_Title_Icon.svg" && wi["Superstore"] === "Super_Credit.svg" && wi["Super Citizen Edition"] === undefined && wi["Campaign/Event Rewards"] === undefined, JSON.stringify(wi));
   check("on phones the warbond header puts the title first and the buttons on their own line", /@media \(max-width: 640px\)[\s\S]*\.wb-header \.wb-tools\s*\{[^}]*grid-column:\s*1 \/ -1/.test(css));
   check("the first six premium warbonds get their rank / title icons", wi["Helldivers Mobilize"] === "Level_50_Skull_Admiral_Rank_Icon.svg" && wi["Steeled Veterans"] === "Level_70_Admirable_Admiral_Rank_Icon.svg" && wi["Cutting Edge"] === "Level_90_Galactic_Commander_Rank_Icon.svg" && wi["Democratic Detonation"] === "Level_120_5-Star_General_Rank_Icon.svg" && wi["Polar Patriots"] === "Level_150_Super_Private_Rank_Icon.svg" && wi["Viper Commandos"] === "Viper_Commando_Title_Icon.svg", JSON.stringify(wi));
   check("the shop titles inside Requisition are Super Credit Blue and the Requisition header stays yellow", /\.wb-group-body \.wb-header \.wb-name\s*\{[^}]*color:\s*#70F5FF/i.test(css) && !/\.wb-group > \.wb-header \.wb-name[^}]*#70F5FF/i.test(css));
@@ -751,7 +751,7 @@ function check(label, cond, extra) {
   check("Warhammer 40k, Ironclad Democracy and Scope of Authority get their (PNG) title icons", wi["Warhammer 40k"] === "Still_Standing_Title_Icon.png" && wi["Ironclad Democracy"] === "Treadhead_Title_Icon.png" && wi["Scope of Authority"] === "thumb/Longshot_Title_Icon.png/600px-Longshot_Title_Icon.png", JSON.stringify(wi));
   check("every warbond (and the Requisition group) now has an icon; only the shops inside Requisition don't", Object.keys(wi).filter((n) => !wi[n]).sort().join("|") === "Bridge|Engineering Bay|Hangar|Orbital Cannons|Patriotic Administration Center|Robotics Workshop", Object.keys(wi).filter((n) => !wi[n]).join("|"));
   check("PNG and SVG icons share one size rule (same height)", /\.wb-icon\s*\{[^}]*height:\s*1\.15em/.test(css));
-  check("no other warbond has an icon", Object.keys(wi).filter((n) => wi[n] && !/^Requisition$|^Base Game$|^Super Citizen Edition$|^Superstore$|^Campaign\/Event Rewards$|^Helldivers Mobilize$|^Steeled Veterans$|^Cutting Edge$|^Democratic Detonation$|^Polar Patriots$|^Viper Commandos$|^Freedom's Flame$|^Chemical Agents$|^Truth Enforcers$|^Urban Legends$|^Servants of Freedom$|^Borderline Justice$|^Masters of Ceremony$|^Force of Law$|^Control Group$|^Halo: ODST$|^Dust Devils$|^Python Commandos$|^Killzone$|^Redacted Regiment$|^Siege Breakers$|^Entrenched Division$|^Exo Experts$|^Warhammer 40k$|^Ironclad Democracy$|^Scope of Authority$/.test(n)).length === 0);
+  check("no other warbond has an icon", Object.keys(wi).filter((n) => wi[n] && !/^Requisition$|^Base Game$|^Super Citizen\/Event Rewards$|^Superstore$|^Helldivers Mobilize$|^Steeled Veterans$|^Cutting Edge$|^Democratic Detonation$|^Polar Patriots$|^Viper Commandos$|^Freedom's Flame$|^Chemical Agents$|^Truth Enforcers$|^Urban Legends$|^Servants of Freedom$|^Borderline Justice$|^Masters of Ceremony$|^Force of Law$|^Control Group$|^Halo: ODST$|^Dust Devils$|^Python Commandos$|^Killzone$|^Redacted Regiment$|^Siege Breakers$|^Entrenched Division$|^Exo Experts$|^Warhammer 40k$|^Ironclad Democracy$|^Scope of Authority$/.test(n)).length === 0);
   check("...and only Base Game's icon is recoloured", Object.keys(wi).filter((n) => /\(white\)/.test(wi[n] || "")).join() === "Base Game");
   check("if an icon fails to load the title is just the name", (() => { const n = Array.from(doc.querySelectorAll("#gear-list .wb-name")).find((x) => x.textContent === "Superstore"); n.querySelector("img").dispatchEvent(new win.Event("error")); return !n.querySelector("img") && n.textContent === "Superstore"; })());
   check("every item's T/A/I ticks use the emblems", Array.from(doc.querySelectorAll("#gear-list .fac-chk")).every((c) => { const im = c.querySelector("img.fac-icon"); return im && im.getAttribute("src").endsWith(ICON[["bug", "bot", "squid"].find((f) => c.classList.contains("fac-" + f))]); }));
@@ -880,6 +880,31 @@ function check(label, cond, extra) {
     // put the test state back the way the later tests expect it
     click($("gear-select-all"));
     if (blockBtn(AA).getAttribute("aria-pressed") !== "true") click(blockBtn(AA));
+  }
+  console.log("Empty stratagem slots");
+  {
+    // Owning only the starting gear leaves fewer than four stratagems to bring; the empty slots are allowed.
+    click($("gear-clear"));
+    setFaction("any");
+    generate();
+    const stratCards = () => Array.from(doc.querySelectorAll("#results .loadout .card-row")[1].querySelectorAll(".item-card, .item-card2"));
+    const empties = () => stratCards().filter((c) => c.classList.contains("is-empty"));
+    check("owning fewer than 4 stratagems builds a loadout (no error)", errors().length === 0 && cards() === 7, errors().join(" | ") + " cards=" + cards());
+    check("...the slots it can't fill are Empty Slot cards", empties().length === 2 && empties().every((c) => c.querySelector(".item-name").textContent === "Empty Slot"), empties().length);
+    check("...with no pills, no lock button and the Super Earth emblem", empties().every((c) => !c.querySelector(".tag-pill") && !c.querySelector(".lock-btn") && /Super_Earth_Icon/.test(c.querySelector("img.item-img").getAttribute("src"))));
+    check("...and a note says why", /2 stratagem slots are empty: you only have 2 stratagems/.test(doc.querySelector("#results .empty-note").textContent), doc.querySelector("#results .empty-note") && doc.querySelector("#results .empty-note").textContent);
+    // rerolling a real stratagem must not trade it for an empty slot
+    const real = stratCards().filter((c) => !c.classList.contains("is-empty"));
+    const realNames = real.map((c) => c.querySelector(".item-name").textContent).sort().join();
+    click(real[0].querySelector(".reroll-btn"));
+    const after = stratCards().filter((c) => !c.classList.contains("is-empty")).map((c) => c.querySelector(".item-name").textContent).sort().join();
+    check("rerolling a stratagem with nothing else to roll keeps it (never swaps it for an empty slot)", after === realNames && empties().length === 2, realNames + " -> " + after);
+    check("...and tells you there is no other item", /no other/i.test($("messages").textContent), $("messages").textContent);
+    // owning four or more fills every slot again
+    click($("gear-select-all"));
+    if (blockBtn("AC-8 Autocannon").getAttribute("aria-pressed") !== "true") click(blockBtn("AC-8 Autocannon"));
+    generate();
+    check("owning plenty of stratagems never leaves an empty slot", doc.querySelectorAll("#results .is-empty").length === 0 && !doc.querySelector("#results .empty-note"));
   }
   console.log("Saved images");
   {

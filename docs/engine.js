@@ -127,6 +127,14 @@
     return item.tags.indexOf(tag) !== -1;
   }
 
+  // An empty stratagem slot. Players who own fewer than four stratagems can legitimately go in with fewer, so the slots they
+  // cannot fill hold this placeholder: no tags (it counts toward nothing), works for every faction, and a fresh object per slot
+  // so two empty slots are never mistaken for the same stratagem twice.
+  function makeEmptySlot() {
+    return { id: "empty", cat: "empty", name: "Empty Slot", nicknames: [], tags: [], factions: ["any"], warbond: "base",
+      released: "", imgUrl: "https://helldivers.wiki.gg/images/Super_Earth_Icon.svg", armorPen: [], menuOrder: null, alwaysOwned: true, empty: true };
+  }
+
   // Mirrors Item.works_for(): "none" disables an item everywhere; only a factions list that is
   // exactly ["any"] is universal ("any" mixed into a longer list does NOT make an item universal).
   function worksFor(item, faction) {
@@ -485,6 +493,7 @@
         for (var fi = 0; fi < freeSlots.length; fi++) {
           var si = freeSlots[fi], cs = seed.strats[si];
           if (!cs) return null;
+          if (cs.empty) { chosen[si] = cs; continue; }
           var soFarSeed = [primary, secondary, throwable].concat(chosen.filter(Boolean));
           if (soFarSeed.indexOf(cs) !== -1) return null;   // the same stratagem twice
           var trialSeed = Object.assign({}, st);
@@ -519,7 +528,23 @@
         st = trial;
         chosen[freeSlots.shift()] = s;
       }
-      if (chosen.some(function (s) { return !s; })) return null; // couldn't fill every slot at all
+      if (chosen.some(function (s) { return !s; })) {
+        // Couldn't fill every slot. If the player has fewer than four stratagems to bring at all, the rest are simply empty
+        // (allowed in the game). Not if an owned stratagem is only missing because of the faction filter: then the build is
+        // incomplete and the caller relaxes the faction instead.
+        var owned = strategems.filter(function (x) {
+          return (ownedSet.has(x.warbond) || x.alwaysOwned) && !excluded.has(x.name) && x.factions.indexOf("none") === -1;
+        });
+        var holders = new Set(owned);
+        chosen.forEach(function (c) { if (c && !c.empty) holders.add(c); });
+        if (holders.size >= 4) return null;
+        var soFarEnd = [primary, secondary, throwable].concat(chosen.filter(Boolean));
+        var offFaction = owned.some(function (x) {
+          return chosen.indexOf(x) === -1 && !worksFor(x, faction) && admit(x, Object.assign({}, st), soFarEnd);
+        });
+        if (offFaction) return null;
+        chosen = chosen.map(function (c) { return c || makeEmptySlot(); });
+      }
 
       // ---- Rule checks --------------------------------------------------------------------
       // Every rule is evaluated and every failure is collected (instead of stopping at the first),
@@ -602,6 +627,7 @@
 
       return {
         primary: primary, secondary: secondary, throwable: throwable, strategems: chosen,
+        emptySlots: chosen.filter(function (c) { return c.empty; }).length,
         coversArmor: coversArmor, coversMed: coversMed, coversChaff: coversChaff,
         coversDemo: coversDemo, coversPanic: coversPanic,
         unmet: unmet,                                  // [] for a build that follows every rule

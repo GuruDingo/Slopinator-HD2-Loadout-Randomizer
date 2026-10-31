@@ -173,13 +173,13 @@
 
   function itemCard(item, slotLabel, opts) {
     var locked = opts.locked, suboptimal = opts.suboptimal;
-    var cls = (opts.wide ? "item-card2" : "item-card") + (suboptimal ? " suboptimal" : "") + (locked ? " is-locked" : "");
+    var cls = (opts.wide ? "item-card2" : "item-card") + (suboptimal ? " suboptimal" : "") + (locked ? " is-locked" : "") + (item.empty ? " is-empty" : "");
     var warbondRow = item.warbond !== "base"
       ? h("div", { class: "warbond-row" },
           h("span", { class: "tag-pill", style: "background:#2a2a2a;border:1px solid #555" }, warbondPillName[item.warbond] || warbondName[item.warbond] || item.warbond))
       : null;
     // Lock and reroll controls only exist on cards that belong to a generated loadout (opts.onLock / opts.onReroll).
-    var lockBtn = opts.onLock
+    var lockBtn = opts.onLock && !item.empty   // an empty slot has nothing to keep
       ? h("button", {
           type: "button", class: "slot-btn lock-btn", "aria-pressed": locked ? "true" : "false",
           title: locked ? "Unlock this slot" : "Lock this slot (kept when you reroll)",
@@ -200,7 +200,7 @@
         h("span", { class: "slot-label" }, slotLabel),
         suboptimal ? h("span", { class: "suboptimal-badge", title: "Not a good pick against " + (FACTION_NAMES[opts.faction] || "this faction") + " \u2014 it\u2019s meant for: " + factionsText(item) }, "\u26A0 OFF-FACTION") : null,
         h("span", { class: "slot-btns" }, rerollBtn, lockBtn)),
-      imageNode(item),
+      item.empty ? h("div", { class: "empty-img" }, imageNode(item)) : imageNode(item),
       h("div", { class: "card-body" },
         h("div", { class: "name-row" }, h("div", { class: "item-name" }, item.name), apRow(item)),
         warbondRow,
@@ -307,8 +307,13 @@
       card("secondary", "Secondary"),
       card("throwable", "Throwable")));
     box.appendChild(h("h3", { class: "section-title" }, "Stratagems"));
+    if (lo.emptySlots) {
+      box.appendChild(h("p", { class: "hint empty-note" },
+        lo.emptySlots + " stratagem slot" + (lo.emptySlots === 1 ? " is" : "s are") + " empty: you only have " + (4 - lo.emptySlots) +
+        " stratagem" + (4 - lo.emptySlots === 1 ? "" : "s") + " to bring (owned and not blocked in My Gear). That is allowed in the game."));
+    }
     box.appendChild(h("div", { class: "card-row" },
-      lo.strategems.map(function (st, i) { return card("strat" + (i + 1), TYPE_LABELS[st.cat] || st.cat); })));
+      lo.strategems.map(function (st, i) { return card("strat" + (i + 1), st.empty ? "Stratagem" : (TYPE_LABELS[st.cat] || st.cat)); })));
     box.appendChild(h("hr", { class: "divider" }));
     return box;
   }
@@ -353,6 +358,8 @@
       if (avoid) ex.add(avoid.name);
       base.excluded = ex;
       lo = engine.generateLoadoutRelaxed(base);
+      // Taking the item out must not leave the slot empty when it could have kept the old item.
+      if (avoid && (lo.emptySlots || 0) > (entry.lo.emptySlots || 0)) throw new Engine.GenerationError("no other item");
     } catch (e) {
       if (!(e instanceof Engine.GenerationError)) throw e;
       if (!avoid) { showMessages([e.message]); return; }
@@ -435,7 +442,6 @@
     req_p: { url: REQ_ICON }, req_o: { url: REQ_ICON }, req_h: { url: REQ_ICON },
     req_b: { url: REQ_ICON }, req_e: { url: REQ_ICON }, req_r: { url: REQ_ICON },
     superstore:    { url: WIKI_IMG + "Super_Credit.svg" },
-    fomo:          { url: WIKI_IMG + "Medal.svg" },
     helldivers_mobilize:   { url: WIKI_IMG + "Level_50_Skull_Admiral_Rank_Icon.svg" },
     steeled_veterans:      { url: WIKI_IMG + "Level_70_Admirable_Admiral_Rank_Icon.svg" },
     cutting_edge:          { url: WIKI_IMG + "Level_90_Galactic_Commander_Rank_Icon.svg" },
