@@ -1,0 +1,20 @@
+name: Bug
+description: Something on the site is broken or behaves oddly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please do not include personal information (real names, emails, passwords or account details); an item name, a short description and a wiki link are all that is needed.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Browser and device
+      description: For example Chrome on Android.

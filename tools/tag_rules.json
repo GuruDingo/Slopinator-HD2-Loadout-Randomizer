@@ -1,0 +1,29 @@
+{
+  "_about": "Tag consistency rules checked by tools/build_gear.py. They only FLAG problems (as warnings); nothing is ever changed automatically. Edit this file to change what gets flagged.",
+
+  "implications": [
+    { "if": "handheld", "then": "shield" },
+    { "if": "beam",    "then": "laser" },
+    { "if": "laser",   "then": "charge", "category": ["primary", "secondary", "support", "backpack"] },
+    { "if": "charge",     "then": "noammo", "category": ["primary", "secondary", "support", "backpack"] },
+    { "if": "expendable", "then": "noammo", "category": ["primary", "secondary", "support", "backpack"] },
+    { "if": "heal",    "then": "assist" },
+    { "if": "taunt",   "then": "assist" },
+    { "if": "stun",    "then": "assist" },
+    { "if": "smoke",   "then": "assist" },
+    { "if": "smoke",   "then": "stealth" },
+    { "if": "mortar",  "then": "sentry" },
+    { "if": "demo",    "then": "explosive", "category": "secondary" }
+  ],
+
+  "weapon_only_tags": [
+    { "tag": "panic", "categories": ["primary", "secondary", "throwable"], "note": "Panic Weapon is a weapon-slot tag only; the engine ignores it on stratagems. Remove it from stratagems when found." }
+  ],
+
+  "exactly_one_of": [
+    { "category": "support", "tags": ["expendable", "nonexp"], "note": "Replaces the old regularSupport group: every support weapon is either expendable or non-expendable." }
+  ],
+
+  "min_items_per_tag": 3,
+  "acknowledged_rare_tags": ["heal", "handheld", "supply", "tank", "taunt"]
+}

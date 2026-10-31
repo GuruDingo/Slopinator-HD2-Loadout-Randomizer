@@ -1,0 +1,49 @@
+name: Fetch images
+
+# Saves the wiki images into docs/img/ using GitHub's own network (no need to run anything on your computer).
+# Actions tab -> "Fetch images" -> Run workflow. Result: a branch called images-fetched (open a pull request from it)
+# and a download of docs/img on the run page.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Pillow
+        run: pip install pillow
+      - name: Fetch the images
+        id: fetch
+        continue-on-error: true
+        run: python3 tools/fetch_images.py
+      - name: Rebuild the data file
+        run: python3 tools/build_gear.py
+      - name: Keep the pictures as a download
+        uses: actions/upload-artifact@v4
+        with:
+          name: hd2-images
+          path: docs/img
+          retention-days: 30
+      - name: Save to the images-fetched branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B images-fetched
+          git add docs/img docs/gear-data.js
+          if git diff --cached --quiet; then echo "Nothing new to save."; else
+            git commit -m "Saved wiki images (tools/fetch_images.py, run by GitHub Actions)"
+            git push --force origin images-fetched
+          fi
+      - name: Report problems
+        if: steps.fetch.outcome == 'failure'
+        run: |
+          echo "Some images could not be fetched (see the 'Fetch the images' step). The ones that worked are saved; the site keeps using wiki links for the rest."
+          exit 1

@@ -1,0 +1,83 @@
+[
+ {
+  "name": "any / all warbonds",
+  "faction": "any",
+  "n": 12000
+ },
+ {
+  "name": "bug / all warbonds",
+  "faction": "bug",
+  "n": 12000
+ },
+ {
+  "name": "bot / all warbonds",
+  "faction": "bot",
+  "n": 12000
+ },
+ {
+  "name": "squid / all warbonds",
+  "faction": "squid",
+  "n": 12000
+ },
+ {
+  "name": "bug / free sources only, no premium warbonds (fallback expected)",
+  "faction": "bug",
+  "warbonds": [
+   "base","req_p","req_o","req_h","req_b","req_e","req_r","fomo"
+  ],
+  "n": 8000
+ },
+ {
+  "name": "any / free sources + 3 warbonds",
+  "faction": "any",
+  "warbonds": [
+   "base","req_p","req_o","req_h","req_b","req_e","req_r","fomo",
+   "helldivers_mobilize",
+   "steeled_veterans",
+   "cutting_edge"
+  ],
+  "n": 12000
+ },
+ {
+  "name": "bot / require demo:2 chaff:3",
+  "faction": "bot",
+  "require": {
+   "demo": 2,
+   "chaff": 3
+  },
+  "n": 8000
+ },
+ {
+  "name": "any / locks: Autocannon + Eagle Airstrike + Liberator",
+  "faction": "any",
+  "n": 8000,
+  "locks": {
+   "primary": "AR-23 Liberator",
+   "strat1": "AC-8 Autocannon",
+   "strat3": "Eagle Airstrike"
+  }
+ },
+ {
+  "name": "squid / lock all 4 strats incl. a backpack, no support weapon",
+  "faction": "squid",
+  "n": 6000,
+  "locks": {
+   "strat1": "Eagle Airstrike",
+   "strat2": "Orbital Gas Strike",
+   "strat3": "Orbital Smoke Strike",
+   "strat4": "LIFT-850 Jump Pack"
+  }
+ },
+ {
+  "name": "any / shield pack locked, exclusions",
+  "faction": "any",
+  "n": 8000,
+  "locks": {
+   "strat2": "SH-20 Ballistic Shield Backpack"
+  },
+  "exclude": [
+   "RS-422 Railgun",
+   "AR-23 Liberator"
+  ]
+ }
+]

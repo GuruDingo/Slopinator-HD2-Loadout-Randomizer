@@ -1,0 +1,45 @@
+tag,group,title,description,pill_color,pill_order
+assault rifle,Weapon type,Assault Rifle,Assault rifles,,
+marksman rifle,Weapon type,Marksman Rifle,Marksman rifles and other long-range precision primaries,,
+melee,Weapon type,Melee,"Melee weapons (batons, blades, hammers and the like)",#382E02,1
+onehand,Weapon type,One-Handed,"Weapons you can use one-handed, so a hand-held shield works with them (pistols, melee, some primaries)",#757575,20
+shotgun,Weapon type,Shotgun,Shotguns,,
+smg,Weapon type,SMG,Submachine guns,,
+special,Weapon type,Special,"Odd-one-out primaries: Eruptor, Exploding Crossbow, Torcher, Evictor, Scythe",,
+support,Weapon type,Support Weapon,Every support weapon,,
+expendable,Weapon type,Expendable,"One-use support weapons (Expendable Anti-Tank, Commando, Solo Silo and friends)",#0F0D02,2
+nonexp,Weapon type,Non-Expendable Support,The regular support weapons: every support weapon that is not expendable,,
+arc,Damage type,Arc,Arc / lightning damage,#0c8a96,12
+explosive,Damage type,Explosive,Weapons that deal explosive damage,#a0700a,14
+fire,Damage type,Fire,Sets enemies on fire,#c8541a,10
+gas,Damage type,Gas,Gas / poison damage,#7d8a1d,11
+impact,Damage type,Impact,Throwables that go off on contact or home in on a target,#e6a100,19
+laser,Damage type,Laser,Laser weapons and stratagems,#8a8210,15
+plasma,Damage type,Plasma,Plasma weapons,#8f3fe0,16
+armor,Enemy role,Anti-Tank,Can kill heavily armored enemies (anti-tank),#c62828,5
+demo,Enemy role,Base Breaker,"Can destroy structures: bug holes, fabricators, nests",#4b058d,6
+chaff,Enemy role,Chaff Killer,Good at clearing swarms of small enemies,#27ae32,3
+med,Enemy role,Medium Killer,Good against medium-armored enemies,#2f80ed,4
+panic,Enemy role,Panic Weapon,"Quick-reaction weapons for when you are swarmed (primaries, secondaries and throwables)",#2943b9,7
+charge,Ammo,Cooldown,Weapons that recharge or cool down instead of using a magazine (laser and arc weapons),,
+noammo,Ammo,No Ammo,"Never run out of ammo: charge weapons, expendable supports and Rovers",#7b5e3b,17
+supply,Ammo,Supply,Items that resupply you (the Supply Pack and the Supply FRV),,
+jump,Utility,Jump,Jump and hover packs,,
+shield,Utility,Shield,Shields of any kind,#4a6fa5,18
+handheld,Utility,Hand-Held Shield,Hand-held shields (they take up a hand),,
+smoke,Utility,Smoke,Makes smoke cover,,
+stealth,Utility,Stealth,"Helps you avoid being seen: smoke, quiet weapons, jump packs",#37474f,13
+stun,Utility,Stun,Stuns or slows enemies,#9575cd,21
+assist,Utility,Team Assist,"Helps the team: shields, stuns, smoke, lures",#d6336c,8
+backpack,Stratagem type,Backpack,Everything that takes the backpack slot,#555555,9
+eagle,Stratagem type,Eagle,Eagle air strikes,,
+emplacement,Stratagem type,Emplacement,Deployable gun emplacements,,
+frv,Stratagem type,FRV,Fast Recon Vehicles,,
+mech,Stratagem type,Mech,Exosuits,,
+mines,Stratagem type,Mines,Minefields,,
+mortar,Stratagem type,Mortar,Mortar sentries,,
+orbital,Stratagem type,Orbital,Orbital strikes,,
+rover,Stratagem type,Rover,Guard Dog drones,,
+sentry,Stratagem type,Sentry,Sentries,,
+tank,Stratagem type,Tank,Tanks,,
+vehicle,Stratagem type,Vehicle,"Vehicles: tanks, FRVs and exosuits",,

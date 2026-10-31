@@ -1,0 +1,22 @@
+name: Wrong or missing data
+description: An item has the wrong stats, tags, factions or warbond, or an item is missing
+labels: ["data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please do not include personal information (real names, emails, passwords or account details); an item name, a short description and a wiki link are all that is needed.
+  - type: input
+    id: item
+    attributes:
+      label: Which item?
+      description: The exact in-game name.
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong or missing?
+      description: For example a wrong tag, armor penetration, faction, warbond or release date. A wiki link helps.
+    validations:
+      required: true

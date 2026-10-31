@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Helldivers 2 Slopinator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+
+  <header class="site-header">
+    <h1>Helldivers 2 Slopinator</h1>
+    <p class="tagline">A Loadout Randomizer Fan-Project</p>
+    <p class="version-note" id="game-version">Updated for Helldivers 2 version 1.007.202</p>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button type="button" class="tab active" role="tab" data-view="randomizer" aria-selected="true">Randomizer</button>
+      <button type="button" class="tab" role="tab" data-view="gear" aria-selected="false">My Gear</button>
+    </nav>
+  </header>
+
+  <!-- ===================== RANDOMIZER ===================== -->
+  <section id="view-randomizer">
+    <form id="controls" class="panel" autocomplete="off">
+
+      <div class="control-row">
+        <fieldset class="field">
+          <legend>Faction</legend>
+          <div class="segmented" id="faction-group">
+            <label><input type="radio" name="faction" value="any" checked><span>Any</span></label>
+            <label><input type="radio" name="faction" value="bug"><span>Terminids</span></label>
+            <label><input type="radio" name="faction" value="bot"><span>Automatons</span></label>
+            <label><input type="radio" name="faction" value="squid"><span>Illuminate</span></label>
+          </div>
+        </fieldset>
+        <div class="field">
+          <label for="count">Loadouts</label>
+          <input type="number" id="count" min="1" max="20" value="1">
+        </div>
+      </div>
+
+      <div class="pool-line">
+        <span id="pool-text"></span>
+        <button type="button" class="link-btn" id="pool-edit">Edit in My Gear</button>
+      </div>
+
+      <details class="section">
+        <summary>Lock slots <span class="summary-note" id="lock-summary"></span></summary>
+        <div class="section-body">
+          <p class="hint">Pin specific gear and randomize the rest. Type a name or nickname (e.g. <em>liberator</em>, <em>eat-17</em>). Locks override the slot rules (backpack count, support caps, etc.). If your locks make some guarantees impossible, the loadout is still built and the missed guarantees are listed above it.</p>
+          <div class="lock-grid" id="lock-grid"></div>
+        </div>
+      </details>
+
+      <details class="section" id="rules-section">
+        <summary>Rules <span class="summary-note" id="rules-summary"></span></summary>
+        <div class="section-body">
+          <p class="hint">Every loadout is checked against these rules. The dim rows are the system defaults: remove one with the ×, or change a "how many" row by adding a rule for the same tag in "Add your own rule" above (it replaces that number). Your own rules are the solid rows. When a build can't meet everything, higher-priority rules are protected first, and locks always win.</p>
+          <details class="builder" id="rule-builder">
+            <summary>Add your own rule</summary>
+            <div class="builder-part">
+                            <div id="builder-body"></div>
+            </div>
+          </details>
+          <div class="chips" id="require-chips"></div>
+          <div class="btn-row"><button type="button" class="ctrl-btn" id="presets-reset" hidden title="Brings back every default rule you removed or changed. Rules you added yourself stay.">Reset to system defaults</button> <button type="button" class="ctrl-btn" id="custom-clear" hidden title="Removes the rules you added yourself. The default rows are left as they are.">Clear custom rules</button></div>
+          <div class="rule-row locked">
+            <span class="lock-mark" aria-hidden="true">🔒</span>
+            <span>At most 1 FRV, 1 tank and 1 exosuit, and no stratagem twice <span class="rule-note">Game rules, always on.</span></span>
+          </div>
+        </div>
+      </details>
+
+      <div class="generate-row">
+        <button type="submit" class="primary-btn" id="generate">Generate loadout</button>
+        <button type="button" class="ctrl-btn" id="reset-all">Reset options</button>
+      </div>
+    </form>
+
+    <div id="messages" aria-live="polite"></div>
+    <div id="results"></div>
+  </section>
+
+  <!-- ===================== MY GEAR ===================== -->
+  <section id="view-gear" hidden>
+    <div class="gear-head">
+      <p class="hint gear-intro">
+        Tick what you own; the randomizer only rolls owned gear. <strong>Block</strong> takes an item out of the
+        pool without un-owning it. Base Game gear is always owned (you can still block it).
+        Saved in this browser only.
+      </p>
+      <label class="switch" title="Change which factions each item is recommended against">
+        <input type="checkbox" id="edit-factions" role="switch">
+        <span class="switch-track" aria-hidden="true"></span>
+        <span>Edit factions</span>
+      </label>
+    </div>
+    <div class="fac-tools" id="fac-tools" hidden>
+      <p class="hint">
+        Tick which factions each item is recommended against:
+        <span class="fac-legend fac-bug" data-fac-legend="bug"> Terminid</span>,
+        <span class="fac-legend fac-bot" data-fac-legend="bot"> Automaton</span>,
+        <span class="fac-legend fac-squid" data-fac-legend="squid"> Illuminate</span>.
+        All three ticked works against anything; with none ticked an item only rolls when the faction is Any.
+        An item you've changed gets a coloured edge and a &#8634; button to put it back.
+      </p>
+      <div class="btn-row">
+        <span class="fac-count" id="fac-count"></span>
+        <button type="button" class="ctrl-btn" id="fac-all">Enable for all factions</button>
+        <button type="button" class="ctrl-btn danger" id="fac-reset">Reset to defaults</button>
+      </div>
+    </div>
+    <div class="total-bar"><span id="grand-total">0 / 0 items owned</span> <span class="total-detail" id="gear-detail"></span></div>
+    <div class="gear-tools">
+      <input type="search" id="gear-search" placeholder="Find an item or warbond…" aria-label="Find an item" autocomplete="off" title="Search by item name, nickname or warbond name">
+      <p class="hint" id="gear-filter-note" hidden></p>
+      <div class="btn-row">
+        <button type="button" class="ctrl-btn" id="gear-expand">Expand all</button>
+        <button type="button" class="ctrl-btn" id="gear-collapse">Collapse all</button>
+        <button type="button" class="ctrl-btn" id="gear-select-all">Own everything</button>
+        <button type="button" class="ctrl-btn" id="gear-unblock-all">Unblock all</button>
+        <button type="button" class="ctrl-btn danger" id="gear-clear">Own nothing</button>
+      </div>
+      <div class="btn-row data-row">
+        <button type="button" class="ctrl-btn" id="data-export" title="Save your owned and blocked items, faction edits and rules to a file">Export my data</button>
+        <button type="button" class="ctrl-btn" id="data-import" title="Load a file you exported earlier (replaces what is saved in this browser)">Import my data</button>
+        <input type="file" id="data-file" accept=".json,application/json" hidden>
+        <span class="hint" id="data-msg" role="status"></span>
+      </div>
+    </div>
+    <div id="gear-list"></div>
+  </section>
+
+  <footer class="disclaimer">
+    <p class="feedback"><a href="https://github.com/GuruDingo/Slopinator-HD2-Loadout-Randomizer/issues/new/choose" target="_blank" rel="noopener">Report a bug / wrong data</a> (GitHub account needed)</p>
+    Unofficial fan project. Helldivers&trade; 2 and all related names, art and trademarks belong to Arrowhead Game Studios
+    and Sony Interactive Entertainment. Item images are saved from the Helldivers wiki. Not affiliated with or endorsed by either.
+    This tool is intended to always be free and never to be monetized.
+    This tool was made using AI vibe code, and as such is prone to error. It does not deserve your love, trust, or appreciation.
+  </footer>
+</div>
+
+<datalist id="dl-primary"></datalist>
+<datalist id="dl-secondary"></datalist>
+<datalist id="dl-throwable"></datalist>
+<datalist id="dl-strat"></datalist>
+
+<script src="gear-data.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

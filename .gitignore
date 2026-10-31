@@ -1,0 +1,4 @@
+dist/
+node_modules/
+__pycache__/
+tests/_scenarios_quick.json
