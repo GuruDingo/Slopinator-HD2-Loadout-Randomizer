@@ -131,9 +131,10 @@ On the My Gear tab, the **Edit factions** switch (top right) shows three ticks o
 
 ## Locking and rerolling slots in the results
 
-Each card in a generated loadout has a lock toggle (🔒/🔓) and a reroll button (🎲); each loadout has a **Reroll all unlocked** button.
+Each card in a generated loadout has a lock toggle (🔒/🔓), a reroll button (🎲) and a block button (🚫); each loadout has a **Reroll all unlocked** button.
 - Locked slots are kept; the Locks panel's entries start out locked.
 - 🎲 rerolls just that slot (always a different item when another choice exists) and keeps the other six exactly as they are, so the other six slots count as locked for that build. The usual rules still apply as far as the slot allows, and anything it can't meet is flagged.
+- 🚫 blocks that item in My Gear (the same as the Block button there, so it is saved and never rolled again) and rerolls the slot. Unblock it in My Gear to bring it back. It is disabled on a locked slot and absent on an empty one.
 - **Reroll all unlocked** keeps the locked slots and rebuilds the rest as a whole, so the rules can be met again.
 - Locks on cards belong to that loadout only (they are not copied into the Locks panel, and Generate starts fresh). Rerolls use the faction, rules (default rows, edits and your own) the loadout was generated with, but your current My Gear pool.
 

@@ -116,6 +116,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
   font-size: .85rem; line-height: 1; padding: 4px 6px; cursor: pointer; min-width: 28px; min-height: 26px; }
 .slot-btn:hover:not(:disabled) { background: rgba(0,0,0,.6); border-color: var(--accent); }
 .slot-btn:disabled { opacity: .35; cursor: not-allowed; }
+.slot-btn.block-slot-btn:hover:not(:disabled) { border-color: #e57373; }
 .slot-btn.lock-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
 .item-card.is-locked, .item-card2.is-locked { box-shadow: 0 0 0 2px var(--accent); }
 .loadout-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 1.5rem 0 .5rem; flex-wrap: wrap; }

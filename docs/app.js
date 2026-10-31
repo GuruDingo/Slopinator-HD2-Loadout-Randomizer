@@ -198,11 +198,20 @@
           onclick: opts.onReroll,
         }, "\uD83C\uDFB2")
       : null;
+    // Block: marks the item blocked in My Gear (never rolled again) and rerolls this slot. Not on an empty slot, and not while locked.
+    var blockBtn = opts.onBlock && !item.empty
+      ? h("button", {
+          type: "button", class: "slot-btn block-slot-btn", disabled: locked ? true : null,
+          title: locked ? "Unlock this slot to block its item" : "Block this item in My Gear and reroll this slot",
+          "aria-label": "Block " + slotLabel + ": " + item.name,
+          onclick: opts.onBlock,
+        }, "\uD83D\uDEAB")
+      : null;
     return h("div", { class: cls },
       h("div", { class: "card-header", style: "background:" + (TYPE_COLORS[item.cat] || "#363426") },
         h("span", { class: "slot-label" }, slotLabel),
         suboptimal ? h("span", { class: "suboptimal-badge", title: "Not a good pick against " + (FACTION_NAMES[opts.faction] || "this faction") + " \u2014 it\u2019s meant for: " + factionsText(item) }, "\u26A0 OFF-FACTION") : null,
-        h("span", { class: "slot-btns" }, rerollBtn, lockBtn)),
+        h("span", { class: "slot-btns" }, rerollBtn, blockBtn, lockBtn)),
       item.empty ? h("div", { class: "empty-img" }, imageNode(item)) : imageNode(item),
       h("div", { class: "card-body" },
         h("div", { class: "name-row" }, h("div", { class: "item-name" }, item.name), apRow(item)),
@@ -254,7 +263,8 @@
       var item = itemAt(lo, key);
       var opts = { locked: !!locks[key], suboptimal: isOff(item), faction: faction, wide: !!(extra && extra.wide),
         onLock: function () { toggleLock(entry, key); },
-        onReroll: function () { rerollSlot(entry, key); } };
+        onReroll: function () { rerollSlot(entry, key); },
+        onBlock: function () { blockSlot(entry, key); } };
       return itemCard(item, slotLabel, opts);
     }
     var unlockedCount = SLOT_KEYS.filter(function (k) { return !locks[k]; }).length;
@@ -359,7 +369,7 @@
 
   // `callLocks` = the slots to hold fixed for this one build; `avoid` = the item being replaced (so a reroll
   // actually changes it when another choice exists).
-  function rebuild(entry, callLocks, avoid, what) {
+  function rebuild(entry, callLocks, avoid, what, firstNote) {
     var excluded = excludedNames();
     // Anything held fixed stays even if you blocked it since (it's already on screen).
     Object.keys(callLocks).forEach(function (k) { excluded.delete(callLocks[k].name); });
@@ -385,7 +395,7 @@
       }
     }
     entry.lo = lo;
-    showMessages(note ? [note] : [], "info");
+    showMessages([firstNote, note].filter(Boolean), "info");
     redraw(entry);
   }
 
@@ -394,6 +404,18 @@
     var callLocks = {};
     SLOT_KEYS.forEach(function (k) { if (k !== key) callLocks[k] = itemAt(entry.lo, k); });
     rebuild(entry, callLocks, itemAt(entry.lo, key), "item for this slot");
+  }
+
+  // Block the item in this slot in My Gear (the same as the Block button there), then reroll the slot.
+  function blockSlot(entry, key) {
+    if (entry.locks[key]) return;
+    var item = itemAt(entry.lo, key);
+    if (!item || item.empty) return;
+    blocked[item.name] = true;
+    onGearChange();
+    var callLocks = {};
+    SLOT_KEYS.forEach(function (k) { if (k !== key) callLocks[k] = itemAt(entry.lo, k); });
+    rebuild(entry, callLocks, item, "item for this slot", "Blocked " + item.name + " in My Gear. Unblock it there to roll it again.");
   }
 
   function rerollUnlocked(entry) {

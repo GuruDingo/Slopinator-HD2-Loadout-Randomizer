@@ -935,6 +935,33 @@ function check(label, cond, extra) {
     check("with every secondary blocked the build still succeeds and the secondary slot is empty",
       errors().length === 0 && weaponRow()[1].classList.contains("is-empty"), errors().join(" | "));
     check("...and a note says a weapon slot is empty", /1 weapon slot is empty/.test(doc.querySelector("#results .empty-note").textContent));
+    win.HD2_DATA.items.filter((i) => i.cat === "secondary" && i.factions.indexOf("none") === -1).forEach((i) => {
+      const b = blockBtn(i.name); if (b && b.getAttribute("aria-pressed") === "true") click(b);
+    });
+  }
+  console.log("Block from the results");
+  {
+    click($("gear-select-all"));
+    setFaction("any");
+    $("count").value = "1";
+    generate();
+    const slotCard = (i) => Array.from(doc.querySelectorAll("#results .loadout .item-card, #results .loadout .item-card2"))[i];
+    const nameAt = (i) => slotCard(i).querySelector(".item-name").textContent;
+    const before = nameAt(1);   // the secondary
+    check("every real card has a Block button", Array.from(doc.querySelectorAll("#results .loadout .item-card, #results .loadout .item-card2")).every((c) => c.querySelector(".block-slot-btn")));
+    click(slotCard(1).querySelector(".block-slot-btn"));
+    check("Block replaces the item in that slot", nameAt(1) !== before && errors().length === 0, before + " -> " + nameAt(1));
+    check("...marks it blocked in My Gear", blockBtn(before).getAttribute("aria-pressed") === "true");
+    check("...and says so", new RegExp("Blocked " + before.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&") + " in My Gear").test($("messages").textContent), $("messages").textContent);
+    check("...and it is saved (survives in the stored block list)", JSON.parse(win.localStorage.getItem("hd2_blocked")).includes(String(idOf(before))) || JSON.parse(win.localStorage.getItem("hd2_blocked")).includes(idOf(before)));
+    for (let i = 0; i < 40; i++) { click($("reroll-all") || doc.querySelector("#results .reroll-all-btn")); if (nameAt(1) === before) break; }
+    check("the blocked item never comes back on later rerolls", nameAt(1) !== before);
+    // a locked slot can't be blocked
+    click(slotCard(0).querySelector(".lock-btn"));
+    check("a locked slot's Block button is disabled", slotCard(0).querySelector(".block-slot-btn").disabled === true);
+    click(slotCard(0).querySelector(".lock-btn"));
+    click(blockBtn(before));   // unblock again for the later tests
+    check("unblocking in My Gear works as before", blockBtn(before).getAttribute("aria-pressed") === "false");
   }
   console.log("Saved images");
   {
