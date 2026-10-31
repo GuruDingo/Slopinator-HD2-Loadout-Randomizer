@@ -138,6 +138,12 @@ Each card in a generated loadout has a lock toggle (🔒/🔓), a reroll button 
 - **Reroll all unlocked** keeps the locked slots and rebuilds the rest as a whole, so the rules can be met again.
 - Locks on cards belong to that loadout only (they are not copied into the Locks panel, and Generate starts fresh). Rerolls use the faction, rules (default rows, edits and your own) the loadout was generated with, but your current My Gear pool.
 
+## Sharing a loadout
+
+Each loadout has a **🔗 Share** button that copies a link to that one loadout. The link carries only the seven items (as their permanent ids, in slot order, `0` for an empty slot), for example `.../#l1=6.21.50.12.30.41.77`; `l1` is the format version. It holds no faction, rules or gear, and the part after `#` is never sent to a server. Anyone who opens it sees that loadout with a **Shared loadout** banner, shown as it was sent (Any faction, only the default rules checked), and can reroll, lock or block slots like in any other loadout. A damaged link, one with an item this version doesn't know, or one with an item in the wrong slot shows a short message instead. Because item ids never change, old links keep working.
+
+Cards carry two markers: **NOT OWNED** for an item that isn't in your My Gear (typical on a shared loadout) and **BLOCKED** for an item you have blocked, including one you blocked after it was rolled. They follow My Gear as you change it.
+
 ## Rules panel
 
 The **Rules** section of the randomizer page is one list. Every rule the engine checks is a row, and you can add your own.

@@ -992,6 +992,62 @@ function check(label, cond, extra) {
     click($("gear-select-all"));
     click(blockBtn("AC-8 Autocannon"));   // back to the state the later tests expect
   }
+  console.log("Shared loadouts and markers");
+  {
+    let copied = null;
+    Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { writeText: (t) => { copied = t; return Promise.resolve(); } } });
+    click($("gear-select-all"));
+    setFaction("bug");
+    $("count").value = "2";
+    generate();
+    const loadoutNames = (n) => Array.from(doc.querySelectorAll("#results .loadout")[n].querySelectorAll(".item-name")).map((e) => e.textContent);
+    const second = loadoutNames(1);
+    click(doc.querySelectorAll("#results .loadout")[1].querySelector(".share-btn"));
+    await new Promise((r) => setTimeout(r, 20));
+    check("Share copies a link with this loadout's 7 item ids", /#l1=\d+(\.\d+){6}$/.test(copied || ""), copied);
+    check("...and says it was copied", /copied/i.test($("messages").textContent), $("messages").textContent);
+    const hash = copied.slice(copied.indexOf("#"));
+    // open the link in "another visitor's" state: they own only the starting gear
+    click($("gear-clear"));
+    win.location.hash = hash.slice(1);
+    await new Promise((r) => setTimeout(r, 50));
+    check("opening the link shows that one loadout", doc.querySelectorAll("#results .loadout").length === 1 && loadoutNames(0).join("|") === second.join("|"), loadoutNames(0).join("|") + " vs " + second.join("|"));
+    check("...with a Shared loadout banner and no error", !!doc.querySelector("#results .shared-banner") && errors().length === 0, errors().join(" | "));
+    check("...and the link is cleared from the address bar", win.location.hash === "");
+    const ownedLess = doc.querySelectorAll("#results .status-badge.not-owned").length;
+    check("items the viewer doesn't own are marked NOT OWNED", ownedLess >= 1, ownedLess);
+    check("...but the starting gear isn't", Array.from(doc.querySelectorAll("#results .item-card, #results .item-card2")).filter((c) => /MG-43 Machine Gun|Orbital Precision Strike/.test(c.querySelector(".item-name").textContent)).every((c) => !c.querySelector(".not-owned")));
+    // a blocked marker follows My Gear
+    click($("gear-select-all"));
+    const someCard = doc.querySelector("#results .loadout .item-card");
+    const someName = someCard.querySelector(".item-name").textContent;
+    click(blockBtn(someName));
+    const markedCard = () => Array.from(doc.querySelectorAll("#results .item-card, #results .item-card2")).find((c) => c.querySelector(".item-name").textContent === someName);
+    check("blocking an item in My Gear marks it BLOCKED on the card", !!markedCard().querySelector(".is-blocked-badge"));
+    click(blockBtn(someName));
+    check("...and unblocking removes the marker", !markedCard().querySelector(".is-blocked-badge"));
+    // rerolling a slot of a shared loadout still works
+    click(doc.querySelector("#results .loadout .reroll-btn"));
+    check("a shared loadout can be rerolled like any other", errors().length === 0 && doc.querySelectorAll("#results .loadout").length === 1);
+    // damaged / unknown links
+    win.location.hash = "l1=1.2.3";
+    await new Promise((r) => setTimeout(r, 50));
+    check("a damaged link says so", /damaged/.test($("messages").textContent), $("messages").textContent);
+    win.location.hash = "l1=999999.2.3.4.5.6.7";
+    await new Promise((r) => setTimeout(r, 50));
+    check("a link with an unknown item says so", /doesn.t know about/.test($("messages").textContent), $("messages").textContent);
+    win.location.hash = "l1=" + ["1", "1", "1", "1", "1", "1", "1"].join(".");
+    await new Promise((r) => setTimeout(r, 50));
+    check("a link with items in the wrong slots says so", /wrong slot/.test($("messages").textContent), $("messages").textContent);
+    // a link with empty slots
+    const base = win.HD2_DATA.items.filter((i) => i.warbond === "base" || i.alwaysOwned);
+    const pri = base.find((i) => i.cat === "primary"), sec = base.find((i) => i.cat === "secondary"), thr = base.find((i) => i.cat === "throwable");
+    win.location.hash = "l1=" + [pri.id, sec.id, thr.id, idOf("Orbital Precision Strike"), 0, 0, 0].join(".");
+    await new Promise((r) => setTimeout(r, 50));
+    check("a link with empty slots shows them as Empty Slot cards", doc.querySelectorAll("#results .is-empty").length === 3 && errors().length === 0, doc.querySelectorAll("#results .is-empty").length);
+    generate();
+    check("Generate afterwards makes a normal loadout again", !doc.querySelector("#results .shared-banner"));
+  }
   console.log("Saved images");
   {
     // a page whose data lists saved copies: those are used for every kind of picture; anything not listed keeps its wiki link

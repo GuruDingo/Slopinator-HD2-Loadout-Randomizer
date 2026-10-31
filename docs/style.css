@@ -123,6 +123,11 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .loadout-bar h2 { margin: 0; }
 .loadout-bar-title { font-size: 1.2rem; color: #aaa; text-transform: uppercase; letter-spacing: .1em; }
 .reroll-all-btn:disabled { opacity: .4; cursor: not-allowed; }
+.status-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.status-badge { font-size: .6rem; font-weight: 700; letter-spacing: .04em; padding: 1px 6px; border-radius: 9px; border: 1px solid; }
+.status-badge.not-owned { color: #bbb; border-color: #666; background: #262626; }
+.status-badge.is-blocked-badge { color: #ff6b6b; border-color: #8b0000; background: #3a1212; }
+.shared-banner { background: #14232e; border: 1px solid #3a6a8a; color: #9cc7e4; font-size: .82rem; padding: 8px 12px; border-radius: 6px; margin-bottom: .75rem; line-height: 1.4; }
 .suboptimal-badge { font-size: .6rem; color: #ff8c3c; font-weight: 700; }
 .item-card.suboptimal, .item-card2.suboptimal { border-color: #ff8c3c; }
 .faction-warning {
@@ -253,6 +258,11 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
   h1 { font-size: 1.2rem; letter-spacing: .1em; }
   .item-card { width: calc(50% - 6px); }
   .item-card2 { width: 100%; }
+  /* Half-width cards carry label + reroll + block + lock: tighten them so the last button isn't cut off. */
+  .card-header { padding: 6px 7px; gap: 4px; }
+  .slot-label { font-size: .62rem; letter-spacing: .05em; min-width: 0; }
+  .slot-btns { gap: 3px; }
+  .slot-btn { min-width: 22px; padding: 4px 3px; font-size: .75rem; }
   .item-img, .img-placeholder { height: 150px; }
   .generate-row { flex-wrap: wrap; }
   .primary-btn { flex: 1; }
