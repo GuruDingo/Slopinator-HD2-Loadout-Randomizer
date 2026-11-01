@@ -870,7 +870,7 @@
     return selectorLabel(c.sel) + " " + reqText(c) + scopeText(c.sel, c.scope);
   }
   function describeRule(r) {
-    var must = condText(r.must);
+    var must = r.any ? "either " + r.any.map(condText).join(", or ") : condText(r.must);
     if (!r.when || !r.when.length) return must;
     return "If " + r.when.map(condText).join(" and ") + ", then " + must;
   }

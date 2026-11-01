@@ -72,9 +72,9 @@
     { id: "demoEscalation", kind: "guarantee", label: "Two base breakers when no weapon is one",
       rules: [{ when: [{ sel: "tag:demo", scope: "weapons", max: 0 }, { sel: "tag:demo", scope: "all", min: 1 }], must: { sel: "tag:demo", scope: "all", min: 2 } }] },
     // Pistols are one-handed too, but they do not count here: the shield needs a one-handed PRIMARY or a (one-handed) melee weapon.
-    // Written as "if there is no one-handed primary, then a melee weapon in primary / secondary".
+    // Written as "if a hand-held shield, then either a melee weapon in primary / secondary, or a one-handed primary" (`any` = either/or).
     { id: "shield", kind: "guarantee", label: "A hand-held shield needs a one-handed primary or a melee weapon",
-      rules: [{ when: [{ sel: "tag:handheld", scope: "strats", min: 1 }, { sel: "tag:onehand", scope: "primary", max: 0 }], must: { sel: "tag:melee", scope: "ps", min: 1 } }] },
+      rules: [{ when: [{ sel: "tag:handheld", scope: "strats", min: 1 }], any: [{ sel: "tag:melee", scope: "ps", min: 1 }, { sel: "tag:onehand", scope: "primary", min: 1, max: 1 }] }] },
     { id: "supply", kind: "guarantee", label: "No supply pack alongside 2+ no-ammo items",
       rules: [{ when: [{ sel: "tag:noammo", scope: "all", min: 2 }], must: { sel: "tag:supply", scope: "strats", max: 0 } }] },
     { id: "capRegular", kind: "limit", label: "At most 1 regular (non-expendable) support weapon", fill: true,
@@ -220,14 +220,18 @@
     return 0;
   }
   // null when the rule holds, otherwise { actual, gap } (actual = the count that broke it).
+  // The "then" part is a single `must`, or `any`: a list of conditions where meeting one of them is enough (default rules only).
   function evalRule(rule, ctx) {
     var when = rule.when || [];
     for (var w = 0; w < when.length; w++) {
       if (condGap(when[w], condCount(when[w], ctx))) return null;   // the "if" part doesn't hold: nothing to check
     }
-    var n = condCount(rule.must, ctx);
-    var gap = condGap(rule.must, n);
-    return gap ? { actual: n, gap: gap } : null;
+    var best = null;
+    (rule.any || [rule.must]).forEach(function (c) {
+      var n = condCount(c, ctx), gap = condGap(c, n);
+      if (!best || gap < best.gap) best = { actual: n, gap: gap };
+    });
+    return best.gap ? best : null;
   }
   // A limit that can be enforced while stratagems are picked: only an upper bound, no lower bound.
   function isUpperOnly(rule) {
@@ -235,7 +239,7 @@
   }
   // Does a stratagem count towards this rule at all? (Used so a rule the locks already break doesn't block unrelated picks.)
   function touchesStrat(rule, s) {
-    var conds = (rule.when || []).concat(rule.must ? [rule.must] : []);
+    var conds = (rule.when || []).concat(rule.any || (rule.must ? [rule.must] : []));
     return conds.some(function (c) {
       return (c.scope === undefined || c.scope === "all" || c.scope === "strats") && makeSelector(c.sel)(s);
     });
