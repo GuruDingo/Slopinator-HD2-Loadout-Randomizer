@@ -421,6 +421,23 @@ function check(label, cond, extra) {
   check("at most two ‘if’ conditions can be added", doc.querySelectorAll('#builder-body .b-row[data-role="when"]').length === 2 && $("b-add-if").hidden);
   doc.querySelectorAll("#builder-body #b-when .chip-x").forEach((b) => click(b));
   check("...and each can be removed again", doc.querySelectorAll('#builder-body .b-row[data-role="when"]').length === 0 && !$("b-add-if").hidden);
+  // "+ or" inside an ‘if’
+  click($("b-add-if"));
+  const ifRow = doc.querySelector('#builder-body .b-row[data-role="when"]');
+  const setAlt0 = (row, sel, scope, op, n) => { setv(row.querySelector(".b-sel"), sel); setv(row.querySelector(".b-scope"), scope); setv(row.querySelector(".b-op"), op); row.querySelector(".b-n").value = String(n); };
+  setAlt0(ifRow, "cat:eagle", "strats", "min", 2);
+  click(doc.querySelector("#builder-body .b-or-btn"));
+  const ifAlts = () => doc.querySelectorAll('#builder-body .b-row[data-role="when-alt"]');
+  setAlt0(ifAlts()[0], "cat:orbital", "strats", "min", 2);
+  check("'+ or' under an ‘if’ adds an ‘or’ row to that ‘if’", ifAlts().length === 1 && ifAlts()[0].querySelector(".b-prefix").textContent === "or");
+  click(doc.querySelector("#builder-body .b-or-btn")); click(doc.querySelector("#builder-body .b-or-btn"));
+  check("...up to two extra alternatives", ifAlts().length === 2 && doc.querySelector("#builder-body .b-or-btn").hidden);
+  click(ifAlts()[1].querySelector(":scope > .chip-x"));
+  check("...and one can be removed again", ifAlts().length === 1 && !doc.querySelector("#builder-body .b-or-btn").hidden);
+  setAlt0(bRow("must"), "cat:sentry", "all", "max", 0);
+  click($("b-add"));
+  check("an either / or ‘if’ reads 'A or B' and is saved as `when: [{ any }]`", chipTexts().includes("If Eagle ≥ 2 or Orbital ≥ 2, then Sentry ≤ 0") && (() => { const r = JSON.parse(win.localStorage.getItem("hd2_settings")).customRules.slice(-1)[0]; return r && r.when && r.when[0].any && r.when[0].any.length === 2; })(), chipTexts().join("|"));
+  check("...and the ‘if’ rows clear after adding", doc.querySelectorAll('#builder-body .b-row[data-role="when"]').length === 0 && ifAlts().length === 0);
   // either / or alternatives and several tags on one item
   const setAlt = (row, sel, scope, op, n) => { setv(row.querySelector(".b-sel"), sel); setv(row.querySelector(".b-scope"), scope); setv(row.querySelector(".b-op"), op); row.querySelector(".b-n").value = String(n); };
   const altRows = () => doc.querySelectorAll('#builder-body .b-row[data-role="alt"]');

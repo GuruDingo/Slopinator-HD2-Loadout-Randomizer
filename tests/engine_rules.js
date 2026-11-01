@@ -422,6 +422,19 @@ test("Either / or rules (`any`) and combined selectors (tag:a&tag:b) are checked
     customRules: [{ any: [{ sel: "tag:onehand&tag:melee", scope: "ps", min: 1 }, { sel: "cat:eagle", scope: "ps", min: 1 }] }] });
   assert(l.unmet.some((u) => u.rule && u.rule.any && u.gap >= 1 || u.actual === 0), "flagged when neither alternative can hold");
 });
+test("Either / or inside an `if` ({ any: [...] } in `when`) holds when any alternative holds", () => {
+  const eagle2 = { sel: "cat:eagle", scope: "strats", min: 2 }, orbital2 = { sel: "cat:orbital", scope: "strats", min: 2 };
+  const rule = { when: [{ any: [eagle2, orbital2] }], must: { sel: "cat:sentry", scope: "all", max: 0 } };
+  const copy = HD2Engine.normalizeRule(rule);
+  assert(copy && copy.when[0].any.length === 2 && copy !== rule);
+  [{ when: [{ any: [eagle2] }] }, { when: [{ any: [eagle2, { sel: "nope", min: 1 }] }] }, { when: [{ any: "x" }] }, { when: [{ any: [eagle2, orbital2, eagle2, orbital2] }] }]
+    .forEach((r) => assert.strictEqual(HD2Engine.normalizeRule(Object.assign({ must: { sel: "tag:armor", min: 1 } }, r)), null, JSON.stringify(r)));
+  const bs = strict(1200, { customRules: [rule] });
+  bs.forEach((l) => { if (catCount(l, "eagle") >= 2 || catCount(l, "orbital") >= 2) assert.strictEqual(catCount(l, "sentry"), 0); });
+  assert(bs.some((l) => catCount(l, "eagle") >= 2) && bs.some((l) => catCount(l, "orbital") >= 2 && catCount(l, "eagle") < 2), "both sides of the `or` are exercised");
+  // each side alone triggers it, and neither one leaves sentries alone
+  assert(bs.some((l) => catCount(l, "sentry") > 0), "sentries still appear when neither side holds");
+});
 test("Generic rules: a category rule (no Orbitals) is kept by every build", () => {
   const rule = { must: { sel: "cat:orbital", max: 0 } };
   const bs = strict(400, { customRules: [rule] });

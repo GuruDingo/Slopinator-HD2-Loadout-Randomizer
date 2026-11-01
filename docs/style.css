@@ -307,6 +307,9 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
 .b-row .b-and { font-size: .8rem; color: #8ab; background: none; border: 1px dashed #556; border-radius: 4px; padding: 1px 6px; cursor: pointer; }
 .b-row .b-and:hover { color: #cde; }
 .b-row .b-and[hidden] { display: none; }
+#builder-body .b-or-btn { font-size: .8rem; color: #8ab; background: none; border: 1px dashed #556; border-radius: 4px; padding: 1px 8px; margin: 0 0 .3rem 2.6rem; cursor: pointer; }
+#builder-body .b-or-btn:hover { color: #cde; }
+#builder-body .b-or-btn[hidden] { display: none; }
 .disclaimer .feedback { margin: 0 0 .6rem; font-size: .8rem; }
 .disclaimer .feedback a { color: #9ab; }
 .blocked-section { margin-top: 1rem; }
