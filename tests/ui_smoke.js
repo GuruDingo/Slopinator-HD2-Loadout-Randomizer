@@ -299,13 +299,13 @@ function check(label, cond, extra) {
     "Medium Killer ≥ 1", "Panic Weapon ≥ 1", "Two base breakers when no weapon is one",
     "A hand-held shield needs a one-handed primary or a melee weapon", "No supply pack alongside 2+ no-ammo items",
     "At most 1 regular (non-expendable) support weapon", "Expendable ≤ 2", "Vehicle ≤ 1", "Eagle ≤ 2", "Mines ≤ 1",
-    "Melee secondaries are rolled at a third of the usual odds", "Item odds are evened out"];
+    "Melee secondaries are rolled at a third of the usual odds"];
   const ruleChip = (id) => doc.querySelector('#require-chips .chip[data-rule="' + id + '"]');
-  check("every default rule starts as a dim row (no switches), highest priority first", chipTexts().join("|") === DEFAULT_ROWS.join("|") && chips().every((c) => c.classList.contains("preset")) && !doc.querySelector("#rules-default") && !doc.querySelector('#rules-section input[role="switch"]'), chipTexts().join("|"));
+  check("every default rule starts as a dim row (no switches), highest priority first", chipTexts().join("|") === DEFAULT_ROWS.join("|") && chips().every((c) => c.classList.contains("preset")) && !doc.querySelector("#rules-default") && !doc.querySelector('#rules-section input[role="switch"]:not(#even-odds)'), chipTexts().join("|"));
   check("...with no reset buttons yet, and nothing counted in the summary", $("presets-reset").hidden && $("custom-clear").hidden && $("rules-summary").textContent === "");
   check("a default row's tooltip names its priority", /preferred/.test(ruleChip("shield").title) && /core/.test(chipFor("armor").title) && /preferred/.test(chipFor("vehicle").title), ruleChip("shield").title + " / " + chipFor("armor").title);
   addRule("demo", "min", 3);
-  check("adding a rule for a default row's tag edits that row (not a second chip)", chips().length === 18 && chipTexts().includes("Base Breaker ≥ 3") && !chipFor("demo").classList.contains("preset"), chipTexts().join("|"));
+  check("adding a rule for a default row's tag edits that row (not a second chip)", chips().length === 17 && chipTexts().includes("Base Breaker ≥ 3") && !chipFor("demo").classList.contains("preset"), chipTexts().join("|"));
   check("...shows the reset button and counts one edited rule", !$("presets-reset").hidden && /1 edited/.test($("rules-summary").textContent), $("rules-summary").textContent);
   $("count").value = "4"; generate();
   check("require demo>=3 still generates", cards() === 28, cards() + " " + errors());
@@ -319,7 +319,7 @@ function check(label, cond, extra) {
   check("...with no red error message", errors().length === 0, errors());
   check("'at least 4 vehicles' replaced the default 'at most 1' (the default's side of the clash is dropped)", chipTexts().includes("Vehicle ≥ 4") && !chipTexts().includes("Vehicle ≤ 1"), chipTexts().join("|"));
   chips().forEach((c) => click(c.querySelector("button")));
-  check("every row is removable, defaults included", chips().length === 0 && /18 off/.test($("rules-summary").textContent), $("rules-summary").textContent);
+  check("every row is removable, defaults included", chips().length === 0 && /17 off/.test($("rules-summary").textContent), $("rules-summary").textContent);
   generate();
   check("with every rule removed a build still generates", cards() === 7 && errors().length === 0 && !doc.querySelector("#results .rules-warning"), cards() + " " + errors());
   click($("presets-reset"));
@@ -364,7 +364,7 @@ function check(label, cond, extra) {
   check("...and removing the last extra rule leaves just the defaults, nothing counted", chipTexts().join("|") === DEFAULT_ROWS.join("|") && $("rules-summary").textContent === "");
 
   click(ruleChip("capMixed").querySelector("button"));
-  check("removing a generic default row (never mix support types) drops it, shows reset and counts it as off", !ruleChip("capMixed") && chips().length === 17 && !$("presets-reset").hidden && /1 off/.test($("rules-summary").textContent), $("rules-summary").textContent);
+  check("removing a generic default row (never mix support types) drops it, shows reset and counts it as off", !ruleChip("capMixed") && chips().length === 16 && !$("presets-reset").hidden && /1 off/.test($("rules-summary").textContent), $("rules-summary").textContent);
   check("...and saves it", JSON.stringify(JSON.parse(win.localStorage.getItem("hd2_settings")).disabledRules) === '["capMixed"]', win.localStorage.getItem("hd2_settings"));
   click(ruleChip("demoEscalation").querySelector("button"));
   generate();
@@ -427,31 +427,34 @@ function check(label, cond, extra) {
   const addOdds = (sel, scope, n) => { setv(oddsRow().querySelector(".b-sel"), sel); setv(oddsRow().querySelector(".b-scope"), scope); oddsRow().querySelector(".b-n").value = String(n); click($("odds-add")); };
   check("the builder has an odds row (selector, where, multiplier)", !!oddsRow() && !!$("odds-add"));
   addOdds("tag:melee", "secondary", 3);
-  check("an odds rule for the default melee rule edits that row: it becomes ×3 and the default text goes", chipTexts().includes("Melee ×3 odds (secondary)") && !chipTexts().some((t) => /a third of the usual/.test(t)) && chips().length === 18 && /1 edited/.test($("rules-summary").textContent), chipTexts().join("|") + " " + $("rules-summary").textContent);
+  check("an odds rule for the default melee rule edits that row: it becomes ×3 and the default text goes", chipTexts().includes("Melee ×3 odds (secondary)") && !chipTexts().some((t) => /a third of the usual/.test(t)) && chips().length === 17 && /1 edited/.test($("rules-summary").textContent), chipTexts().join("|") + " " + $("rules-summary").textContent);
   check("...and it is saved", (JSON.parse(win.localStorage.getItem("hd2_settings")).weights || []).some((w) => w.sel === "tag:melee" && w.scope === "secondary" && w.factor === 3), win.localStorage.getItem("hd2_settings"));
   addOdds("tag:melee", "secondary", 0.333);
   check("giving it the default number again puts the default row back", chipTexts().some((t) => /a third of the usual/.test(t)) && !chipTexts().includes("Melee ×3 odds (secondary)") && $("rules-summary").textContent === "", chipTexts().join("|"));
   addOdds("cat:eagle", "strats", 0.5);
-  check("another odds rule is added as its own row", chipTexts().includes("Eagle ×0.5 odds (stratagems)") && chips().length === 19 && /1 added/.test($("rules-summary").textContent), chipTexts().join("|"));
+  check("another odds rule is added as its own row", chipTexts().includes("Eagle ×0.5 odds (stratagems)") && chips().length === 18 && /1 added/.test($("rules-summary").textContent), chipTexts().join("|"));
   addOdds("cat:eagle", "strats", 2);
-  check("one odds rule per selector and place: a second replaces the first", chipTexts().includes("Eagle ×2 odds (stratagems)") && !chipTexts().includes("Eagle ×0.5 odds (stratagems)") && chips().length === 19);
+  check("one odds rule per selector and place: a second replaces the first", chipTexts().includes("Eagle ×2 odds (stratagems)") && !chipTexts().includes("Eagle ×0.5 odds (stratagems)") && chips().length === 18);
   $("count").value = "3"; generate();
   check("builds generate with odds rules in play", cards() === 21 && errors().length === 0, cards() + " " + errors());
   addOdds("tag:fire", "all", 99);
-  check("an odds number outside 0.05 to 20 is refused", errors().some((e) => /odds rule can't be built/.test(e)) && chips().length === 19, errors());
+  check("an odds number outside 0.05 to 20 is refused", errors().some((e) => /odds rule can't be built/.test(e)) && chips().length === 18, errors());
   click(doc.querySelector('#require-chips .chip[title^="Your odds rule"] button'));
-  check("an odds rule can be removed", chips().length === 18, chipTexts().join("|"));
+  check("an odds rule can be removed", chips().length === 17, chipTexts().join("|"));
   click(ruleChip("meleeWeight").querySelector("button"));
-  check("the default odds row can be removed and counts as off", !ruleChip("meleeWeight") && chips().length === 17 && /1 off/.test($("rules-summary").textContent), $("rules-summary").textContent);
+  check("the default odds row can be removed and counts as off", !ruleChip("meleeWeight") && chips().length === 16 && /1 off/.test($("rules-summary").textContent), $("rules-summary").textContent);
   click($("presets-reset"));
-  check("'Reset to system defaults' brings the odds row back", !!ruleChip("meleeWeight") && chips().length === 18, chipTexts().join("|"));
+  check("'Reset to system defaults' brings the odds row back", !!ruleChip("meleeWeight") && chips().length === 17, chipTexts().join("|"));
   addOdds("cat:eagle", "strats", 2); click($("custom-clear"));
-  check("'Clear custom rules' removes the added odds rules too", chips().length === 18 && !chipTexts().some((t) => /Eagle ×/.test(t)), chipTexts().join("|"));
-  check("the even-odds row is there, with a visible description", !!ruleChip("evenOdds") && /Even odds:/.test($("odds-note").textContent), $("odds-note").textContent);
-  click(ruleChip("evenOdds").querySelector("button"));
-  check("the even-odds row can be removed: it counts as off and the note says so", !ruleChip("evenOdds") && /Even odds is off/.test($("odds-note").textContent) && /1 off/.test($("rules-summary").textContent), $("odds-note").textContent + " " + $("rules-summary").textContent);
+  check("'Clear custom rules' removes the added odds rules too", chips().length === 17 && !chipTexts().some((t) => /Eagle ×/.test(t)), chipTexts().join("|"));
+  const evenSwitch = () => $("even-odds");
+  check("Even odds is a real on / off switch under the list (on by default), not a removable row", !ruleChip("evenOdds") && evenSwitch().getAttribute("role") === "switch" && evenSwitch().checked && /rolled a bit less/.test($("odds-note").textContent), $("odds-note").textContent);
+  click(evenSwitch());
+  check("switching it off changes the note, is saved as a switched-off default and shows in the summary", !evenSwitch().checked && /^Off:/.test($("odds-note").textContent) && JSON.parse(win.localStorage.getItem("hd2_settings")).disabledRules.includes("evenOdds") && /1 off/.test($("rules-summary").textContent) && chips().length === 17, $("odds-note").textContent + " " + $("rules-summary").textContent);
   click($("presets-reset"));
-  check("'Reset to system defaults' brings the even-odds row back", !!ruleChip("evenOdds") && /Even odds:/.test($("odds-note").textContent));
+  check("'Reset to system defaults' switches it back on", evenSwitch().checked && /rolled a bit less/.test($("odds-note").textContent) && !JSON.parse(win.localStorage.getItem("hd2_settings")).disabledRules.includes("evenOdds"));
+  click(evenSwitch()); click(evenSwitch());
+  check("it can be switched off and on again", evenSwitch().checked && $("rules-summary").textContent === "", $("rules-summary").textContent);
   build([], ["cat:sentry", "all", "min", 7]);
   $("count").value = "2"; generate();
   check("custom rules are used when generating (no red error), builds still complete", cards() === 14 && errors().length === 0, cards() + " " + errors());
@@ -899,7 +902,7 @@ function check(label, cond, extra) {
     // junk inside a good file is skipped by the loaders
     await importText(JSON.stringify({ app: "hd2-slopinator", version: 1, owned: { "99999": true, [idOf(AA)]: true, "x": 5 }, blocked: [99999, "junk", {}], factions: { "99999": ["bug"], [idOf(CONC)]: ["nonsense"] },
       settings: { faction: "nope", disabledRules: ["nonsense"], requirements: { "no such tag": { min: 1 } }, customRules: [{ bad: true }], weights: [{ sel: "tag:x", factor: 0 }] } }));
-    check("unknown ids, bad factions and malformed rules inside a good file are skipped", /Imported/.test($("data-msg").textContent) && itemFactions(CONC) === "bug" && doc.querySelectorAll("#require-chips .chip").length === 18 && errors().length === 0, $("data-msg").textContent + " " + doc.querySelectorAll("#require-chips .chip").length);
+    check("unknown ids, bad factions and malformed rules inside a good file are skipped", /Imported/.test($("data-msg").textContent) && itemFactions(CONC) === "bug" && doc.querySelectorAll("#require-chips .chip").length === 17 && errors().length === 0, $("data-msg").textContent + " " + doc.querySelectorAll("#require-chips .chip").length);
     // a file with only some sections changes only those
     await importText(JSON.stringify({ app: "hd2-slopinator", version: 1, blocked: [] }));
     check("a file with only some sections leaves the other parts alone (blocked cleared, owned list kept)", blockBtn(AA).getAttribute("aria-pressed") === "false" && gearBox(AA).checked && JSON.parse(win.localStorage.getItem("hd2_tracker"))[idOf(AA)] === true);

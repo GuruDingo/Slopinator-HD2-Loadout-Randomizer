@@ -883,7 +883,7 @@
         if (mine) rows.push({ kind: "weight", w: mine, overrides: r, pristine: false });
         else if (!state.disabledRules[r.id]) rows.push({ kind: "default", rule: r, text: r.label, detail: describeWeight(r.weight), pristine: true });
       } else if (r.calibrate) {
-        if (!state.disabledRules[r.id]) rows.push({ kind: "default", rule: r, text: r.label, detail: r.note, pristine: true });
+        // Not a row: it is the "Even odds" switch under the list (state.disabledRules.evenOdds is its off state).
       } else if (!state.disabledRules[r.id]) {
         rows.push({ kind: "default", rule: r, text: r.label, detail: describeRule(r.rules[0]), pristine: true });
       }
@@ -927,7 +927,7 @@
     $("rules-summary").textContent = parts.length ? "(" + parts.join(", ") + ")" : "";
   }
   function tierNote(id) {
-    if (DEFAULT_WEIGHTS.some(function (r) { return r.id === id; }) || id === "evenOdds") return "odds";
+    if (DEFAULT_WEIGHTS.some(function (r) { return r.id === id; })) return "odds";
     var t = Engine.RULE_TIER[id];
     return t !== undefined ? TIER_TITLES[t].toLowerCase() : "limit";
   }
@@ -963,10 +963,13 @@
       box.appendChild(h("span", { class: "chip" + (row.pristine ? " preset" : ""), "data-tag": row.tag || null, "data-rule": row.rule && row.rule.id || null, title: title }, text,
         h("button", { type: "button", "aria-label": "Remove rule: " + text, onclick: function () { remove(); onRulesChanged(); } }, "×")));
     });
-    // The even-odds default is not a pass / fail rule, so say in plain words what it does (or that it is off).
-    $("odds-note").textContent = state.disabledRules.evenOdds
-      ? "Even odds is off: items that cover several needs (chaff + base breaker, say) come up more often than similar single-purpose items."
-      : "Even odds: items that cover several needs (chaff + base breaker, say) are rolled a bit less, and single-purpose items a bit more, so similar items come up about equally often.";
+    // Even odds is not a pass / fail rule but a full on / off switch (it is on by default; off = every item rolls at its raw odds).
+    var evenOn = !state.disabledRules.evenOdds;
+    $("even-odds").checked = evenOn;
+    $("even-odds-row").classList.toggle("off", !evenOn);
+    $("odds-note").textContent = evenOn
+      ? "Items that cover several needs (chaff + base breaker, say) are rolled a bit less, and single-purpose items a bit more, so similar items come up about equally often."
+      : "Off: items that cover several needs come up more often than similar single-purpose items.";
     $("presets-reset").hidden = !defaultsChanged();
     $("custom-clear").hidden = !hasCustom();
     renderRulesSummary();
@@ -1701,6 +1704,10 @@
     showSharedFromHash();
     initRuleBuilder();
     $("presets-reset").addEventListener("click", resetPresets);
+    $("even-odds").addEventListener("change", function () {
+      if ($("even-odds").checked) delete state.disabledRules.evenOdds; else state.disabledRules.evenOdds = true;
+      onRulesChanged();
+    });
     $("custom-clear").addEventListener("click", clearCustom);
     $("reset-all").addEventListener("click", resetAll);
     $("pool-edit").addEventListener("click", function () { showView("gear"); });
