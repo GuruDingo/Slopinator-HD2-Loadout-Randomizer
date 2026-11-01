@@ -228,7 +228,9 @@
   function evalRule(rule, ctx) {
     var when = rule.when || [];
     for (var w = 0; w < when.length; w++) {
-      if (condGap(when[w], condCount(when[w], ctx))) return null;   // the "if" part doesn't hold: nothing to check
+      // an "if" entry is one condition, or { any: [...] }: it holds when at least one of them does
+      var holds = (when[w].any || [when[w]]).some(function (c) { return !condGap(c, condCount(c, ctx)); });
+      if (!holds) return null;   // the "if" part doesn't hold: nothing to check
     }
     var best = null;
     (rule.any || [rule.must]).forEach(function (c) {
@@ -243,7 +245,9 @@
   }
   // Does a stratagem count towards this rule at all? (Used so a rule the locks already break doesn't block unrelated picks.)
   function touchesStrat(rule, s) {
-    var conds = (rule.when || []).concat(rule.any || (rule.must ? [rule.must] : []));
+    var conds = [];
+    (rule.when || []).forEach(function (w) { conds = conds.concat(w.any || [w]); });
+    conds = conds.concat(rule.any || (rule.must ? [rule.must] : []));
     return conds.some(function (c) {
       return (c.scope === undefined || c.scope === "all" || c.scope === "strats") && makeSelector(c.sel)(s);
     });
@@ -290,7 +294,15 @@
     }
     if (r.when !== undefined) {
       if (!Array.isArray(r.when) || r.when.length > 3) return null;
-      var when = r.when.map(cleanCond);
+      // each "if" entry is one condition, or { any: [2-3 conditions] } (either / or)
+      var when = r.when.map(function (w) {
+        if (w && typeof w === "object" && w.any !== undefined) {
+          if (!Array.isArray(w.any) || w.any.length < 2 || w.any.length > 3) return null;
+          var alts = w.any.map(cleanCond);
+          return alts.some(function (c) { return !c; }) ? null : { any: alts };
+        }
+        return cleanCond(w);
+      });
       if (when.some(function (c) { return !c; })) return null;
       if (when.length) out.when = when;
     }

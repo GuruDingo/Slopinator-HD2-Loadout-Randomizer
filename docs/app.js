@@ -881,7 +881,14 @@
   function describeRule(r) {
     var must = r.any ? "either " + r.any.map(condText).join(", or ") : condText(r.must);
     if (!r.when || !r.when.length) return r.any ? must.charAt(0).toUpperCase() + must.slice(1) : must;
-    return "If " + r.when.map(condText).join(" and ") + ", then " + must;
+    // an "if" entry that is itself an either / or reads "A or B" (in brackets when other conditions follow)
+    var many = r.when.length > 1;
+    var ifText = r.when.map(function (w) {
+      if (!w.any) return condText(w);
+      var t = w.any.map(condText).join(" or ");
+      return many ? "(" + t + ")" : t;
+    }).join(" and ");
+    return "If " + ifText + ", then " + must;
   }
 
   // -- Odds rules --
@@ -1163,16 +1170,20 @@
   function initRuleBuilder() {
     var box = $("builder-body");
     box.textContent = "";
-    var whenRows = [];
+    var whenGroups = [];   // each "if": { row, alts: [rows for "or"], el, orBtn }
     var whenBox = h("div", { id: "b-when" });
     var mustRow = condRow("must", "Require");
     var altRows = [];
     var altBox = h("div", { id: "b-alts" });
     function relabel() {
-      whenRows.forEach(function (r, i) { r.setPrefix(i === 0 ? "If" : "and"); });
-      mustRow.setPrefix((whenRows.length ? "then" : "Require") + (altRows.length ? " either" : ""));
+      whenGroups.forEach(function (g, i) {
+        g.row.setPrefix(i === 0 ? "If" : "and");
+        g.alts.forEach(function (a) { a.setPrefix("or"); });
+        g.orBtn.hidden = g.alts.length >= 2;
+      });
+      mustRow.setPrefix((whenGroups.length ? "then" : "Require") + (altRows.length ? " either" : ""));
       altRows.forEach(function (r) { r.setPrefix("or"); });
-      $("b-add-if").hidden = whenRows.length >= 2;
+      $("b-add-if").hidden = whenGroups.length >= 2;
       $("b-add-or").hidden = altRows.length >= 2;
     }
     function addOr() {
@@ -1181,11 +1192,19 @@
       altRows.push(row); altBox.appendChild(row); relabel();
     }
     function addIf() {
-      if (whenRows.length >= 2) return;
-      var row = condRow("when", "If", function () { whenRows.splice(whenRows.indexOf(row), 1); row.remove(); relabel(); });
-      whenRows.push(row); whenBox.appendChild(row); relabel();
+      if (whenGroups.length >= 2) return;
+      var g = { alts: [], el: h("div", { class: "b-group" }) };
+      g.row = condRow("when", "If", function () { var i = whenGroups.indexOf(g); if (i >= 0) whenGroups.splice(i, 1); g.el.remove(); relabel(); });
+      // "+ or" inside an ‘if’: the condition holds when any one of them does
+      g.orBtn = h("button", { type: "button", class: "b-or-btn", title: "The ‘if’ holds when this or the one above holds", onclick: function () {
+        if (g.alts.length >= 2) return;
+        var a = condRow("when-alt", "or", function () { var k = g.alts.indexOf(a); if (k >= 0) g.alts.splice(k, 1); a.remove(); relabel(); });
+        g.alts.push(a); g.el.insertBefore(a, g.orBtn); relabel();
+      } }, "+ or");
+      g.el.appendChild(g.row); g.el.appendChild(g.orBtn);
+      whenGroups.push(g); whenBox.appendChild(g.el); relabel();
     }
-    box.appendChild(h("p", { class: "hint" }, "A count of what the selector picks, in the part of the loadout you choose. Add an ‘if’ and the rule only applies when that condition holds (for example: if Eagle at least 2, then Orbital at most 0). Add an ‘or’ and meeting any one of the alternatives is enough (for example: if Hand-Held Shield at least 1, then either One-Handed Melee at least 1, or One-Handed Primary exactly 1). ‘+ and’ next to a tag asks for several tags on the same item (One-Handed + Melee is a one-handed melee weapon). A plain count of one tag in the whole loadout (say Anti-Tank at most 2) changes that tag’s row: it merges into a range like 1–2, replaces a default number, and “at most 0” bans the tag. Locks always win: a locked item is never swapped out, and a rule it breaks is reported above the loadout."));
+    box.appendChild(h("p", { class: "hint" }, "A count of what the selector picks, in the part of the loadout you choose. Add an ‘if’ and the rule only applies when that condition holds (for example: if Eagle at least 2, then Orbital at most 0). Add an ‘or’ to the ‘then’ and meeting any one of the alternatives is enough (for example: if Hand-Held Shield at least 1, then either One-Handed Melee at least 1, or One-Handed Primary exactly 1). ‘+ or’ under an ‘if’ makes that ‘if’ hold when either condition does (for example: if Eagle at least 2 or Orbital at least 2, then Sentry at most 0). ‘+ and’ next to a tag asks for several tags on the same item (One-Handed + Melee is a one-handed melee weapon). A plain count of one tag in the whole loadout (say Anti-Tank at most 2) changes that tag’s row: it merges into a range like 1–2, replaces a default number, and “at most 0” bans the tag. Locks always win: a locked item is never swapped out, and a rule it breaks is reported above the loadout."));
     box.appendChild(whenBox);
     box.appendChild(mustRow);
     box.appendChild(altBox);
@@ -1193,7 +1212,12 @@
       h("button", { type: "button", class: "ctrl-btn", id: "b-add-if", onclick: addIf }, "+ Add an ‘if’ condition"),
       h("button", { type: "button", class: "ctrl-btn", id: "b-add-or", onclick: addOr }, "+ Add an ‘or’ alternative"),
       h("button", { type: "button", class: "ctrl-btn", id: "b-add", onclick: function () {
-        var when = whenRows.map(function (r) { return r.read(); }), must = mustRow.read();
+        var when = whenGroups.map(function (g) {
+          var c = g.row.read();
+          if (!g.alts.length) return c;
+          var alts = g.alts.map(function (a) { return a.read(); });
+          return c && alts.every(Boolean) ? { any: [c].concat(alts) } : null;
+        }), must = mustRow.read();
         var alts = altRows.map(function (r) { return r.read(); });
         if (!must || when.some(function (c) { return !c; }) || alts.some(function (c) { return !c; })) { showMessages(["Check the numbers: ‘at least’ needs 1 to " + MAX_RULE_COUNT + ", the others 0 to " + MAX_RULE_COUNT + "."]); return; }
         if (!when.length && !alts.length && must.scope === "all" && must.sel.indexOf("tag:") === 0 && must.sel.indexOf("&") === -1) {
@@ -1204,7 +1228,7 @@
         var rule = alts.length ? { any: [must].concat(alts) } : { must: must };
         if (when.length) rule.when = when;
         addCustomRule(rule);
-        whenRows.slice().forEach(function (r) { r.remove(); }); whenRows.length = 0;
+        whenGroups.forEach(function (g) { g.el.remove(); }); whenGroups.length = 0;
         altRows.slice().forEach(function (r) { r.remove(); }); altRows.length = 0; mustRow.reset(); relabel();
       } }, "Add rule")));
     // odds
