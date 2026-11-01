@@ -70,11 +70,11 @@
     { id: "demo", kind: "guarantee", label: "At least one base breaker", preset: { tag: "demo", min: 1 } },
     { id: "panic", kind: "guarantee", label: "A panic weapon in primary, secondary or throwable", preset: { tag: "panic", min: 1 } },
     { id: "demoEscalation", kind: "guarantee", label: "Two base breakers when no weapon is one",
-      rules: [{ when: [{ sel: "tag:demo", scope: "weapons", max: 0 }, { sel: "tag:demo", scope: "all", min: 1 }], must: { sel: "tag:demo", scope: "all", min: 2 } }] },
-    // Pistols are one-handed too, but they do not count here: the shield needs a one-handed PRIMARY or a (one-handed) melee weapon.
-    // Written as "if there is no one-handed primary, then a melee weapon in primary / secondary".
+      rules: [{ when: [{ sel: "tag:demo", scope: "weapons", min: 0, max: 0 }], must: { sel: "tag:demo", scope: "strats", min: 2 } }] },
+    // Pistols are one-handed too, but they do not count here: the shield needs a one-handed PRIMARY or a one-handed melee weapon (the One True Flag counts too).
+    // Written as "if a hand-held shield, then either a one-handed melee weapon anywhere (secondary or support), or a one-handed primary" (`any` = either/or).
     { id: "shield", kind: "guarantee", label: "A hand-held shield needs a one-handed primary or a melee weapon",
-      rules: [{ when: [{ sel: "tag:handheld", scope: "strats", min: 1 }, { sel: "tag:onehand", scope: "primary", max: 0 }], must: { sel: "tag:melee", scope: "ps", min: 1 } }] },
+      rules: [{ when: [{ sel: "tag:handheld", scope: "strats", min: 1 }], any: [{ sel: "tag:onehand&tag:melee", scope: "all", min: 1 }, { sel: "tag:onehand", scope: "primary", min: 1, max: 1 }] }] },
     { id: "supply", kind: "guarantee", label: "No supply pack alongside 2+ no-ammo items",
       rules: [{ when: [{ sel: "tag:noammo", scope: "all", min: 2 }], must: { sel: "tag:supply", scope: "strats", max: 0 } }] },
     { id: "capRegular", kind: "limit", label: "At most 1 regular (non-expendable) support weapon", fill: true,
@@ -193,7 +193,11 @@
     if (Object.prototype.hasOwnProperty.call(selectorCache, id)) return selectorCache[id];
     var m = /^(tag|cat):(.+)$/.exec(String(id));
     var fn = null;
-    if (m && m[1] === "tag") fn = function (i) { return has(i, m[2]); };
+    // "tag:onehand&tag:melee": an item that matches every part (used by the default shield rule)
+    if (String(id).indexOf("&") !== -1) {
+      var parts = String(id).split("&").map(makeSelector);
+      if (parts.every(Boolean)) fn = function (i) { return parts.every(function (p) { return p(i); }); };
+    } else if (m && m[1] === "tag") fn = function (i) { return has(i, m[2]); };
     else if (m && m[1] === "cat") fn = function (i) { return i.cat === m[2]; };
     selectorCache[id] = fn;
     return fn;
@@ -220,14 +224,18 @@
     return 0;
   }
   // null when the rule holds, otherwise { actual, gap } (actual = the count that broke it).
+  // The "then" part is a single `must`, or `any`: a list of conditions where meeting one of them is enough (default rules only).
   function evalRule(rule, ctx) {
     var when = rule.when || [];
     for (var w = 0; w < when.length; w++) {
       if (condGap(when[w], condCount(when[w], ctx))) return null;   // the "if" part doesn't hold: nothing to check
     }
-    var n = condCount(rule.must, ctx);
-    var gap = condGap(rule.must, n);
-    return gap ? { actual: n, gap: gap } : null;
+    var best = null;
+    (rule.any || [rule.must]).forEach(function (c) {
+      var n = condCount(c, ctx), gap = condGap(c, n);
+      if (!best || gap < best.gap) best = { actual: n, gap: gap };
+    });
+    return best.gap ? best : null;
   }
   // A limit that can be enforced while stratagems are picked: only an upper bound, no lower bound.
   function isUpperOnly(rule) {
@@ -235,17 +243,27 @@
   }
   // Does a stratagem count towards this rule at all? (Used so a rule the locks already break doesn't block unrelated picks.)
   function touchesStrat(rule, s) {
-    var conds = (rule.when || []).concat(rule.must ? [rule.must] : []);
+    var conds = (rule.when || []).concat(rule.any || (rule.must ? [rule.must] : []));
     return conds.some(function (c) {
       return (c.scope === undefined || c.scope === "all" || c.scope === "strats") && makeSelector(c.sel)(s);
     });
   }
 
+  // A selector, or several joined with & ("tag:onehand&tag:melee": items that have every part). At most 3 parts, no repeats.
+  var MAX_SELECTOR_PARTS = 3;
+  function validSelector(sel) {
+    if (typeof sel !== "string") return false;
+    var parts = sel.split("&");
+    if (parts.length > MAX_SELECTOR_PARTS || parts.some(function (p, i) { return parts.indexOf(p) !== i; })) return false;
+    return parts.every(function (p) {
+      if (!makeSelector(p)) return false;
+      return p.indexOf("cat:") !== 0 || WEAPON_CATEGORIES.concat(STRATAGEM_CATEGORIES).indexOf(p.slice(4)) !== -1;
+    });
+  }
   function cleanCond(c) {
-    if (!c || typeof c !== "object" || typeof c.sel !== "string" || !makeSelector(SELECTOR_ALIASES[c.sel] || c.sel)) return null;
+    if (!c || typeof c !== "object" || typeof c.sel !== "string" || !validSelector(SELECTOR_ALIASES[c.sel] || c.sel)) return null;
     var scope = c.scope === undefined ? "all" : c.scope;
     if (SCOPES.indexOf(scope) === -1) return null;
-    if (c.sel.indexOf("cat:") === 0 && WEAPON_CATEGORIES.concat(STRATAGEM_CATEGORIES).indexOf(c.sel.slice(4)) === -1) return null;
     var out = { sel: SELECTOR_ALIASES[c.sel] || c.sel, scope: scope };
     var num = function (v) { return typeof v === "number" && v >= 0 && v <= 7 && Math.floor(v) === v; };
     if (c.min !== undefined) { if (!num(c.min)) return null; out.min = c.min; }
@@ -258,9 +276,18 @@
   function normalizeRule(r) {
     if (!r || typeof r !== "object") return null;
     // (a saved "balance" / spread rule from an older version has no `must`, so it is dropped here)
-    var must = cleanCond(r.must);
-    if (!must) return null;
-    var out = { must: must };
+    // The "then" part is one condition (`must`) or a list of 2-3 alternatives where meeting any one is enough (`any`, "either ... or ...").
+    var out;
+    if (r.any !== undefined) {
+      if (r.must !== undefined || !Array.isArray(r.any) || r.any.length < 2 || r.any.length > 3) return null;
+      var any = r.any.map(cleanCond);
+      if (any.some(function (c) { return !c; })) return null;
+      out = { any: any };
+    } else {
+      var must = cleanCond(r.must);
+      if (!must) return null;
+      out = { must: must };
+    }
     if (r.when !== undefined) {
       if (!Array.isArray(r.when) || r.when.length > 3) return null;
       var when = r.when.map(cleanCond);
@@ -274,8 +301,7 @@
   function normalizeWeight(w) {
     if (!w || typeof w !== "object" || typeof w.sel !== "string") return null;
     var sel = SELECTOR_ALIASES[w.sel] || w.sel;
-    if (!makeSelector(sel)) return null;
-    if (sel.indexOf("cat:") === 0 && WEAPON_CATEGORIES.concat(STRATAGEM_CATEGORIES).indexOf(sel.slice(4)) === -1) return null;
+    if (!validSelector(sel)) return null;
     var scope = w.scope === undefined ? "all" : w.scope;
     if (SCOPES.indexOf(scope) === -1) return null;
     if (typeof w.factor !== "number" || !isFinite(w.factor) || w.factor < MIN_WEIGHT || w.factor > MAX_WEIGHT) return null;
@@ -832,6 +858,7 @@
     create: create,
     GenerationError: GenerationError,
     has: has,
+    selector: makeSelector,
     worksFor: worksFor,
     makeEmptySlot: makeEmptySlot,
     oddsClass: oddsClass,

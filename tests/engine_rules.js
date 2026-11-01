@@ -321,7 +321,8 @@ test("hand-held shields need a one-handed primary or a melee weapon (a pistol do
   const run = (name, n) => Array.from({ length: n }, () => engine.generateLoadoutRelaxed({ faction: "any", locks: { primary: pick("AR-23 Liberator"), secondary: pick("P-19 Redeemer"), strat1: pick(name) } }));
   const hand = run("SH-20 Ballistic Shield Backpack", 50);
   assert(hand.every(noOneHand), "the locked weapons should not be one-handed (pick other weapons for this test)");
-  hand.forEach((l) => assert(l.unmet.some((u) => u.id === "shield"), "handheld shield without one-hander should be flagged"));
+  // (a melee support weapon in the build satisfies it too, so those builds are not flagged)
+  hand.forEach((l) => assert(l.unmet.some((u) => u.id === "shield") === !l.strategems.some((s) => HD2Engine.has(s, "melee") && HD2Engine.has(s, "onehand")), "handheld shield without one-hander should be flagged unless a melee support weapon is along"));
   // the bubble generator pack and the shield relay never trigger it
   ["SH-32 Shield Generator Pack", "FX-12 Shield Generator Relay"].forEach((n) => run(n, 50).forEach((l) => assert(!l.unmet.some((u) => u.id === "shield"), n + " should not need a one-hander")));
 });
@@ -391,6 +392,36 @@ test("Generic rules: malformed rules are dropped, good ones are copied", () => {
   assert.notStrictEqual(copy, good);
   assert.deepStrictEqual(copy, { when: [{ sel: "cat:eagle", scope: "strats", min: 2 }], must: { sel: "cat:orbital", scope: "all", max: 0 } });
 });
+test("Either / or rules (`any`) and combined selectors (tag:a&tag:b) are checked, copied and kept", () => {
+  const melee1 = { sel: "tag:onehand&tag:melee", scope: "all", min: 1 }, eagle2 = { sel: "cat:eagle", scope: "all", min: 2 };
+  const good = { when: [{ sel: "cat:orbital", scope: "strats", min: 1 }], any: [melee1, eagle2] };
+  const copy = HD2Engine.normalizeRule(good);
+  assert(copy && copy !== good && copy.any.length === 2 && copy.any[0].sel === "tag:onehand&tag:melee" && copy.must === undefined);
+  const bad = [
+    { any: [melee1] }, { any: [melee1, eagle2, eagle2, melee1] }, { any: [melee1, { sel: "nope", min: 1 }] }, { any: "x" },
+    { must: melee1, any: [melee1, eagle2] },
+    { must: { sel: "tag:onehand&tag:onehand", min: 1 } }, { must: { sel: "tag:onehand&tag:melee&tag:armor&tag:demo", min: 1 } },
+    { must: { sel: "tag:onehand&nope", min: 1 } }, { must: { sel: "cat:moon&tag:melee", min: 1 } },
+  ];
+  bad.forEach((r) => assert.strictEqual(HD2Engine.normalizeRule(r), null, JSON.stringify(r)));
+  assert(HD2Engine.normalizeRule({ must: { sel: "cat:secondary&tag:melee", min: 1 } }), "a category and a tag combine");
+  // the selector matches only items that have every part
+  const one = HD2Engine.selector("tag:onehand&tag:melee");
+  assert(one(pick("CQC-1 One True Flag")) && one(pick("CQC-2 Saber")) && !one(pick("CQC-20 Breaching Hammer")) && !one(pick("P-4 Senator")));
+  // a build keeps at least one of the alternatives
+  const bs = strict(300, { customRules: [{ any: [melee1, { sel: "cat:eagle", scope: "all", min: 2 }] }] });
+  bs.forEach((l) => {
+    const items = [l.primary, l.secondary, l.throwable].concat(l.strategems);
+    const ok = items.filter((i) => one(i)).length >= 1 || items.filter((i) => i.cat === "eagle").length >= 2;
+    assert(ok || l.unmet.some((u) => u.rule && u.rule.any), "either one-handed melee or two Eagles");
+    assert(!l.unmet.some((u) => u.rule && u.rule.any) || !ok);
+  });
+  assert(bs.filter((l) => !l.unmet.some((u) => u.rule && u.rule.any)).length > 250, "the rule is normally met");
+  // locked so that neither alternative can hold: flagged, with the alternative that came closest
+  const l = engine.generateLoadoutRelaxed({ faction: "any", locks: { primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator"), strat1: pick("EAT-17 Expendable Anti-Tank") },
+    customRules: [{ any: [{ sel: "tag:onehand&tag:melee", scope: "ps", min: 1 }, { sel: "cat:eagle", scope: "ps", min: 1 }] }] });
+  assert(l.unmet.some((u) => u.rule && u.rule.any && u.gap >= 1 || u.actual === 0), "flagged when neither alternative can hold");
+});
 test("Generic rules: a category rule (no Orbitals) is kept by every build", () => {
   const rule = { must: { sel: "cat:orbital", max: 0 } };
   const bs = strict(400, { customRules: [rule] });
@@ -452,7 +483,7 @@ test("Support limits: the old single 'capSupport' switch still turns all three o
 test("Default rules written as generic rules still flag what a build misses (shield needs a one-hander; support needs one)", () => {
   const two = ["AR-23 Liberator", "P-19 Redeemer"].map(pick);
   const l = engine.generateLoadoutRelaxed({ faction: "any", locks: { primary: two[0], secondary: two[1], strat1: pick("SH-20 Ballistic Shield Backpack") } });
-  assert(ids(l).includes("shield"));
+  assert(ids(l).includes("shield") === !l.strategems.some((s) => HD2Engine.has(s, "melee") && HD2Engine.has(s, "onehand")));
   const noSupport = engine.generateLoadoutRelaxed({ faction: "any", disabledRules: ["support"] });
   assert(!ids(noSupport).includes("support"));
 });
@@ -473,10 +504,13 @@ test("Shield rule: a one-handed primary or a melee weapon satisfies it, a pistol
   assert(items.filter((i) => i.cat === "secondary").every((i) => has(i, "onehand")), "every secondary (pistols and melee) is tagged one-handed");
   const run = (locks) => Array.from({ length: 40 }, () => engine.generateLoadoutRelaxed({ faction: "any", locks: Object.assign({ strat1: pick("SH-20 Ballistic Shield Backpack") }, locks) }));
   const flagged = (l) => l.unmet.some((u) => u.id === "shield");
-  run({ primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator") }).forEach((l) => assert(flagged(l), "a pistol alone must not satisfy the shield"));
+  run({ primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator") }).forEach((l) => assert(flagged(l) === !l.strategems.some((s) => has(s, "melee") && has(s, "onehand")), "a pistol alone must not satisfy the shield"));
   run({ primary: pick("AR-23 Liberator"), secondary: pick("CQC-2 Saber") }).forEach((l) => assert(!flagged(l), "a melee secondary satisfies it"));
   run({ primary: pick("SMG-37 Defender"), secondary: pick("P-4 Senator") }).forEach((l) => assert(!flagged(l), "a one-handed primary satisfies it"));
   run({ primary: pick("CB-9 Exploding Crossbow"), secondary: pick("P-4 Senator") }).forEach((l) => assert(!flagged(l), "a one-handed non-SMG primary satisfies it"));
+  // a one-handed melee support weapon counts as well (the One True Flag), a two-handed one (Breaching Hammer, Defoliation Tool) does not
+  run({ primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator"), strat2: pick("CQC-1 One True Flag") }).forEach((l) => assert(!flagged(l), "the One True Flag satisfies it"));
+  run({ primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator"), strat2: pick("CQC-20 Breaching Hammer") }).forEach((l) => assert(flagged(l) === !l.strategems.some((s) => has(s, "melee") && has(s, "onehand")), "a two-handed melee support weapon does not satisfy it"));
   // the other half of the condition: no hand-held shield, nothing to check
   Array.from({ length: 40 }, () => engine.generateLoadoutRelaxed({ faction: "any", locks: { primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator"), strat1: pick("SH-32 Shield Generator Pack") } })).forEach((l) => assert(!flagged(l)));
 });

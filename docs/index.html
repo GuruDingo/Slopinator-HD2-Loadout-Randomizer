@@ -63,7 +63,10 @@
             </div>
           </details>
           <div class="chips" id="require-chips"></div>
-          <p class="hint" id="odds-note"></p>
+          <div class="rule-row" id="even-odds-row">
+            <label class="switch"><input type="checkbox" id="even-odds" role="switch" checked><span class="switch-track"></span>
+              <span>Even odds <span class="rule-note" id="odds-note"></span></span></label>
+          </div>
           <div class="btn-row"><button type="button" class="ctrl-btn" id="presets-reset" hidden title="Brings back every default rule you removed or changed. Rules you added yourself stay.">Reset to system defaults</button> <button type="button" class="ctrl-btn" id="custom-clear" hidden title="Removes the rules you added yourself. The default rows are left as they are.">Clear custom rules</button></div>
           <div class="rule-row locked">
             <span class="lock-mark" aria-hidden="true">🔒</span>

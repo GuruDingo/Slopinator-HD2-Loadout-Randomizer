@@ -302,6 +302,11 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
 .b-hint.open { color: #b5b5b5; }
 .b-row .chip-x { background: none; border: none; color: #aaa; cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
 .b-row .chip-x:hover { color: #f44336; }
+.b-row .b-selgroup { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.b-row .b-selpart { display: inline-flex; align-items: center; gap: 4px; }
+.b-row .b-and { font-size: .8rem; color: #8ab; background: none; border: 1px dashed #556; border-radius: 4px; padding: 1px 6px; cursor: pointer; }
+.b-row .b-and:hover { color: #cde; }
+.b-row .b-and[hidden] { display: none; }
 .disclaimer .feedback { margin: 0 0 .6rem; font-size: .8rem; }
 .disclaimer .feedback a { color: #9ab; }
 .blocked-section { margin-top: 1rem; }
