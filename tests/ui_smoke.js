@@ -294,12 +294,13 @@ function check(label, cond, extra) {
   const chipFor = (tag) => doc.querySelector('#require-chips .chip[data-tag="' + tag + '"]');
   const removeChip = (tag) => click(chipFor(tag).querySelector("button"));
   // Every default rule is a row, listed from the highest priority tier to the lowest, the limits last.
-  const DEFAULT_ROWS = ["Backpack = 1", "At least one support weapon", "Anti-Tank ≥ 1", "A chaff killer in primary or secondary", "Base Breaker ≥ 1",
-    "Never a regular and an expendable support weapon together",
-    "Medium Killer ≥ 1", "Panic Weapon ≥ 1", "Two base breakers when no weapon is one",
-    "A hand-held shield needs a one-handed primary or a melee weapon", "No supply pack alongside 2+ no-ammo items",
-    "At most 1 regular (non-expendable) support weapon", "Expendable ≤ 2", "Vehicle ≤ 1", "Eagle ≤ 2", "Mines ≤ 1",
-    "Melee secondaries are rolled at a third of the usual odds"];
+  // Default rows are written the way the player's own rules are (tag, sign, number, scope); the plain-words wording is the tooltip.
+  const DEFAULT_ROWS = ["Backpack = 1", "Support Weapon ≥ 1 (stratagems)", "Anti-Tank ≥ 1", "Chaff Killer ≥ 1 (primary + secondary)", "Base Breaker ≥ 1",
+    "If Non-Expendable Support ≥ 1 (stratagems), then Expendable ≤ 0 (stratagems)",
+    "Medium Killer ≥ 1", "Panic Weapon ≥ 1", "If Base Breaker ≤ 0 (all three weapons) and Base Breaker ≥ 1, then Base Breaker ≥ 2",
+    "If Hand-Held Shield ≥ 1 (stratagems) and One-Handed ≤ 0 (primary), then Melee ≥ 1 (primary + secondary)", "If No Ammo ≥ 2, then Supply ≤ 0 (stratagems)",
+    "Non-Expendable Support ≤ 1 (stratagems)", "Expendable ≤ 2", "Vehicle ≤ 1", "Eagle ≤ 2", "Mines ≤ 1",
+    "Melee ×0.33 odds (secondary)"];
   const ruleChip = (id) => doc.querySelector('#require-chips .chip[data-rule="' + id + '"]');
   check("every default rule starts as a dim row (no switches), highest priority first", chipTexts().join("|") === DEFAULT_ROWS.join("|") && chips().every((c) => c.classList.contains("preset")) && !doc.querySelector("#rules-default") && !doc.querySelector('#rules-section input[role="switch"]:not(#even-odds)'), chipTexts().join("|"));
   check("...with no reset buttons yet, and nothing counted in the summary", $("presets-reset").hidden && $("custom-clear").hidden && $("rules-summary").textContent === "");
@@ -364,7 +365,7 @@ function check(label, cond, extra) {
   check("...and removing the last extra rule leaves just the defaults, nothing counted", chipTexts().join("|") === DEFAULT_ROWS.join("|") && $("rules-summary").textContent === "");
 
   click(ruleChip("capMixed").querySelector("button"));
-  check("removing a generic default row (never mix support types) drops it, shows reset and counts it as off", !ruleChip("capMixed") && chips().length === 16 && !$("presets-reset").hidden && /1 off/.test($("rules-summary").textContent), $("rules-summary").textContent);
+  check("removing a generic default row (never mix support types: the If Non-Expendable Support ≥ 1, then Expendable ≤ 0 row) drops it, shows reset and counts it as off", !ruleChip("capMixed") && chips().length === 16 && !$("presets-reset").hidden && /1 off/.test($("rules-summary").textContent), $("rules-summary").textContent);
   check("...and saves it", JSON.stringify(JSON.parse(win.localStorage.getItem("hd2_settings")).disabledRules) === '["capMixed"]', win.localStorage.getItem("hd2_settings"));
   click(ruleChip("demoEscalation").querySelector("button"));
   generate();
@@ -427,10 +428,10 @@ function check(label, cond, extra) {
   const addOdds = (sel, scope, n) => { setv(oddsRow().querySelector(".b-sel"), sel); setv(oddsRow().querySelector(".b-scope"), scope); oddsRow().querySelector(".b-n").value = String(n); click($("odds-add")); };
   check("the builder has an odds row (selector, where, multiplier)", !!oddsRow() && !!$("odds-add"));
   addOdds("tag:melee", "secondary", 3);
-  check("an odds rule for the default melee rule edits that row: it becomes ×3 and the default text goes", chipTexts().includes("Melee ×3 odds (secondary)") && !chipTexts().some((t) => /a third of the usual/.test(t)) && chips().length === 17 && /1 edited/.test($("rules-summary").textContent), chipTexts().join("|") + " " + $("rules-summary").textContent);
+  check("an odds rule for the default melee rule edits that row: it becomes ×3 and the default text goes", chipTexts().includes("Melee ×3 odds (secondary)") && !chipTexts().includes("Melee ×0.33 odds (secondary)") && chips().length === 17 && /1 edited/.test($("rules-summary").textContent), chipTexts().join("|") + " " + $("rules-summary").textContent);
   check("...and it is saved", (JSON.parse(win.localStorage.getItem("hd2_settings")).weights || []).some((w) => w.sel === "tag:melee" && w.scope === "secondary" && w.factor === 3), win.localStorage.getItem("hd2_settings"));
   addOdds("tag:melee", "secondary", 0.333);
-  check("giving it the default number again puts the default row back", chipTexts().some((t) => /a third of the usual/.test(t)) && !chipTexts().includes("Melee ×3 odds (secondary)") && $("rules-summary").textContent === "", chipTexts().join("|"));
+  check("giving it the default number again puts the default row back", chipTexts().includes("Melee ×0.33 odds (secondary)") && !chipTexts().includes("Melee ×3 odds (secondary)") && $("rules-summary").textContent === "", chipTexts().join("|"));
   addOdds("cat:eagle", "strats", 0.5);
   check("another odds rule is added as its own row", chipTexts().includes("Eagle ×0.5 odds (stratagems)") && chips().length === 18 && /1 added/.test($("rules-summary").textContent), chipTexts().join("|"));
   addOdds("cat:eagle", "strats", 2);
@@ -834,8 +835,8 @@ function check(label, cond, extra) {
   await new Promise((resolve) => dom4.window.addEventListener("load", resolve));
   const d4 = dom4.window.document;
   const texts4 = Array.from(d4.querySelectorAll("#require-chips .chip")).map((c) => c.firstChild.textContent);
-  check("a reloaded page restores edited rows, the removed default and the added rules", texts4.join("|") === DEFAULT_ROWS.filter((t) => t !== "Mines ≤ 1" && t !== "Two base breakers when no weapon is one").map((t) => (t === "Eagle ≤ 2" ? "Eagle ≥ 3" : t)).concat("Sentry = 0").join("|"), texts4.join("|"));
-  check("...and skips damaged saved rules (unknown tag, min above max, not a number, too big)", !texts4.some((t) => /no such|Chaff|99/.test(t)) && texts4.filter((t) => /Medium/.test(t)).length === 1);
+  check("a reloaded page restores edited rows, the removed default and the added rules", texts4.join("|") === DEFAULT_ROWS.filter((t) => t !== "Mines ≤ 1" && t !== DEFAULT_ROWS[8]).map((t) => (t === "Eagle ≤ 2" ? "Eagle ≥ 3" : t)).concat("Sentry = 0").join("|"), texts4.join("|"));
+  check("...and skips damaged saved rules (unknown tag, min above max, not a number, too big)", !texts4.some((t) => /no such|99/.test(t)) && texts4.filter((t) => /^Chaff Killer/.test(t)).length === 1 && texts4.filter((t) => /Medium/.test(t)).length === 1);
   check("...with the reset buttons and the summary showing what differs", !d4.getElementById("presets-reset").hidden && !d4.getElementById("custom-clear").hidden && /1 added, 1 edited, 2 off/.test(d4.getElementById("rules-summary").textContent), d4.getElementById("rules-summary").textContent);
   dom4.window.close();
   // custom rules survive a reload; a damaged one is skipped; the old combined support switch splits into its three rows
@@ -849,7 +850,7 @@ function check(label, cond, extra) {
   await new Promise((resolve) => dom5.window.addEventListener("load", resolve));
   const d5 = dom5.window.document;
   const texts5 = Array.from(d5.querySelectorAll("#require-chips .chip")).map((c) => c.firstChild.textContent);
-  check("a saved ‘capSupport’ switch-off removes the three support-limit rows", !texts5.some((t) => /regular|Expendable ≤|Never a regular/.test(t)) && texts5.filter((t) => t === "Vehicle ≤ 1").length === 1, texts5.join("|"));
+  check("a saved ‘capSupport’ switch-off removes the three support-limit rows", !texts5.some((t) => /Non-Expendable Support|Expendable ≤ 0/.test(t)) && !texts5.includes("Expendable ≤ 2") && texts5.filter((t) => t === "Vehicle ≤ 1").length === 1, texts5.join("|"));
   check("...and saved custom rules come back as rows, damaged ones skipped", texts5.includes("Orbital ≤ 0") && texts5.includes("If Eagle ≥ 2 (stratagems), then Sentry ≤ 0") && !texts5.some((t) => /nonsense|junk/.test(t)) && /2 added, 3 off/.test(d5.getElementById("rules-summary").textContent), texts5.join("|") + " :: " + d5.getElementById("rules-summary").textContent);
   dom5.window.close();
   click(doc.querySelector('.tab[data-view="randomizer"]'));
@@ -1024,7 +1025,7 @@ function check(label, cond, extra) {
     check("...and the link is cleared from the address bar", win.location.hash === "");
     const ownedLess = doc.querySelectorAll("#results .status-badge.not-owned").length;
     check("items the viewer doesn't own are marked NOT OWNED", ownedLess >= 1, ownedLess);
-    check("...but the starting gear isn't", Array.from(doc.querySelectorAll("#results .item-card, #results .item-card2")).filter((c) => /MG-43 Machine Gun|Orbital Precision Strike/.test(c.querySelector(".item-name").textContent)).every((c) => !c.querySelector(".not-owned")));
+    check("...but the starting gear isn't", Array.from(doc.querySelectorAll("#results .item-card, #results .item-card2")).filter((c) => /^(MG-43 Machine Gun|Orbital Precision Strike)$/.test(c.querySelector(".item-name").textContent)).every((c) => !c.querySelector(".not-owned")));
     // a blocked marker follows My Gear
     click($("gear-select-all"));
     const someCard = doc.querySelector("#results .loadout .item-card");

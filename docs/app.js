@@ -881,11 +881,11 @@
       } else if (r.weight) {
         var mine = state.weights.filter(function (w) { return weightKey(w) === weightKey(r.weight); })[0];
         if (mine) rows.push({ kind: "weight", w: mine, overrides: r, pristine: false });
-        else if (!state.disabledRules[r.id]) rows.push({ kind: "default", rule: r, text: r.label, detail: describeWeight(r.weight), pristine: true });
+        else if (!state.disabledRules[r.id]) rows.push({ kind: "default", rule: r, text: describeWeight(r.weight), detail: r.label, pristine: true });
       } else if (r.calibrate) {
         // Not a row: it is the "Even odds" switch under the list (state.disabledRules.evenOdds is its off state).
       } else if (!state.disabledRules[r.id]) {
-        rows.push({ kind: "default", rule: r, text: r.label, detail: describeRule(r.rules[0]), pristine: true });
+        rows.push({ kind: "default", rule: r, text: describeRule(r.rules[0]), detail: r.label, pristine: true });
       }
     });
     Object.keys(state.requirements).forEach(function (tag) {
