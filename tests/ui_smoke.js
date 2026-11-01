@@ -295,11 +295,11 @@ function check(label, cond, extra) {
   const removeChip = (tag) => click(chipFor(tag).querySelector("button"));
   // Every default rule is a row, listed from the highest priority tier to the lowest, the limits last.
   // Default rows are written the way the player's own rules are (tag, sign, number, scope); the plain-words wording is the tooltip.
-  const DEFAULT_ROWS = ["Backpack = 1", "Support Weapon ≥ 1 (stratagems)", "Anti-Tank ≥ 1", "Chaff Killer ≥ 1 (primary + secondary)", "Base Breaker ≥ 1",
-    "If Non-Expendable Support ≥ 1 (stratagems), then Expendable ≤ 0 (stratagems)",
+  const DEFAULT_ROWS = ["Backpack = 1", "Support Weapon ≥ 1", "Anti-Tank ≥ 1", "Chaff Killer ≥ 1 (primary + secondary)", "Base Breaker ≥ 1",
+    "If Non-Expendable Support ≥ 1, then Expendable ≤ 0",
     "Medium Killer ≥ 1", "Panic Weapon ≥ 1", "If Base Breaker ≤ 0 (all three weapons) and Base Breaker ≥ 1, then Base Breaker ≥ 2",
-    "If Hand-Held Shield ≥ 1 (stratagems) and One-Handed ≤ 0 (primary), then Melee ≥ 1 (primary + secondary)", "If No Ammo ≥ 2, then Supply ≤ 0 (stratagems)",
-    "Non-Expendable Support ≤ 1 (stratagems)", "Expendable ≤ 2", "Vehicle ≤ 1", "Eagle ≤ 2", "Mines ≤ 1",
+    "If Hand-Held Shield ≥ 1 and One-Handed ≤ 0 (primary), then Melee ≥ 1 (primary + secondary)", "If No Ammo ≥ 2, then Supply ≤ 0",
+    "Non-Expendable Support ≤ 1", "Expendable ≤ 2", "Vehicle ≤ 1", "Eagle ≤ 2", "Mines ≤ 1",
     "Melee ×0.33 odds (secondary)"];
   const ruleChip = (id) => doc.querySelector('#require-chips .chip[data-rule="' + id + '"]');
   check("every default rule starts as a dim row (no switches), highest priority first", chipTexts().join("|") === DEFAULT_ROWS.join("|") && chips().every((c) => c.classList.contains("preset")) && !doc.querySelector("#rules-default") && !doc.querySelector('#rules-section input[role="switch"]:not(#even-odds)'), chipTexts().join("|"));
@@ -414,9 +414,9 @@ function check(label, cond, extra) {
   build([], ["tag:armor", "all", "min", 0]);
   check("'at least 0' is refused in the builder", errors().some((e) => /Check the numbers/.test(e)));
   build([["cat:eagle", "strats", "min", 2]], ["cat:sentry", "all", "max", 0]);
-  check("an if / then rule reads as a sentence, and the ‘if’ rows clear after adding", chipTexts().includes("If Eagle ≥ 2 (stratagems), then Sentry ≤ 0") && doc.querySelectorAll('#builder-body .b-row[data-role="when"]').length === 0, chipTexts().join("|"));
+  check("an if / then rule reads as a sentence, and the ‘if’ rows clear after adding", chipTexts().includes("If Eagle ≥ 2, then Sentry ≤ 0") && doc.querySelectorAll('#builder-body .b-row[data-role="when"]').length === 0, chipTexts().join("|"));
   build([["cat:eagle", "all", "min", 1], ["cat:orbital", "all", "min", 1]], ["tag:supply", "strats", "max", 0]);
-  check("two ‘if’ conditions are joined with 'and'", chipTexts().includes("If Eagle ≥ 1 and Orbital ≥ 1, then Supply ≤ 0 (stratagems)"), chipTexts().join("|"));
+  check("two ‘if’ conditions are joined with 'and'", chipTexts().includes("If Eagle ≥ 1 and Orbital ≥ 1, then Supply ≤ 0"), chipTexts().join("|"));
   click($("b-add-if")); click($("b-add-if")); if (!$("b-add-if").hidden) click($("b-add-if"));
   check("at most two ‘if’ conditions can be added", doc.querySelectorAll('#builder-body .b-row[data-role="when"]').length === 2 && $("b-add-if").hidden);
   doc.querySelectorAll("#builder-body #b-when .chip-x").forEach((b) => click(b));
@@ -433,9 +433,9 @@ function check(label, cond, extra) {
   addOdds("tag:melee", "secondary", 0.333);
   check("giving it the default number again puts the default row back", chipTexts().includes("Melee ×0.33 odds (secondary)") && !chipTexts().includes("Melee ×3 odds (secondary)") && $("rules-summary").textContent === "", chipTexts().join("|"));
   addOdds("cat:eagle", "strats", 0.5);
-  check("another odds rule is added as its own row", chipTexts().includes("Eagle ×0.5 odds (stratagems)") && chips().length === 18 && /1 added/.test($("rules-summary").textContent), chipTexts().join("|"));
+  check("another odds rule is added as its own row", chipTexts().includes("Eagle ×0.5 odds") && chips().length === 18 && /1 added/.test($("rules-summary").textContent), chipTexts().join("|"));
   addOdds("cat:eagle", "strats", 2);
-  check("one odds rule per selector and place: a second replaces the first", chipTexts().includes("Eagle ×2 odds (stratagems)") && !chipTexts().includes("Eagle ×0.5 odds (stratagems)") && chips().length === 18);
+  check("one odds rule per selector and place: a second replaces the first", chipTexts().includes("Eagle ×2 odds") && !chipTexts().includes("Eagle ×0.5 odds") && chips().length === 18);
   $("count").value = "3"; generate();
   check("builds generate with odds rules in play", cards() === 21 && errors().length === 0, cards() + " " + errors());
   addOdds("tag:fire", "all", 99);
@@ -851,7 +851,7 @@ function check(label, cond, extra) {
   const d5 = dom5.window.document;
   const texts5 = Array.from(d5.querySelectorAll("#require-chips .chip")).map((c) => c.firstChild.textContent);
   check("a saved ‘capSupport’ switch-off removes the three support-limit rows", !texts5.some((t) => /Non-Expendable Support|Expendable ≤ 0/.test(t)) && !texts5.includes("Expendable ≤ 2") && texts5.filter((t) => t === "Vehicle ≤ 1").length === 1, texts5.join("|"));
-  check("...and saved custom rules come back as rows, damaged ones skipped", texts5.includes("Orbital ≤ 0") && texts5.includes("If Eagle ≥ 2 (stratagems), then Sentry ≤ 0") && !texts5.some((t) => /nonsense|junk/.test(t)) && /2 added, 3 off/.test(d5.getElementById("rules-summary").textContent), texts5.join("|") + " :: " + d5.getElementById("rules-summary").textContent);
+  check("...and saved custom rules come back as rows, damaged ones skipped", texts5.includes("Orbital ≤ 0") && texts5.includes("If Eagle ≥ 2, then Sentry ≤ 0") && !texts5.some((t) => /nonsense|junk/.test(t)) && /2 added, 3 off/.test(d5.getElementById("rules-summary").textContent), texts5.join("|") + " :: " + d5.getElementById("rules-summary").textContent);
   dom5.window.close();
   click(doc.querySelector('.tab[data-view="randomizer"]'));
 
@@ -888,7 +888,7 @@ function check(label, cond, extra) {
     click(doc.querySelector('.tab[data-view="randomizer"]')); click($("custom-clear")); click(doc.querySelector('.tab[data-view="gear"]'));
     check("(the data really was changed first)", gearBox("Eagle Airstrike").checked && itemFactions(CONC) === "bug" && !JSON.parse(win.localStorage.getItem("hd2_settings")).weights.length);
     await importText(text);
-    check("importing the file restores owned, blocked, faction edit and rules", !gearBox("Eagle Airstrike").checked && blockBtn(AA).getAttribute("aria-pressed") === "true" && itemFactions(CONC) === "bug,bot" && chipTexts().includes("Eagle ×2 odds (stratagems)"), $("data-msg").textContent);
+    check("importing the file restores owned, blocked, faction edit and rules", !gearBox("Eagle Airstrike").checked && blockBtn(AA).getAttribute("aria-pressed") === "true" && itemFactions(CONC) === "bug,bot" && chipTexts().includes("Eagle ×2 odds"), $("data-msg").textContent);
     check("...the page says what came in", /Imported: \d+ owned items, \d+ blocked, 1 faction edit/.test($("data-msg").textContent), $("data-msg").textContent);
     check("...and it is saved in this browser", JSON.parse(win.localStorage.getItem("hd2_blocked")).includes(idOf(AA)) && JSON.parse(win.localStorage.getItem("hd2_settings")).weights.length === 1);
     // bad files change nothing

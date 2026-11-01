@@ -849,8 +849,25 @@
     if (m[1] === "tag") return TAG_NAMES[m[2]] || m[2];
     return categoryLabel(m[2]);
   }
+  // A scope label that says nothing new is left out: "(stratagems)" next to something only stratagems can be (a support weapon,
+  // an Eagle, a hand-held shield, expendables, ...).
+  var stratOnlyCache = {};
+  function onlyStratagems(sel) {
+    if (Object.prototype.hasOwnProperty.call(stratOnlyCache, sel)) return stratOnlyCache[sel];
+    var m = /^(tag|cat):(.+)$/.exec(sel), hit = false, only = true;
+    if (m) ALL_ITEMS.forEach(function (i) {
+      if (m[1] === "tag" ? i.tags.indexOf(m[2]) === -1 : i.cat !== m[2]) return;
+      hit = true;
+      if (Engine.STRATAGEM_CATEGORIES.indexOf(i.cat) === -1) only = false;
+    });
+    return (stratOnlyCache[sel] = !!m && hit && only);
+  }
+  function scopeText(sel, scope) {
+    if (!scope || scope === "all" || (scope === "strats" && onlyStratagems(sel))) return "";
+    return " (" + SCOPE_LABELS[scope] + ")";
+  }
   function condText(c) {
-    return selectorLabel(c.sel) + " " + reqText(c) + (c.scope && c.scope !== "all" ? " (" + SCOPE_LABELS[c.scope] + ")" : "");
+    return selectorLabel(c.sel) + " " + reqText(c) + scopeText(c.sel, c.scope);
   }
   function describeRule(r) {
     var must = condText(r.must);
@@ -864,7 +881,7 @@
   function defaultWeightFor(w) { return DEFAULT_WEIGHTS.filter(function (r) { return weightKey(r.weight) === weightKey(w); })[0] || null; }
   function factorText(f) { return "\u00D7" + String(Math.round(f * 100) / 100); }
   function describeWeight(w) {
-    return selectorLabel(w.sel) + " " + factorText(w.factor) + " odds" + (w.scope !== "all" ? " (" + SCOPE_LABELS[w.scope] + ")" : "");
+    return selectorLabel(w.sel) + " " + factorText(w.factor) + " odds" + scopeText(w.sel, w.scope);
   }
 
   // The rows shown, in order: default rows (RULES order), the player's plain tag rules, the player's generic rules, the player's odds rules.
