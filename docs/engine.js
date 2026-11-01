@@ -71,10 +71,10 @@
     { id: "panic", kind: "guarantee", label: "A panic weapon in primary, secondary or throwable", preset: { tag: "panic", min: 1 } },
     { id: "demoEscalation", kind: "guarantee", label: "Two base breakers when no weapon is one",
       rules: [{ when: [{ sel: "tag:demo", scope: "weapons", max: 0 }, { sel: "tag:demo", scope: "all", min: 1 }], must: { sel: "tag:demo", scope: "all", min: 2 } }] },
-    // Pistols are one-handed too, but they do not count here: the shield needs a one-handed PRIMARY or a (one-handed) melee weapon.
-    // Written as "if a hand-held shield, then either a melee weapon in primary / secondary, or a one-handed primary" (`any` = either/or).
+    // Pistols are one-handed too, but they do not count here: the shield needs a one-handed PRIMARY or a melee weapon (a melee support weapon counts too).
+    // Written as "if a hand-held shield, then either a melee weapon anywhere (secondary or support), or a one-handed primary" (`any` = either/or).
     { id: "shield", kind: "guarantee", label: "A hand-held shield needs a one-handed primary or a melee weapon",
-      rules: [{ when: [{ sel: "tag:handheld", scope: "strats", min: 1 }], any: [{ sel: "tag:melee", scope: "ps", min: 1 }, { sel: "tag:onehand", scope: "primary", min: 1, max: 1 }] }] },
+      rules: [{ when: [{ sel: "tag:handheld", scope: "strats", min: 1 }], any: [{ sel: "tag:melee", scope: "all", min: 1 }, { sel: "tag:onehand", scope: "primary", min: 1, max: 1 }] }] },
     { id: "supply", kind: "guarantee", label: "No supply pack alongside 2+ no-ammo items",
       rules: [{ when: [{ sel: "tag:noammo", scope: "all", min: 2 }], must: { sel: "tag:supply", scope: "strats", max: 0 } }] },
     { id: "capRegular", kind: "limit", label: "At most 1 regular (non-expendable) support weapon", fill: true,

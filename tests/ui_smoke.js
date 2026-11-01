@@ -298,7 +298,7 @@ function check(label, cond, extra) {
   const DEFAULT_ROWS = ["Backpack = 1", "Support Weapon ≥ 1", "Anti-Tank ≥ 1", "Chaff Killer ≥ 1 (primary + secondary)", "Base Breaker ≥ 1",
     "If Non-Expendable Support ≥ 1, then Expendable ≤ 0",
     "Medium Killer ≥ 1", "Panic Weapon ≥ 1", "If Base Breaker ≤ 0 (all three weapons) and Base Breaker ≥ 1, then Base Breaker ≥ 2",
-    "If Hand-Held Shield ≥ 1, then either Melee ≥ 1 (primary + secondary), or One-Handed = 1 (primary)", "If No Ammo ≥ 2, then Supply ≤ 0",
+    "If Hand-Held Shield ≥ 1, then either Melee ≥ 1, or One-Handed = 1 (primary)", "If No Ammo ≥ 2, then Supply ≤ 0",
     "Non-Expendable Support ≤ 1", "Expendable ≤ 2", "Vehicle ≤ 1", "Eagle ≤ 2", "Mines ≤ 1",
     "Melee ×0.33 odds (secondary)"];
   const ruleChip = (id) => doc.querySelector('#require-chips .chip[data-rule="' + id + '"]');
