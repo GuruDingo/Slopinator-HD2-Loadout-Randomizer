@@ -90,6 +90,10 @@
     { id: "meleeWeight", kind: "weight", label: "Melee secondaries are rolled at a third of the usual odds",
       weight: { sel: "tag:melee", scope: "secondary", factor: 0.333 } },
     { id: "capMine", kind: "limit", label: "At most 1 mine", preset: { tag: "mines", max: 1 } },
+    // Not a pass / fail rule either: when on, the engine multiplies each item's odds by its calibration factor (see `calibration`
+    // below), so items that cover several needs aren't rolled more often than their single-purpose classmates.
+    { id: "evenOdds", kind: "weight", calibrate: true, label: "Item odds are evened out",
+      note: "Items that cover several needs (chaff + base breaker, say) pass the other rules more often, so they would be rolled more than similar items. This lowers their odds, and raises the others', until each kind of item comes up about equally often." },
   ];
 
   // -- Rule priority --------------------------------------------------------
@@ -120,6 +124,18 @@
     var total = 0;
     unmet.forEach(function (u) { total += Math.pow(100, TIER_COUNT - 1 - tierOf(u.id)); });
     return total * 1000 + Math.min(shortfall || 0, 999);
+  }
+
+  // The group an item is compared with when odds are evened out: items that play by the same limits (the support-weapon cap,
+  // "exactly one backpack", melee odds, ...). Each group keeps whatever share of the rolls the rules give it; inside a group every
+  // item should come up equally often. Used by tools/calibrate_odds.js and the calibration test.
+  function oddsClass(item) {
+    var t = function (x) { return item.tags.indexOf(x) !== -1; };
+    if (item.cat === "primary" || item.cat === "throwable") return item.cat;
+    if (item.cat === "secondary") return t("melee") ? "secondary:melee" : "secondary";
+    if (t("backpack")) return "strat:backpack";
+    if (item.cat === "support") return t("expendable") ? "strat:support-expendable" : "strat:support";
+    return "strat:" + item.cat;
   }
 
   // -- Item helpers -------------------------------------------------------
@@ -288,6 +304,10 @@
     // In the stratagem fill loop a pick only changes the running counters (backpack taken, Eagles so far, ...) if it is
     // actually accepted, so a rejected stratagem can never block later, perfectly legal ones.
 
+    // Per-item odds multipliers, one table per faction ({ any: { itemId: factor }, bug: {...}, ... }), that even out how often each item is rolled once the default rules have
+    // filtered the builds. Made by tools/calibrate_odds.js; none = every item starts equally likely.
+    var calibration = options.calibration !== undefined ? options.calibration : (data.calibration || null);
+
     var items = data.items;
     var primaries = items.filter(function (i) { return i.cat === "primary"; });
     var secondaries = items.filter(function (i) { return i.cat === "secondary"; });
@@ -374,10 +394,11 @@
       function scopeCovers(scope, slot) {
         return scope === "all" || scope === slot || (scope === "weapons" && slot !== "strats") || (scope === "ps" && (slot === "primary" || slot === "secondary"));
       }
+      var calibTable = calibration && ruleOn("evenOdds") && calibration[faction] ? calibration[faction] : null;
       function weightFor(slot) {
         var rules = oddsRules.filter(function (o) { return scopeCovers(o.scope, slot); });
         return function (item) {
-          var w = 1;
+          var w = calibTable && calibTable[item.id] ? calibTable[item.id] : 1;
           rules.forEach(function (o) { if (o.test(item)) w *= o.factor; });
           return w;
         };
@@ -813,6 +834,7 @@
     has: has,
     worksFor: worksFor,
     makeEmptySlot: makeEmptySlot,
+    oddsClass: oddsClass,
     RULE_TIER: RULE_TIER,
     TIER_NAMES: TIER_NAMES,
     RULES: RULES,

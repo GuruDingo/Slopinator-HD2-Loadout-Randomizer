@@ -51,7 +51,7 @@ for (let t = 0; t < TRIALS; t++) {
       opts.requirements[tag] = op === 0 ? { min: n } : op === 1 ? { max: n } : { min: n, max: n };
     }
   }
-  const a = Old.create(DATA, { rng: mulberry32(seed) }), b = New.create(DATA, { rng: mulberry32(seed) });
+  const a = Old.create(DATA, { rng: mulberry32(seed) }), b = New.create(DATA, { rng: mulberry32(seed), calibration: null });   // the old engine has no even-odds calibration
   let ra, rb;
   // the balance rule was dropped from the live engine, so it is switched off in the frozen one
   const oldOpts = Object.assign({}, opts, { disabledRules: (opts.disabledRules || []).concat("balance") });

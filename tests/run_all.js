@@ -15,6 +15,7 @@ const steps = [
   ["Tag check tests", "python3", ["tests/tag_checks_test.py"]],
   ["Tags CSV tests", "python3", ["tests/tags_csv_test.py"]],
   ["Rule tests", "node", ["tests/engine_rules.js"]],
+  ["Odds calibration (items rolled about equally often)", "node", ["tests/odds_calibration.js"]],
   ["Engine parity (generic rules vs hand-written)", "node", ["tests/engine_parity.js"]],
   ["Regression (invariants + odds)", "node", ["tests/regression.js"]],
 ];
