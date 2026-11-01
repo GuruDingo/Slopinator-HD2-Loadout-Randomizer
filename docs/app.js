@@ -844,6 +844,7 @@
   var CATEGORY_ORDER = ["primary", "secondary", "throwable", "support", "backpack", "vehicle", "eagle", "orbital", "sentry", "defensive"];
   function categoryLabel(c) { return WEAPON_CAT_LABELS[c] || TYPE_LABELS[c] || c; }
   function selectorLabel(id) {
+    if (id.indexOf("&") !== -1) return id.split("&").map(selectorLabel).join(" ");   // "tag:onehand&tag:melee" -> "One-Handed Melee"
     var m = /^(tag|cat):(.+)$/.exec(id);
     if (!m) return id;
     if (m[1] === "tag") return TAG_NAMES[m[2]] || m[2];

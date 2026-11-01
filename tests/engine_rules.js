@@ -322,7 +322,7 @@ test("hand-held shields need a one-handed primary or a melee weapon (a pistol do
   const hand = run("SH-20 Ballistic Shield Backpack", 50);
   assert(hand.every(noOneHand), "the locked weapons should not be one-handed (pick other weapons for this test)");
   // (a melee support weapon in the build satisfies it too, so those builds are not flagged)
-  hand.forEach((l) => assert(l.unmet.some((u) => u.id === "shield") === !l.strategems.some((s) => HD2Engine.has(s, "melee")), "handheld shield without one-hander should be flagged unless a melee support weapon is along"));
+  hand.forEach((l) => assert(l.unmet.some((u) => u.id === "shield") === !l.strategems.some((s) => HD2Engine.has(s, "melee") && HD2Engine.has(s, "onehand")), "handheld shield without one-hander should be flagged unless a melee support weapon is along"));
   // the bubble generator pack and the shield relay never trigger it
   ["SH-32 Shield Generator Pack", "FX-12 Shield Generator Relay"].forEach((n) => run(n, 50).forEach((l) => assert(!l.unmet.some((u) => u.id === "shield"), n + " should not need a one-hander")));
 });
@@ -453,7 +453,7 @@ test("Support limits: the old single 'capSupport' switch still turns all three o
 test("Default rules written as generic rules still flag what a build misses (shield needs a one-hander; support needs one)", () => {
   const two = ["AR-23 Liberator", "P-19 Redeemer"].map(pick);
   const l = engine.generateLoadoutRelaxed({ faction: "any", locks: { primary: two[0], secondary: two[1], strat1: pick("SH-20 Ballistic Shield Backpack") } });
-  assert(ids(l).includes("shield") === !l.strategems.some((s) => HD2Engine.has(s, "melee")));
+  assert(ids(l).includes("shield") === !l.strategems.some((s) => HD2Engine.has(s, "melee") && HD2Engine.has(s, "onehand")));
   const noSupport = engine.generateLoadoutRelaxed({ faction: "any", disabledRules: ["support"] });
   assert(!ids(noSupport).includes("support"));
 });
@@ -474,12 +474,13 @@ test("Shield rule: a one-handed primary or a melee weapon satisfies it, a pistol
   assert(items.filter((i) => i.cat === "secondary").every((i) => has(i, "onehand")), "every secondary (pistols and melee) is tagged one-handed");
   const run = (locks) => Array.from({ length: 40 }, () => engine.generateLoadoutRelaxed({ faction: "any", locks: Object.assign({ strat1: pick("SH-20 Ballistic Shield Backpack") }, locks) }));
   const flagged = (l) => l.unmet.some((u) => u.id === "shield");
-  run({ primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator") }).forEach((l) => assert(flagged(l) === !l.strategems.some((s) => has(s, "melee")), "a pistol alone must not satisfy the shield"));
+  run({ primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator") }).forEach((l) => assert(flagged(l) === !l.strategems.some((s) => has(s, "melee") && has(s, "onehand")), "a pistol alone must not satisfy the shield"));
   run({ primary: pick("AR-23 Liberator"), secondary: pick("CQC-2 Saber") }).forEach((l) => assert(!flagged(l), "a melee secondary satisfies it"));
   run({ primary: pick("SMG-37 Defender"), secondary: pick("P-4 Senator") }).forEach((l) => assert(!flagged(l), "a one-handed primary satisfies it"));
   run({ primary: pick("CB-9 Exploding Crossbow"), secondary: pick("P-4 Senator") }).forEach((l) => assert(!flagged(l), "a one-handed non-SMG primary satisfies it"));
-  // a melee support weapon counts as well (the rule has no slot restriction on the melee side)
-  run({ primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator"), strat2: pick("CQC-20 Breaching Hammer") }).forEach((l) => assert(!flagged(l), "a melee support weapon satisfies it"));
+  // a one-handed melee support weapon counts as well (the One True Flag), a two-handed one (Breaching Hammer, Defoliation Tool) does not
+  run({ primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator"), strat2: pick("CQC-1 One True Flag") }).forEach((l) => assert(!flagged(l), "the One True Flag satisfies it"));
+  run({ primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator"), strat2: pick("CQC-20 Breaching Hammer") }).forEach((l) => assert(flagged(l) === !l.strategems.some((s) => has(s, "melee") && has(s, "onehand")), "a two-handed melee support weapon does not satisfy it"));
   // the other half of the condition: no hand-held shield, nothing to check
   Array.from({ length: 40 }, () => engine.generateLoadoutRelaxed({ faction: "any", locks: { primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator"), strat1: pick("SH-32 Shield Generator Pack") } })).forEach((l) => assert(!flagged(l)));
 });
