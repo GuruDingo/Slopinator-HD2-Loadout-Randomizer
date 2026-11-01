@@ -34,6 +34,7 @@ ID_LOCK = ROOT / "hd2ids.lock.json"
 OUT_JS = ROOT / "docs" / "gear-data.js"
 DIST_HTML = ROOT / "dist" / "hd2-randomizer.html"
 IMG_MANIFEST = ROOT / "docs" / "img" / "manifest.json"  # written by tools/fetch_images.py
+CALIBRATION_JSON = ROOT / "odds_calibration.json"  # written by tools/calibrate_odds.js
 MIME = {".webp": "image/webp", ".png": "image/png", ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif"}
 
 WEAPON_CATEGORIES = {"primary", "secondary", "throwable"}
@@ -278,7 +279,18 @@ def load_image_map():
     return {url: rel for url, rel in sorted(raw.items()) if (ROOT / "docs" / rel).is_file()}
 
 
-def data_js_text(warbonds, items, images, tags=()):
+def load_calibration():
+    """faction -> { item id: odds multiplier }, from odds_calibration.json (optional; none = every item equally likely)."""
+    if not CALIBRATION_JSON.exists():
+        return {}
+    try:
+        factors = json.loads(CALIBRATION_JSON.read_text(encoding="utf-8"))["factors"]
+    except (ValueError, KeyError):
+        sys.exit(f"ERROR: {CALIBRATION_JSON.name} is not valid (run tools/calibrate_odds.js --write again).")
+    return factors
+
+
+def data_js_text(warbonds, items, images, tags=(), calibration=None):
     # One warbond / one item / one image per line: compact, but still readable in a git diff.
     def lines(rows):
         return ",\n".join("  " + json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in rows)
@@ -289,6 +301,8 @@ def data_js_text(warbonds, items, images, tags=()):
         ' "warbonds": [\n' + lines([{"key": k, "name": n} for k, n in warbonds]) + "\n ],\n"
         ' "items": [\n' + lines(items) + "\n ],\n"
         ' "tags": [\n' + lines(tags) + "\n ],\n"
+        # Per-faction odds multipliers (tools/calibrate_odds.js); the engine uses them unless the "evenOdds" rule is removed.
+        + (' "calibration": {\n' + ",\n".join("  " + json.dumps(f) + ":" + json.dumps(t, separators=(",", ":")) for f, t in calibration.items()) + "\n },\n" if calibration else "")
         # Saved copies of the wiki images (see tools/fetch_images.py); the page uses these instead of the wiki links.
         + (' "images": {\n' + img_lines + "\n }\n" if img_lines else ' "images": {}\n') +
         "}"
@@ -299,12 +313,12 @@ def data_js_text(warbonds, items, images, tags=()):
     )
 
 
-def write_data_js(warbonds, items, images, tags=()):
+def write_data_js(warbonds, items, images, tags=(), calibration=None):
     OUT_JS.parent.mkdir(parents=True, exist_ok=True)
-    OUT_JS.write_text(data_js_text(warbonds, items, images, tags), encoding="utf-8")
+    OUT_JS.write_text(data_js_text(warbonds, items, images, tags, calibration), encoding="utf-8")
 
 
-def write_bundle(warbonds, items, images, tags=()):
+def write_bundle(warbonds, items, images, tags=(), calibration=None):
     """Inline style.css, gear-data.js, engine.js and app.js into one self-contained HTML file.
     The saved images are embedded too (as data: addresses), so the single file works offline."""
     docs = ROOT / "docs"
@@ -317,7 +331,7 @@ def write_bundle(warbonds, items, images, tags=()):
 
     def inline_js(match):
         if match.group(1) == "gear-data.js":
-            code = data_js_text(warbonds, items, embedded, tags)
+            code = data_js_text(warbonds, items, embedded, tags, calibration)
         else:
             code = (docs / match.group(1)).read_text(encoding="utf-8")
         code = code.replace("</script", "<\\/script")
@@ -359,11 +373,12 @@ def main():
 
     write_id_lock(new_lock)
     images = load_image_map()
-    write_data_js(warbonds, items, images, tags)
+    calibration = load_calibration()
+    write_data_js(warbonds, items, images, tags, calibration)
     live = sum(1 for i in items if "none" not in i["factions"])
     print(f"Wrote {OUT_JS.relative_to(ROOT)}: {len(items)} items ({live} active), {len(warbonds)} warbonds, {len(images)} saved images.")
     if args.bundle:
-        write_bundle(warbonds, items, images, tags)
+        write_bundle(warbonds, items, images, tags, calibration)
 
 
 if __name__ == "__main__":

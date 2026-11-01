@@ -255,7 +255,7 @@ test("In-game limits still win over 'at least': a tank request never gives two t
 });
 
 test("Rules list: every default rule has an id, a label and a kind", () => {
-  assert(HD2Engine.RULES.length === 17 && HD2Engine.RULES.every((r) => r.id && r.label && /^(guarantee|limit|weight)$/.test(r.kind)));
+  assert(HD2Engine.RULES.length === 18 && HD2Engine.RULES.every((r) => r.id && r.label && /^(guarantee|limit|weight)$/.test(r.kind)));
   assert.deepStrictEqual(HD2Engine.RULES.filter((r) => r.kind === "guarantee").map((r) => r.id).sort(), ["armor", "backpack", "chaff", "demo", "demoEscalation", "med", "panic", "shield", "supply", "support"]);
 });
 test("A rule switched off is never flagged (locks that miss anti-tank, with the armor rule off)", () => {
