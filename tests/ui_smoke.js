@@ -74,7 +74,7 @@ function check(label, cond, extra) {
   check("7 lock inputs", doc.querySelectorAll("#lock-grid input").length === 7);
   check("datalists filled", $("dl-primary").children.length > 40 && $("dl-strat").children.length > 60);
   check("the rule builder lists the 44 titled tags, in sections from hd2tags.csv, in file order inside each", (() => {
-    const tagGroups = Array.from(doc.querySelectorAll('#builder-body .b-row[data-role="must"] optgroup')).filter((g) => g.label !== "Categories");
+    const tagGroups = Array.from(doc.querySelectorAll('#builder-body .b-row[data-role="must"] optgroup')).filter((g) => g.label !== "Categories" && !/^Item: /.test(g.label));
     const opts = tagGroups.flatMap((g) => Array.from(g.children));
     const t = opts.map((x) => x.textContent);
     const csv = win.HD2_DATA.tags;
@@ -405,7 +405,7 @@ function check(label, cond, extra) {
     const m = bRow("must"); setv(m.querySelector(".b-sel"), must[0]); setv(m.querySelector(".b-scope"), must[1]); setv(m.querySelector(".b-op"), must[2]); m.querySelector(".b-n").value = String(must[3]);
     click($("b-add"));
   };
-  check("the builder offers tags and categories (no groups any more), and every scope", Array.from(bRow("must").querySelectorAll("optgroup")).map((g) => g.label).join("|") === win.HD2_DATA.tags.map((r) => r.group).filter((g, k, a) => a.indexOf(g) === k).concat("Categories").join("|") && bRow("must").querySelectorAll(".b-scope option").length === 7 && !!bRow("must").querySelector('option[value="cat:orbital"]') && !bRow("must").querySelector('option[value^="grp:"]') && !!bRow("must").querySelector('option[value="tag:nonexp"]'));
+  check("the builder offers tags and categories (no groups any more), and every scope", Array.from(bRow("must").querySelectorAll("optgroup")).map((g) => g.label).filter((l) => !/^Item: /.test(l)).join("|") === win.HD2_DATA.tags.map((r) => r.group).filter((g, k, a) => a.indexOf(g) === k).concat("Categories").join("|") && bRow("must").querySelectorAll(".b-scope option").length === 7 && !!bRow("must").querySelector('option[value="cat:orbital"]') && !bRow("must").querySelector('option[value^="grp:"]') && !!bRow("must").querySelector('option[value="tag:nonexp"]'));
   build([], ["cat:orbital", "all", "max", 0]);
   check("a category rule becomes a row (and 'Clear custom rules' appears)", chipTexts().includes("Orbital ≤ 0") && !$("custom-clear").hidden && /1 added/.test($("rules-summary").textContent), chipTexts().join("|"));
   check("...and is saved with the other settings", JSON.stringify(JSON.parse(win.localStorage.getItem("hd2_settings")).customRules) === '[{"must":{"sel":"cat:orbital","scope":"all","max":0}}]', win.localStorage.getItem("hd2_settings"));
@@ -421,6 +421,18 @@ function check(label, cond, extra) {
   check("at most two ‘if’ conditions can be added", doc.querySelectorAll('#builder-body .b-row[data-role="when"]').length === 2 && $("b-add-if").hidden);
   doc.querySelectorAll("#builder-body #b-when .chip-x").forEach((b) => click(b));
   check("...and each can be removed again", doc.querySelectorAll('#builder-body .b-row[data-role="when"]').length === 0 && !$("b-add-if").hidden);
+  // a specific item
+  const itemGroups = Array.from(bRow("must").querySelectorAll("optgroup")).filter((g) => /^Item: /.test(g.label));
+  const itemOpts = itemGroups.flatMap((g) => Array.from(g.children));
+  check("the builder also lists every active item by name, grouped by category", itemOpts.length === ACTIVE && itemOpts.every((o) => /^item:\d+$/.test(o.value)) && itemGroups.length === 10 && itemOpts.some((o) => o.textContent === "SH-32 Shield Generator Pack"), itemGroups.length + " groups, " + itemOpts.length);
+  const shieldPack = itemOpts.find((o) => o.textContent === "SH-32 Shield Generator Pack").value;
+  click($("b-add-if"));
+  const itemIf = doc.querySelector('#builder-body .b-row[data-role="when"]');
+  setv(itemIf.querySelector(".b-sel"), "cat:vehicle"); setv(itemIf.querySelector(".b-scope"), "all"); setv(itemIf.querySelector(".b-op"), "eq"); itemIf.querySelector(".b-n").value = "1";
+  setv(bRow("must").querySelector(".b-sel"), shieldPack); setv(bRow("must").querySelector(".b-scope"), "all"); setv(bRow("must").querySelector(".b-op"), "eq"); bRow("must").querySelector(".b-n").value = "1";
+  check("picking an item shows its category and tags under the drop-down", /Backpack/.test(bRow("must").querySelector(".b-hint").textContent), bRow("must").querySelector(".b-hint").textContent);
+  click($("b-add"));
+  check("a rule about one item reads with its name in quotes, and is saved with the item's id", chipTexts().includes('If Vehicle = 1, then "SH-32 Shield Generator Pack" = 1') && JSON.parse(win.localStorage.getItem("hd2_settings")).customRules.slice(-1)[0].must.sel === shieldPack, chipTexts().join("|"));
   // "+ or" inside an ‘if’
   click($("b-add-if"));
   const ifRow = doc.querySelector('#builder-body .b-row[data-role="when"]');

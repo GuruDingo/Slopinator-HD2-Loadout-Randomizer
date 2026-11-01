@@ -843,7 +843,11 @@
   };
   var CATEGORY_ORDER = ["primary", "secondary", "throwable", "support", "backpack", "vehicle", "eagle", "orbital", "sentry", "defensive"];
   function categoryLabel(c) { return WEAPON_CAT_LABELS[c] || TYPE_LABELS[c] || c; }
+  var ITEM_BY_ID = {};
+  DATA.items.forEach(function (i) { ITEM_BY_ID[i.id] = i; });
   function selectorLabel(id) {
+    var one = /^item:(\d+)$/.exec(id);
+    if (one) return ITEM_BY_ID[one[1]] ? '"' + ITEM_BY_ID[one[1]].name + '"' : "(removed item)";   // a specific item, in quotes
     if (id.indexOf("&") !== -1) return id.split("&").map(selectorLabel).join(" ");   // "tag:onehand&tag:melee" -> "One-Handed Melee"
     var m = /^(tag|cat):(.+)$/.exec(id);
     if (!m) return id;
@@ -1077,6 +1081,15 @@
     var g2 = h("optgroup", { label: "Categories" });
     CATEGORY_ORDER.forEach(function (c) { g2.appendChild(h("option", { value: "cat:" + c }, categoryLabel(c))); });
     sel.appendChild(g2);
+    // One specific item ("SH-32 Shield Generator Pack"), by category, in name order.
+    CATEGORY_ORDER.forEach(function (c) {
+      var items = DATA.items.filter(function (i) { return i.cat === c && i.factions.indexOf("none") === -1; })
+        .sort(function (a, b) { return a.name.localeCompare(b.name); });
+      if (!items.length) return;
+      var og = h("optgroup", { label: "Item: " + categoryLabel(c) });
+      items.forEach(function (i) { og.appendChild(h("option", { value: "item:" + i.id }, i.name)); });
+      sel.appendChild(og);
+    });
     return sel;
   }
   // One selector drop-down, plus "+ and" to require another tag / category on the same item ("One-Handed" and "Melee" = a
@@ -1126,6 +1139,10 @@
   function hintFor(selId) {
     var m = /^(tag|cat):([^&]+)$/.exec(selId);   // (a combination of several has no description of its own)
     var items = itemsFor(selId);
+    if (/^item:\d+$/.test(selId) && items.length === 1) {   // a specific item: what it is and its tags
+      var one = items[0], tagList = one.tags.filter(function (t) { return TAG_NAMES[t]; }).map(function (t) { return TAG_NAMES[t]; });
+      return h("div", { class: "b-hint" }, categoryLabel(one.cat) + (tagList.length ? " \u2014 " + tagList.join(", ") : ""));
+    }
     var text = m ? (m[1] === "tag" ? TAG_DESC[m[2]] : CATEGORY_DESC[m[2]]) || "" : "";
     var names = items.map(function (i) { return i.name; });
     var eg = names.slice(0, 3).join(", ") + (names.length > 3 ? "\u2026" : "");
@@ -1204,7 +1221,7 @@
       g.el.appendChild(g.row); g.el.appendChild(g.orBtn);
       whenGroups.push(g); whenBox.appendChild(g.el); relabel();
     }
-    box.appendChild(h("p", { class: "hint" }, "A count of what the selector picks, in the part of the loadout you choose. Add an ‘if’ and the rule only applies when that condition holds (for example: if Eagle at least 2, then Orbital at most 0). Add an ‘or’ to the ‘then’ and meeting any one of the alternatives is enough (for example: if Hand-Held Shield at least 1, then either One-Handed Melee at least 1, or One-Handed Primary exactly 1). ‘+ or’ under an ‘if’ makes that ‘if’ hold when either condition does (for example: if Eagle at least 2 or Orbital at least 2, then Sentry at most 0). ‘+ and’ next to a tag asks for several tags on the same item (One-Handed + Melee is a one-handed melee weapon). A plain count of one tag in the whole loadout (say Anti-Tank at most 2) changes that tag’s row: it merges into a range like 1–2, replaces a default number, and “at most 0” bans the tag. Locks always win: a locked item is never swapped out, and a rule it breaks is reported above the loadout."));
+    box.appendChild(h("p", { class: "hint" }, "A count of what the selector picks, in the part of the loadout you choose. Add an ‘if’ and the rule only applies when that condition holds (for example: if Eagle at least 2, then Orbital at most 0). Add an ‘or’ to the ‘then’ and meeting any one of the alternatives is enough (for example: if Hand-Held Shield at least 1, then either One-Handed Melee at least 1, or One-Handed Primary exactly 1). ‘+ or’ under an ‘if’ makes that ‘if’ hold when either condition does (for example: if Eagle at least 2 or Orbital at least 2, then Sentry at most 0). ‘+ and’ next to a tag asks for several tags on the same item (One-Handed + Melee is a one-handed melee weapon). The ‘Item: …’ entries pick one specific item (for example: if Exosuit exactly 1, then SH-32 Shield Generator Pack exactly 1). A plain count of one tag in the whole loadout (say Anti-Tank at most 2) changes that tag’s row: it merges into a range like 1–2, replaces a default number, and “at most 0” bans the tag. Locks always win: a locked item is never swapped out, and a rule it breaks is reported above the loadout."));
     box.appendChild(whenBox);
     box.appendChild(mustRow);
     box.appendChild(altBox);

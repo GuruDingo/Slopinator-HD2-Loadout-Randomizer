@@ -435,6 +435,21 @@ test("Either / or inside an `if` ({ any: [...] } in `when`) holds when any alter
   // each side alone triggers it, and neither one leaves sentries alone
   assert(bs.some((l) => catCount(l, "sentry") > 0), "sentries still appear when neither side holds");
 });
+test("A rule can name one specific item (item:<id>): if a vehicle, then that backpack", () => {
+  const pack = pick("SH-32 Shield Generator Pack");
+  assert(/^\d+$/.test(pack.id));
+  const one = HD2Engine.selector("item:" + pack.id);
+  assert(one(pack) && !one(pick("SH-20 Ballistic Shield Backpack")) && !one(pick("AR-23 Liberator")));
+  assert(HD2Engine.normalizeRule({ must: { sel: "item:" + pack.id, scope: "all", min: 1 } }), "an item rule is accepted");
+  assert(HD2Engine.normalizeRule({ must: { sel: "item:" + pack.id + "&tag:backpack", min: 1 } }), "...and can be combined");
+  [{ must: { sel: "item:abc", min: 1 } }, { must: { sel: "item:", min: 1 } }].forEach((r) => assert.strictEqual(HD2Engine.normalizeRule(r), null));
+  const rule = { when: [{ sel: "cat:vehicle", scope: "all", min: 1 }], must: { sel: "item:" + pack.id, scope: "all", min: 1 } };
+  const bs = strict(1500, { customRules: [rule] });
+  const withVehicle = bs.filter((l) => catCount(l, "vehicle") > 0);
+  assert(withVehicle.length > 5, "vehicles show up: " + withVehicle.length);
+  withVehicle.forEach((l) => assert(l.strategems.some((s) => s.id === pack.id) || l.unmet.some((u) => u.rule), "a vehicle build brings the Shield Generator Pack (or is flagged)"));
+  assert(withVehicle.filter((l) => l.strategems.some((s) => s.id === pack.id)).length > withVehicle.length * 0.9, "it is normally met");
+});
 test("Generic rules: a category rule (no Orbitals) is kept by every build", () => {
   const rule = { must: { sel: "cat:orbital", max: 0 } };
   const bs = strict(400, { customRules: [rule] });
