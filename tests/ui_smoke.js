@@ -484,8 +484,13 @@ function check(label, cond, extra) {
   check("'Reset to system defaults' brings the odds row back", !!ruleChip("meleeWeight") && chips().length === 17, chipTexts().join("|"));
   addOdds("cat:eagle", "strats", 2); click($("custom-clear"));
   check("'Clear custom rules' removes the added odds rules too", chips().length === 17 && !chipTexts().some((t) => /Eagle ×/.test(t)), chipTexts().join("|"));
+  check("the locked game-rules row sits between the rule chips and the Calibrate odds switch", (() => {
+    const chipsEl = $("require-chips"), locked = doc.querySelector("#rules-section .rule-row.locked"), odds = $("even-odds-row");
+    const follows = (a, b) => !!(a.compareDocumentPosition(b) & win.Node.DOCUMENT_POSITION_FOLLOWING);
+    return !!locked && follows(chipsEl, locked) && follows(locked, odds) && /^\s*Calibrate odds/.test(odds.textContent);
+  })());
   const evenSwitch = () => $("even-odds");
-  check("Even odds is a real on / off switch under the list (on by default), not a removable row", !ruleChip("evenOdds") && evenSwitch().getAttribute("role") === "switch" && evenSwitch().checked && /rolled a bit less/.test($("odds-note").textContent), $("odds-note").textContent);
+  check("Calibrate odds is a real on / off switch under the list (on by default), not a removable row", !ruleChip("evenOdds") && evenSwitch().getAttribute("role") === "switch" && evenSwitch().checked && /rolled a bit less/.test($("odds-note").textContent), $("odds-note").textContent);
   click(evenSwitch());
   check("switching it off changes the note, is saved as a switched-off default and shows in the summary", !evenSwitch().checked && /^Off:/.test($("odds-note").textContent) && JSON.parse(win.localStorage.getItem("hd2_settings")).disabledRules.includes("evenOdds") && /1 off/.test($("rules-summary").textContent) && chips().length === 17, $("odds-note").textContent + " " + $("rules-summary").textContent);
   click($("presets-reset"));

@@ -916,7 +916,7 @@
         if (mine) rows.push({ kind: "weight", w: mine, overrides: r, pristine: false });
         else if (!state.disabledRules[r.id]) rows.push({ kind: "default", rule: r, text: describeWeight(r.weight), detail: r.label, pristine: true });
       } else if (r.calibrate) {
-        // Not a row: it is the "Even odds" switch under the list (state.disabledRules.evenOdds is its off state).
+        // Not a row: it is the "Calibrate odds" switch under the list (state.disabledRules.evenOdds is its off state).
       } else if (!state.disabledRules[r.id]) {
         rows.push({ kind: "default", rule: r, text: describeRule(r.rules[0]), detail: r.label, pristine: true });
       }
@@ -996,7 +996,7 @@
       box.appendChild(h("span", { class: "chip" + (row.pristine ? " preset" : ""), "data-tag": row.tag || null, "data-rule": row.rule && row.rule.id || null, title: title }, text,
         h("button", { type: "button", "aria-label": "Remove rule: " + text, onclick: function () { remove(); onRulesChanged(); } }, "×")));
     });
-    // Even odds is not a pass / fail rule but a full on / off switch (it is on by default; off = every item rolls at its raw odds).
+    // Calibrate odds (state key evenOdds) is not a pass / fail rule but a full on / off switch (it is on by default; off = every item rolls at its raw odds).
     var evenOn = !state.disabledRules.evenOdds;
     $("even-odds").checked = evenOn;
     $("even-odds-row").classList.toggle("off", !evenOn);
