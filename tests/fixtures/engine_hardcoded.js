@@ -411,7 +411,7 @@
       // Demo escalation: if only stratagems provide demo, require at least 2 of them.
       var demoItems = allItems.filter(function (i) { return has(i, "demo"); });
       var demoFromWeapons = weapons.filter(function (i) { return has(i, "demo"); });
-      if (demoItems.length && !demoFromWeapons.length && demoItems.length < 2) {
+      if (!demoFromWeapons.length && demoItems.length < 2) {   // 2026-11-01: no longer needs one to start with
         fail("demoEscalation", "Two base breakers when no weapon is one");
       }
 

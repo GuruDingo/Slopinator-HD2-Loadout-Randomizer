@@ -297,10 +297,10 @@ function check(label, cond, extra) {
   // Default rows are written the way the player's own rules are (tag, sign, number, scope); the plain-words wording is the tooltip.
   const DEFAULT_ROWS = ["Backpack = 1", "Support Weapon ≥ 1", "Anti-Tank ≥ 1", "Chaff Killer ≥ 1 (primary + secondary)", "Base Breaker ≥ 1",
     "If Non-Expendable Support ≥ 1, then Expendable ≤ 0",
-    "Medium Killer ≥ 1", "Panic Weapon ≥ 1", "If Base Breaker ≤ 0 (all three weapons) and Base Breaker ≥ 1, then Base Breaker ≥ 2",
-    "If Hand-Held Shield ≥ 1, then either One-Handed Melee ≥ 1, or One-Handed = 1 (primary)", "If No Ammo ≥ 2, then Supply ≤ 0",
+    "Medium Killer ≥ 1", "Panic Weapon ≥ 1", "If Base Breaker = 0 (all three weapons), then Base Breaker ≥ 2 (stratagems)",
+    "If Hand-Held Shield ≥ 1, then either One-Handed Melee ≥ 1, or One-Handed Primary = 1", "If No Ammo ≥ 2, then Supply ≤ 0",
     "Non-Expendable Support ≤ 1", "Expendable ≤ 2", "Vehicle ≤ 1", "Eagle ≤ 2", "Mines ≤ 1",
-    "Melee ×0.33 odds (secondary)"];
+    "Melee Secondary ×0.33 odds"];
   const ruleChip = (id) => doc.querySelector('#require-chips .chip[data-rule="' + id + '"]');
   check("every default rule starts as a dim row (no switches), highest priority first", chipTexts().join("|") === DEFAULT_ROWS.join("|") && chips().every((c) => c.classList.contains("preset")) && !doc.querySelector("#rules-default") && !doc.querySelector('#rules-section input[role="switch"]:not(#even-odds)'), chipTexts().join("|"));
   check("...with no reset buttons yet, and nothing counted in the summary", $("presets-reset").hidden && $("custom-clear").hidden && $("rules-summary").textContent === "");
@@ -421,6 +421,25 @@ function check(label, cond, extra) {
   check("at most two ‘if’ conditions can be added", doc.querySelectorAll('#builder-body .b-row[data-role="when"]').length === 2 && $("b-add-if").hidden);
   doc.querySelectorAll("#builder-body #b-when .chip-x").forEach((b) => click(b));
   check("...and each can be removed again", doc.querySelectorAll('#builder-body .b-row[data-role="when"]').length === 0 && !$("b-add-if").hidden);
+  // either / or alternatives and several tags on one item
+  const setAlt = (row, sel, scope, op, n) => { setv(row.querySelector(".b-sel"), sel); setv(row.querySelector(".b-scope"), scope); setv(row.querySelector(".b-op"), op); row.querySelector(".b-n").value = String(n); };
+  const altRows = () => doc.querySelectorAll('#builder-body .b-row[data-role="alt"]');
+  click($("b-add-if")); setAlt(doc.querySelector('#builder-body .b-row[data-role="when"]'), "tag:handheld", "strats", "min", 1);
+  setAlt(bRow("must"), "tag:onehand", "all", "min", 1);
+  click(bRow("must").querySelector(".b-and"));
+  const parts = bRow("must").querySelectorAll(".b-sel");
+  check("'+ and' adds a second tag drop-down to the same row", parts.length === 2 && /^then/.test(bRow("must").querySelector(".b-prefix").textContent));
+  setv(parts[1], "tag:melee");
+  click($("b-add-or")); setAlt(altRows()[0], "tag:onehand", "primary", "eq", 1);
+  check("'+ Add an or alternative' adds a row, and the first row reads 'then either'", altRows().length === 1 && /either/.test(bRow("must").querySelector(".b-prefix").textContent) && altRows()[0].querySelector(".b-prefix").textContent === "or");
+  click($("b-add-or")); click($("b-add-or"));
+  check("at most three alternatives (the first row and two more)", altRows().length === 2 && $("b-add-or").hidden);
+  click(altRows()[1].querySelector(":scope > .chip-x"));
+  check("...and an alternative can be removed again", altRows().length === 1 && !$("b-add-or").hidden);
+  click($("b-add"));
+  check("an either / or rule with two tags on one item reads as a sentence (like the default one, so twice)", chipTexts().filter((t) => t === "If Hand-Held Shield ≥ 1, then either One-Handed Melee ≥ 1, or One-Handed Primary = 1").length === 2, chipTexts().join("|"));
+  check("...and is saved as `any`, with the tags joined by &", (() => { const r = JSON.parse(win.localStorage.getItem("hd2_settings")).customRules.slice(-1)[0]; return r && r.any && r.any.length === 2 && r.any[0].sel === "tag:onehand&tag:melee" && r.any[1].scope === "primary" && !r.must; })(), win.localStorage.getItem("hd2_settings"));
+  check("...and the alternative rows clear after adding", altRows().length === 0 && bRow("must").querySelectorAll(".b-sel").length === 1, altRows().length + " " + bRow("must").querySelectorAll(".b-sel").length + " " + errors());
   // odds rules (start from the plain defaults)
   if (!$("custom-clear").hidden) click($("custom-clear"));
   if (!$("presets-reset").hidden) click($("presets-reset"));
@@ -428,10 +447,10 @@ function check(label, cond, extra) {
   const addOdds = (sel, scope, n) => { setv(oddsRow().querySelector(".b-sel"), sel); setv(oddsRow().querySelector(".b-scope"), scope); oddsRow().querySelector(".b-n").value = String(n); click($("odds-add")); };
   check("the builder has an odds row (selector, where, multiplier)", !!oddsRow() && !!$("odds-add"));
   addOdds("tag:melee", "secondary", 3);
-  check("an odds rule for the default melee rule edits that row: it becomes ×3 and the default text goes", chipTexts().includes("Melee ×3 odds (secondary)") && !chipTexts().includes("Melee ×0.33 odds (secondary)") && chips().length === 17 && /1 edited/.test($("rules-summary").textContent), chipTexts().join("|") + " " + $("rules-summary").textContent);
+  check("an odds rule for the default melee rule edits that row: it becomes ×3 and the default text goes", chipTexts().includes("Melee Secondary ×3 odds") && !chipTexts().includes("Melee Secondary ×0.33 odds") && chips().length === 17 && /1 edited/.test($("rules-summary").textContent), chipTexts().join("|") + " " + $("rules-summary").textContent);
   check("...and it is saved", (JSON.parse(win.localStorage.getItem("hd2_settings")).weights || []).some((w) => w.sel === "tag:melee" && w.scope === "secondary" && w.factor === 3), win.localStorage.getItem("hd2_settings"));
   addOdds("tag:melee", "secondary", 0.333);
-  check("giving it the default number again puts the default row back", chipTexts().includes("Melee ×0.33 odds (secondary)") && !chipTexts().includes("Melee ×3 odds (secondary)") && $("rules-summary").textContent === "", chipTexts().join("|"));
+  check("giving it the default number again puts the default row back", chipTexts().includes("Melee Secondary ×0.33 odds") && !chipTexts().includes("Melee Secondary ×3 odds") && $("rules-summary").textContent === "", chipTexts().join("|"));
   addOdds("cat:eagle", "strats", 0.5);
   check("another odds rule is added as its own row", chipTexts().includes("Eagle ×0.5 odds") && chips().length === 18 && /1 added/.test($("rules-summary").textContent), chipTexts().join("|"));
   addOdds("cat:eagle", "strats", 2);

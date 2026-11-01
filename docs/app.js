@@ -855,24 +855,32 @@
   var stratOnlyCache = {};
   function onlyStratagems(sel) {
     if (Object.prototype.hasOwnProperty.call(stratOnlyCache, sel)) return stratOnlyCache[sel];
-    var m = /^(tag|cat):(.+)$/.exec(sel), hit = false, only = true;
-    if (m) ALL_ITEMS.forEach(function (i) {
-      if (m[1] === "tag" ? i.tags.indexOf(m[2]) === -1 : i.cat !== m[2]) return;
+    var pick = Engine.selector(sel), hit = false, only = true;
+    if (pick) ALL_ITEMS.forEach(function (i) {
+      if (!pick(i)) return;
       hit = true;
       if (Engine.STRATAGEM_CATEGORIES.indexOf(i.cat) === -1) only = false;
     });
-    return (stratOnlyCache[sel] = !!m && hit && only);
+    return (stratOnlyCache[sel] = !!pick && hit && only);
+  }
+  // One slot reads like a tag in front of the number ("One-Handed Primary = 1"); a group of slots stays in brackets after it
+  // ("Base Breaker = 0 (all three weapons)"). Nothing is added when it would only repeat the item ("Primary" in the primary slot,
+  // "(stratagems)" after something only stratagems can be).
+  var SLOT_NAMES = { primary: "Primary", secondary: "Secondary", throwable: "Throwable" };
+  function nameWithSlot(sel, scope) {
+    var name = selectorLabel(sel);
+    return SLOT_NAMES[scope] && SLOT_NAMES[scope] !== name ? name + " " + SLOT_NAMES[scope] : name;
   }
   function scopeText(sel, scope) {
-    if (!scope || scope === "all" || (scope === "strats" && onlyStratagems(sel))) return "";
+    if (!scope || scope === "all" || SLOT_NAMES[scope] || (scope === "strats" && onlyStratagems(sel))) return "";
     return " (" + SCOPE_LABELS[scope] + ")";
   }
   function condText(c) {
-    return selectorLabel(c.sel) + " " + reqText(c) + scopeText(c.sel, c.scope);
+    return nameWithSlot(c.sel, c.scope) + " " + reqText(c) + scopeText(c.sel, c.scope);
   }
   function describeRule(r) {
     var must = r.any ? "either " + r.any.map(condText).join(", or ") : condText(r.must);
-    if (!r.when || !r.when.length) return must;
+    if (!r.when || !r.when.length) return r.any ? must.charAt(0).toUpperCase() + must.slice(1) : must;
     return "If " + r.when.map(condText).join(" and ") + ", then " + must;
   }
 
@@ -882,7 +890,7 @@
   function defaultWeightFor(w) { return DEFAULT_WEIGHTS.filter(function (r) { return weightKey(r.weight) === weightKey(w); })[0] || null; }
   function factorText(f) { return "\u00D7" + String(Math.round(f * 100) / 100); }
   function describeWeight(w) {
-    return selectorLabel(w.sel) + " " + factorText(w.factor) + " odds" + scopeText(w.sel, w.scope);
+    return nameWithSlot(w.sel, w.scope) + " " + factorText(w.factor) + " odds" + scopeText(w.sel, w.scope);
   }
 
   // The rows shown, in order: default rows (RULES order), the player's plain tag rules, the player's generic rules, the player's odds rules.
@@ -1064,6 +1072,38 @@
     sel.appendChild(g2);
     return sel;
   }
+  // One selector drop-down, plus "+ and" to require another tag / category on the same item ("One-Handed" and "Melee" = a
+  // one-handed melee weapon). `.value` is the selectors joined with & (repeats dropped), the same string the engine reads.
+  var MAX_SELECTOR_PARTS = 3;
+  function selectorPicker() {
+    var wrap = h("span", { class: "b-selgroup" });
+    var selects = [];
+    var add = h("button", { type: "button", class: "b-and", title: "Also require another tag on the same item", "aria-label": "Also require another tag on the same item" }, "+ and");
+    function changed() { wrap.dispatchEvent(new Event("change", { bubbles: true })); }
+    function addSelect(extra) {
+      var sel = selectorSelect();
+      var box = h("span", { class: "b-selpart" }, extra ? h("span", { class: "b-prefix" }, "and") : null, sel);
+      if (extra) box.appendChild(h("button", { type: "button", class: "chip-x", "aria-label": "Remove this tag", onclick: function () {
+        selects.splice(selects.indexOf(sel), 1); box.remove(); add.hidden = false; changed();
+      } }, "×"));
+      selects.push(sel);
+      wrap.insertBefore(box, add);
+    }
+    add.addEventListener("click", function () {
+      if (selects.length >= MAX_SELECTOR_PARTS) return;
+      addSelect(true); add.hidden = selects.length >= MAX_SELECTOR_PARTS; changed();
+    });
+    wrap.appendChild(add);
+    addSelect(false);
+    wrap.reset = function () {   // back to the single drop-down
+      while (selects.length > 1) { var x = selects.pop(); x.parentNode.remove(); }
+      add.hidden = false; changed();
+    };
+    Object.defineProperty(wrap, "value", { get: function () {
+      return selects.map(function (x) { return x.value; }).filter(function (v, i, all) { return all.indexOf(v) === i; }).join("&");
+    } });
+    return wrap;
+  }
   // The line under a rule-builder dropdown: what the picked tag / category is, how many items have it, and a few examples
   // (hover for all of them, or tap it to swap the line for the full list). Retired items (faction "none") are left out.
   var CATEGORY_DESC = {
@@ -1072,14 +1112,12 @@
     eagle: "Eagle air strikes", orbital: "Orbital strikes", sentry: "Sentries", defensive: "Mines, emplacements and the shield relay",
   };
   function itemsFor(selId) {
-    var m = /^(tag|cat):(.+)$/.exec(selId);
-    if (!m) return [];
-    return DATA.items.filter(function (i) {
-      return i.factions.indexOf("none") === -1 && (m[1] === "tag" ? i.tags.indexOf(m[2]) !== -1 : i.cat === m[2]);
-    });
+    var pick = Engine.selector(selId);
+    if (!pick) return [];
+    return DATA.items.filter(function (i) { return i.factions.indexOf("none") === -1 && pick(i); });
   }
   function hintFor(selId) {
-    var m = /^(tag|cat):(.+)$/.exec(selId);
+    var m = /^(tag|cat):([^&]+)$/.exec(selId);   // (a combination of several has no description of its own)
     var items = itemsFor(selId);
     var text = m ? (m[1] === "tag" ? TAG_DESC[m[2]] : CATEGORY_DESC[m[2]]) || "" : "";
     var names = items.map(function (i) { return i.name; });
@@ -1097,7 +1135,7 @@
   }
   // One "count of X, in Y, at least / at most / exactly N" row. read() gives the condition, or null if the number is not allowed.
   function condRow(role, prefix, onRemove) {
-    var sel = selectorSelect();
+    var sel = selectorPicker();
     var scope = h("select", { class: "b-scope", "aria-label": "Where to count" });
     SCOPE_ORDER.forEach(function (k) { scope.appendChild(h("option", { value: k }, k === "all" ? "in the whole loadout" : "in " + SCOPE_LABELS[k])); });
     var op = h("select", { class: "b-op", "aria-label": "Rule type" },
@@ -1111,6 +1149,7 @@
     sel.addEventListener("change", function () { hint.textContent = ""; hint.appendChild(hintFor(sel.value)); });
     var el = h("div", { class: "b-row", "data-role": role }, kids);
     el.setPrefix = function (t) { label.textContent = t; };
+    el.reset = function () { sel.reset(); };
     el.read = function () {
       var v = parseInt(n.value, 10);
       if (!(v >= 0 && v <= MAX_RULE_COUNT) || (op.value === "min" && v < 1)) return null;
@@ -1127,36 +1166,51 @@
     var whenRows = [];
     var whenBox = h("div", { id: "b-when" });
     var mustRow = condRow("must", "Require");
+    var altRows = [];
+    var altBox = h("div", { id: "b-alts" });
     function relabel() {
       whenRows.forEach(function (r, i) { r.setPrefix(i === 0 ? "If" : "and"); });
-      mustRow.setPrefix(whenRows.length ? "then" : "Require");
+      mustRow.setPrefix((whenRows.length ? "then" : "Require") + (altRows.length ? " either" : ""));
+      altRows.forEach(function (r) { r.setPrefix("or"); });
       $("b-add-if").hidden = whenRows.length >= 2;
+      $("b-add-or").hidden = altRows.length >= 2;
+    }
+    function addOr() {
+      if (altRows.length >= 2) return;
+      var row = condRow("alt", "or", function () { altRows.splice(altRows.indexOf(row), 1); row.remove(); relabel(); });
+      altRows.push(row); altBox.appendChild(row); relabel();
     }
     function addIf() {
       if (whenRows.length >= 2) return;
       var row = condRow("when", "If", function () { whenRows.splice(whenRows.indexOf(row), 1); row.remove(); relabel(); });
       whenRows.push(row); whenBox.appendChild(row); relabel();
     }
-    box.appendChild(h("p", { class: "hint" }, "A count of what the selector picks, in the part of the loadout you choose. Add an ‘if’ and the rule only applies when that condition holds (for example: if Eagle at least 2, then Orbital at most 0). A plain count of one tag in the whole loadout (say Anti-Tank at most 2) changes that tag’s row: it merges into a range like 1–2, replaces a default number, and “at most 0” bans the tag. Locks always win: a locked item is never swapped out, and a rule it breaks is reported above the loadout."));
+    box.appendChild(h("p", { class: "hint" }, "A count of what the selector picks, in the part of the loadout you choose. Add an ‘if’ and the rule only applies when that condition holds (for example: if Eagle at least 2, then Orbital at most 0). Add an ‘or’ and meeting any one of the alternatives is enough (for example: if Hand-Held Shield at least 1, then either One-Handed Melee at least 1, or One-Handed Primary exactly 1). ‘+ and’ next to a tag asks for several tags on the same item (One-Handed + Melee is a one-handed melee weapon). A plain count of one tag in the whole loadout (say Anti-Tank at most 2) changes that tag’s row: it merges into a range like 1–2, replaces a default number, and “at most 0” bans the tag. Locks always win: a locked item is never swapped out, and a rule it breaks is reported above the loadout."));
     box.appendChild(whenBox);
     box.appendChild(mustRow);
+    box.appendChild(altBox);
     box.appendChild(h("div", { class: "btn-row" },
       h("button", { type: "button", class: "ctrl-btn", id: "b-add-if", onclick: addIf }, "+ Add an ‘if’ condition"),
+      h("button", { type: "button", class: "ctrl-btn", id: "b-add-or", onclick: addOr }, "+ Add an ‘or’ alternative"),
       h("button", { type: "button", class: "ctrl-btn", id: "b-add", onclick: function () {
         var when = whenRows.map(function (r) { return r.read(); }), must = mustRow.read();
-        if (!must || when.some(function (c) { return !c; })) { showMessages(["Check the numbers: ‘at least’ needs 1 to " + MAX_RULE_COUNT + ", the others 0 to " + MAX_RULE_COUNT + "."]); return; }
-        if (!when.length && must.scope === "all" && must.sel.indexOf("tag:") === 0) {
+        var alts = altRows.map(function (r) { return r.read(); });
+        if (!must || when.some(function (c) { return !c; }) || alts.some(function (c) { return !c; })) { showMessages(["Check the numbers: ‘at least’ needs 1 to " + MAX_RULE_COUNT + ", the others 0 to " + MAX_RULE_COUNT + "."]); return; }
+        if (!when.length && !alts.length && must.scope === "all" && must.sel.indexOf("tag:") === 0 && must.sel.indexOf("&") === -1) {
           // A plain tag count over the whole loadout is the same as editing that tag's row: it merges ranges, replaces a default number and lifts a default cap.
           addRequirement(must.sel.slice(4), must.min !== undefined && must.max !== undefined ? "eq" : must.min !== undefined ? "min" : "max", must.min !== undefined ? must.min : must.max);
           return;
         }
-        addCustomRule(when.length ? { when: when, must: must } : { must: must });
-        whenRows.slice().forEach(function (r) { r.remove(); }); whenRows.length = 0; relabel();
+        var rule = alts.length ? { any: [must].concat(alts) } : { must: must };
+        if (when.length) rule.when = when;
+        addCustomRule(rule);
+        whenRows.slice().forEach(function (r) { r.remove(); }); whenRows.length = 0;
+        altRows.slice().forEach(function (r) { r.remove(); }); altRows.length = 0; mustRow.reset(); relabel();
       } }, "Add rule")));
     // odds
     box.appendChild(h("h4", { class: "rules-subtitle" }, "Odds"));
     box.appendChild(h("p", { class: "hint" }, "Make a kind of item more or less likely to be rolled, without requiring or banning it. 1 is normal, 0.5 is half as likely, 2 is twice as likely. Only the random rolls are affected: locks and the rules above still win."));
-    var oddsSel = selectorSelect();
+    var oddsSel = selectorPicker();
     var oddsScope = h("select", { class: "b-scope", "aria-label": "Where it is rolled" });
     SCOPE_ORDER.forEach(function (k) { oddsScope.appendChild(h("option", { value: k }, k === "all" ? "in every slot" : "in " + SCOPE_LABELS[k])); });
     var oddsN = h("input", { type: "number", class: "b-n", min: "0.05", max: "20", step: "0.05", value: "0.5", "aria-label": "Odds multiplier" });

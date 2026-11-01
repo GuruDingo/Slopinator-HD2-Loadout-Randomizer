@@ -392,6 +392,36 @@ test("Generic rules: malformed rules are dropped, good ones are copied", () => {
   assert.notStrictEqual(copy, good);
   assert.deepStrictEqual(copy, { when: [{ sel: "cat:eagle", scope: "strats", min: 2 }], must: { sel: "cat:orbital", scope: "all", max: 0 } });
 });
+test("Either / or rules (`any`) and combined selectors (tag:a&tag:b) are checked, copied and kept", () => {
+  const melee1 = { sel: "tag:onehand&tag:melee", scope: "all", min: 1 }, eagle2 = { sel: "cat:eagle", scope: "all", min: 2 };
+  const good = { when: [{ sel: "cat:orbital", scope: "strats", min: 1 }], any: [melee1, eagle2] };
+  const copy = HD2Engine.normalizeRule(good);
+  assert(copy && copy !== good && copy.any.length === 2 && copy.any[0].sel === "tag:onehand&tag:melee" && copy.must === undefined);
+  const bad = [
+    { any: [melee1] }, { any: [melee1, eagle2, eagle2, melee1] }, { any: [melee1, { sel: "nope", min: 1 }] }, { any: "x" },
+    { must: melee1, any: [melee1, eagle2] },
+    { must: { sel: "tag:onehand&tag:onehand", min: 1 } }, { must: { sel: "tag:onehand&tag:melee&tag:armor&tag:demo", min: 1 } },
+    { must: { sel: "tag:onehand&nope", min: 1 } }, { must: { sel: "cat:moon&tag:melee", min: 1 } },
+  ];
+  bad.forEach((r) => assert.strictEqual(HD2Engine.normalizeRule(r), null, JSON.stringify(r)));
+  assert(HD2Engine.normalizeRule({ must: { sel: "cat:secondary&tag:melee", min: 1 } }), "a category and a tag combine");
+  // the selector matches only items that have every part
+  const one = HD2Engine.selector("tag:onehand&tag:melee");
+  assert(one(pick("CQC-1 One True Flag")) && one(pick("CQC-2 Saber")) && !one(pick("CQC-20 Breaching Hammer")) && !one(pick("P-4 Senator")));
+  // a build keeps at least one of the alternatives
+  const bs = strict(300, { customRules: [{ any: [melee1, { sel: "cat:eagle", scope: "all", min: 2 }] }] });
+  bs.forEach((l) => {
+    const items = [l.primary, l.secondary, l.throwable].concat(l.strategems);
+    const ok = items.filter((i) => one(i)).length >= 1 || items.filter((i) => i.cat === "eagle").length >= 2;
+    assert(ok || l.unmet.some((u) => u.rule && u.rule.any), "either one-handed melee or two Eagles");
+    assert(!l.unmet.some((u) => u.rule && u.rule.any) || !ok);
+  });
+  assert(bs.filter((l) => !l.unmet.some((u) => u.rule && u.rule.any)).length > 250, "the rule is normally met");
+  // locked so that neither alternative can hold: flagged, with the alternative that came closest
+  const l = engine.generateLoadoutRelaxed({ faction: "any", locks: { primary: pick("AR-23 Liberator"), secondary: pick("P-4 Senator"), strat1: pick("EAT-17 Expendable Anti-Tank") },
+    customRules: [{ any: [{ sel: "tag:onehand&tag:melee", scope: "ps", min: 1 }, { sel: "cat:eagle", scope: "ps", min: 1 }] }] });
+  assert(l.unmet.some((u) => u.rule && u.rule.any && u.gap >= 1 || u.actual === 0), "flagged when neither alternative can hold");
+});
 test("Generic rules: a category rule (no Orbitals) is kept by every build", () => {
   const rule = { must: { sel: "cat:orbital", max: 0 } };
   const bs = strict(400, { customRules: [rule] });

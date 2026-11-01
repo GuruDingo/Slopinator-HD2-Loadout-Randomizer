@@ -1,6 +1,8 @@
 // run_all.js - the one command: rebuild the data/bundle, then run every test. Stops at the first red step.
 //
-//   node tests/run_all.js
+//   node tests/run_all.js            everything
+//   node tests/run_all.js --quick    everything except the odds-calibration check (the slow one; tools/presend.js does it
+//                                    right after re-calibrating, so there is no need to run it for every small change)
 //
 // The UI test needs jsdom (npm install jsdom, once); it is skipped with a notice if it isn't installed.
 const { spawnSync } = require("child_process");
@@ -8,6 +10,7 @@ const path = require("path");
 const root = path.join(__dirname, "..");
 const hasJsdom = (() => { try { require.resolve("jsdom", { paths: [root, process.cwd()].concat(process.env.NODE_PATH ? process.env.NODE_PATH.split(path.delimiter) : []) }); return true; } catch (e) { return false; } })();
 
+const quick = process.argv.includes("--quick");
 const steps = [
   ["Build data + bundle", "python3", ["tools/build_gear.py", "--bundle"]],
   ["Image tool tests", "python3", ["tests/fetch_images_test.py"]],
@@ -19,6 +22,11 @@ const steps = [
   ["Engine parity (generic rules vs hand-written)", "node", ["tests/engine_parity.js"]],
   ["Regression (invariants + odds)", "node", ["tests/regression.js"]],
 ];
+if (quick) {
+  const i = steps.findIndex((x) => /^Odds calibration/.test(x[0]));
+  if (i >= 0) steps.splice(i, 1);
+  console.log("(quick run: the odds-calibration check is skipped)\n");
+}
 if (hasJsdom) steps.push(["UI smoke test", "node", ["tests/ui_smoke.js"]]);
 else console.log("(skipping UI smoke test: jsdom not installed - run `npm install jsdom`)\n");
 

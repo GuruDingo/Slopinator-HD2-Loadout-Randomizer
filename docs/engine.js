@@ -70,7 +70,7 @@
     { id: "demo", kind: "guarantee", label: "At least one base breaker", preset: { tag: "demo", min: 1 } },
     { id: "panic", kind: "guarantee", label: "A panic weapon in primary, secondary or throwable", preset: { tag: "panic", min: 1 } },
     { id: "demoEscalation", kind: "guarantee", label: "Two base breakers when no weapon is one",
-      rules: [{ when: [{ sel: "tag:demo", scope: "weapons", max: 0 }, { sel: "tag:demo", scope: "all", min: 1 }], must: { sel: "tag:demo", scope: "all", min: 2 } }] },
+      rules: [{ when: [{ sel: "tag:demo", scope: "weapons", min: 0, max: 0 }], must: { sel: "tag:demo", scope: "strats", min: 2 } }] },
     // Pistols are one-handed too, but they do not count here: the shield needs a one-handed PRIMARY or a one-handed melee weapon (the One True Flag counts too).
     // Written as "if a hand-held shield, then either a one-handed melee weapon anywhere (secondary or support), or a one-handed primary" (`any` = either/or).
     { id: "shield", kind: "guarantee", label: "A hand-held shield needs a one-handed primary or a melee weapon",
@@ -249,11 +249,21 @@
     });
   }
 
+  // A selector, or several joined with & ("tag:onehand&tag:melee": items that have every part). At most 3 parts, no repeats.
+  var MAX_SELECTOR_PARTS = 3;
+  function validSelector(sel) {
+    if (typeof sel !== "string") return false;
+    var parts = sel.split("&");
+    if (parts.length > MAX_SELECTOR_PARTS || parts.some(function (p, i) { return parts.indexOf(p) !== i; })) return false;
+    return parts.every(function (p) {
+      if (!makeSelector(p)) return false;
+      return p.indexOf("cat:") !== 0 || WEAPON_CATEGORIES.concat(STRATAGEM_CATEGORIES).indexOf(p.slice(4)) !== -1;
+    });
+  }
   function cleanCond(c) {
-    if (!c || typeof c !== "object" || typeof c.sel !== "string" || !makeSelector(SELECTOR_ALIASES[c.sel] || c.sel)) return null;
+    if (!c || typeof c !== "object" || typeof c.sel !== "string" || !validSelector(SELECTOR_ALIASES[c.sel] || c.sel)) return null;
     var scope = c.scope === undefined ? "all" : c.scope;
     if (SCOPES.indexOf(scope) === -1) return null;
-    if (c.sel.indexOf("cat:") === 0 && WEAPON_CATEGORIES.concat(STRATAGEM_CATEGORIES).indexOf(c.sel.slice(4)) === -1) return null;
     var out = { sel: SELECTOR_ALIASES[c.sel] || c.sel, scope: scope };
     var num = function (v) { return typeof v === "number" && v >= 0 && v <= 7 && Math.floor(v) === v; };
     if (c.min !== undefined) { if (!num(c.min)) return null; out.min = c.min; }
@@ -266,9 +276,18 @@
   function normalizeRule(r) {
     if (!r || typeof r !== "object") return null;
     // (a saved "balance" / spread rule from an older version has no `must`, so it is dropped here)
-    var must = cleanCond(r.must);
-    if (!must) return null;
-    var out = { must: must };
+    // The "then" part is one condition (`must`) or a list of 2-3 alternatives where meeting any one is enough (`any`, "either ... or ...").
+    var out;
+    if (r.any !== undefined) {
+      if (r.must !== undefined || !Array.isArray(r.any) || r.any.length < 2 || r.any.length > 3) return null;
+      var any = r.any.map(cleanCond);
+      if (any.some(function (c) { return !c; })) return null;
+      out = { any: any };
+    } else {
+      var must = cleanCond(r.must);
+      if (!must) return null;
+      out = { must: must };
+    }
     if (r.when !== undefined) {
       if (!Array.isArray(r.when) || r.when.length > 3) return null;
       var when = r.when.map(cleanCond);
@@ -282,8 +301,7 @@
   function normalizeWeight(w) {
     if (!w || typeof w !== "object" || typeof w.sel !== "string") return null;
     var sel = SELECTOR_ALIASES[w.sel] || w.sel;
-    if (!makeSelector(sel)) return null;
-    if (sel.indexOf("cat:") === 0 && WEAPON_CATEGORIES.concat(STRATAGEM_CATEGORIES).indexOf(sel.slice(4)) === -1) return null;
+    if (!validSelector(sel)) return null;
     var scope = w.scope === undefined ? "all" : w.scope;
     if (SCOPES.indexOf(scope) === -1) return null;
     if (typeof w.factor !== "number" || !isFinite(w.factor) || w.factor < MIN_WEIGHT || w.factor > MAX_WEIGHT) return null;
@@ -840,6 +858,7 @@
     create: create,
     GenerationError: GenerationError,
     has: has,
+    selector: makeSelector,
     worksFor: worksFor,
     makeEmptySlot: makeEmptySlot,
     oddsClass: oddsClass,
