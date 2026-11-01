@@ -182,7 +182,7 @@
   //   condition  { sel, scope?, min?, max? }       e.g. { sel: "tag:armor", scope: "all", min: 1 }
   //   rule       { must: condition }                       -> must hold
   //              { when: [condition, ...], must: condition } -> must hold whenever every `when` condition holds
-  // Selectors: "tag:<tag>" or "cat:<category>". Scopes: SCOPES.
+  // Selectors: "tag:<tag>", "cat:<category>" or "item:<permanent item id>" (one specific item). Scopes: SCOPES.
   // Rules are plain data so the page can save them and show them as sentences.
   // Selectors that were renamed: a saved or hand-written rule may still use the old name. There used to be two named groups;
   // they are ordinary tags now (noAmmo -> noammo, regularSupport -> nonexp).
@@ -193,11 +193,13 @@
     if (Object.prototype.hasOwnProperty.call(selectorCache, id)) return selectorCache[id];
     var m = /^(tag|cat):(.+)$/.exec(String(id));
     var fn = null;
+    var it = /^item:(\d+)$/.exec(String(id));   // one specific item, by its permanent id ("item:168")
     // "tag:onehand&tag:melee": an item that matches every part (used by the default shield rule)
     if (String(id).indexOf("&") !== -1) {
       var parts = String(id).split("&").map(makeSelector);
       if (parts.every(Boolean)) fn = function (i) { return parts.every(function (p) { return p(i); }); };
-    } else if (m && m[1] === "tag") fn = function (i) { return has(i, m[2]); };
+    } else if (it) fn = function (i) { return i.id === it[1]; };
+    else if (m && m[1] === "tag") fn = function (i) { return has(i, m[2]); };
     else if (m && m[1] === "cat") fn = function (i) { return i.cat === m[2]; };
     selectorCache[id] = fn;
     return fn;

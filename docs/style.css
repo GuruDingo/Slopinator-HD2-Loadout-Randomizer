@@ -90,7 +90,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .lock-grid .lock-cell .lock-input { display: flex; gap: 4px; }
 .lock-grid .lock-clear { padding: 0 9px; }
 
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: .5rem; }
 .chip {
   display: inline-flex; align-items: center; gap: 6px; background: #2a2a2a; border: 1px solid #555;
   border-radius: 12px; padding: 3px 6px 3px 11px; font-size: .78rem; color: #ddd;
@@ -114,6 +114,11 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .slot-btns { display: inline-flex; gap: 4px; margin-left: auto; }
 .slot-btn { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.25); color: #fff; border-radius: 5px;
   font-size: .85rem; line-height: 1; padding: 4px 6px; cursor: pointer; min-width: 28px; min-height: 26px; }
+/* The narrow (180px) cards carry label + reroll + block + lock: tighter header and buttons so none is cut off (the wide cards keep the roomy ones). */
+.item-card .card-header { padding: 6px 7px; gap: 4px; }
+.item-card .slot-label { font-size: .62rem; letter-spacing: .05em; min-width: 0; }
+.item-card .slot-btns { gap: 3px; flex-shrink: 0; }
+.item-card .slot-btn { min-width: 24px; min-height: 24px; padding: 3px; font-size: .78rem; }
 .slot-btn:hover:not(:disabled) { background: rgba(0,0,0,.6); border-color: var(--accent); }
 .slot-btn:disabled { opacity: .35; cursor: not-allowed; }
 .slot-btn.block-slot-btn:hover:not(:disabled) { border-color: #e57373; }
@@ -277,7 +282,7 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
 }
 
 /* Rules panel */
-.rule-row { display: flex; align-items: flex-start; gap: .5rem; padding: 4px 0; }
+.rule-row { display: flex; align-items: flex-start; gap: .5rem; padding: 6px 0; }
 .rule-row .switch { margin-top: 0; font-weight: 400; white-space: normal; align-items: flex-start; color: #ccc; }
 .rule-row .switch .switch-track { margin-top: 2px; }
 .rule-row.off .switch > span:last-child { color: #666; }
@@ -331,4 +336,3 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
 .is-empty .item-img { background: transparent; filter: brightness(0) invert(.32); opacity: .7; object-fit: contain; padding: 14%; box-sizing: border-box; }
 .item-card.is-empty .item-name, .item-card2.is-empty .item-name { color: #8a8a8a; font-style: italic; }
 .empty-note { margin: .2rem 0 .6rem; }
-#odds-note { margin: .6rem 0 .7rem; }
