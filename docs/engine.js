@@ -288,6 +288,10 @@
     // In the stratagem fill loop a pick only changes the running counters (backpack taken, Eagles so far, ...) if it is
     // actually accepted, so a rejected stratagem can never block later, perfectly legal ones.
 
+    // Per-item odds multipliers, one table per faction ({ any: { itemId: factor }, bug: {...}, ... }), that even out how often each item is rolled once the default rules have
+    // filtered the builds. Made by tools/calibrate_odds.js; none = every item starts equally likely.
+    var calibration = options.calibration || data.calibration || null;
+
     var items = data.items;
     var primaries = items.filter(function (i) { return i.cat === "primary"; });
     var secondaries = items.filter(function (i) { return i.cat === "secondary"; });
@@ -374,10 +378,11 @@
       function scopeCovers(scope, slot) {
         return scope === "all" || scope === slot || (scope === "weapons" && slot !== "strats") || (scope === "ps" && (slot === "primary" || slot === "secondary"));
       }
+      var calibTable = calibration && calibration[faction] ? calibration[faction] : null;
       function weightFor(slot) {
         var rules = oddsRules.filter(function (o) { return scopeCovers(o.scope, slot); });
         return function (item) {
-          var w = 1;
+          var w = calibTable && calibTable[item.id] ? calibTable[item.id] : 1;
           rules.forEach(function (o) { if (o.test(item)) w *= o.factor; });
           return w;
         };
