@@ -28,6 +28,7 @@ Found a bug or wrong data? Use the **Report a bug / wrong data** link at the bot
 hd2gear.csv            gear database - you edit this (Excel is fine)
 hd2warbonds.csv        warbond keys + display names, in display order
 hd2tags.csv            tag display titles, short descriptions, rule-builder sections (group) + pill colours and order
+hd2armor.csv, hd2passives.csv, hd2boosters.csv   armor, armor passives and boosters (checked and id-locked by the build, ids in hd2extras.lock.json; not used by the website yet)
 hd2ids.lock.json       every item id that has shipped (kept by the build; see "Permanent ids")
 odds_calibration.json  per-faction odds multipliers that even out how often items are rolled (made by tools/calibrate_odds.js; see "Calibrate odds")
 tools/build_gear.py    validates both CSVs and writes docs/gear-data.js

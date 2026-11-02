@@ -4,6 +4,7 @@ build_gear.py - turns the three editable CSV files into the data file the websit
     hd2gear.csv        one row per item (you edit this in Excel)
     hd2warbonds.csv    warbond keys + display names, in display order
     hd2tags.csv        tag display titles + pill colours (row order = pill order on a card)
+    hd2armor.csv, hd2passives.csv, hd2boosters.csv  (optional, checked + id-locked only; not on the website yet)
     docs/img/manifest.json  (optional) the saved copies of the wiki images, written by tools/fetch_images.py
         ->  docs/gear-data.js
 
@@ -31,6 +32,9 @@ GEAR_CSV = ROOT / "hd2gear.csv"
 WARBOND_CSV = ROOT / "hd2warbonds.csv"
 TAGS_CSV = ROOT / "hd2tags.csv"
 ID_LOCK = ROOT / "hd2ids.lock.json"
+EXTRAS = {"armor": ROOT / "hd2armor.csv", "passives": ROOT / "hd2passives.csv", "boosters": ROOT / "hd2boosters.csv"}
+EXTRAS_LOCK = ROOT / "hd2extras.lock.json"
+WEIGHTS = {"light", "medium", "heavy"}
 OUT_JS = ROOT / "docs" / "gear-data.js"
 DIST_HTML = ROOT / "dist" / "hd2-randomizer.html"
 IMG_MANIFEST = ROOT / "docs" / "img" / "manifest.json"  # written by tools/fetch_images.py
@@ -345,6 +349,85 @@ def write_bundle(warbonds, items, images, tags=(), calibration=None):
     print(f"Bundled {n_css} stylesheet(s) + {n_js} script(s) + {len(images)} image(s) -> {DIST_HTML.relative_to(ROOT)} ({size:.1f} MB)")
 
 
+# ---------------------------------------------------------------------------
+# Armor, passives and boosters (hd2armor.csv, hd2passives.csv, hd2boosters.csv). Checked and id-locked here; the website does not
+# read them yet.
+# ---------------------------------------------------------------------------
+def read_extra(path):
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        return [(n, {k: (v or "").strip() for k, v in r.items() if k}) for n, r in enumerate(csv.DictReader(f), start=2)]
+
+
+def check_extras(warbond_keys):
+    """Validates the armor / passive / booster CSVs (when present). Returns (errors, warnings, notices, new_lock).
+    Each file has its own permanent ids, locked in hd2extras.lock.json the same way hd2ids.lock.json locks item ids."""
+    errors, warnings, notices = [], [], []
+    present = {k: p for k, p in EXTRAS.items() if p.exists()}
+    if not present:
+        return errors, warnings, notices, None
+    rows = {k: read_extra(p) for k, p in present.items()}
+    try:
+        old = json.loads(EXTRAS_LOCK.read_text(encoding="utf-8")) if EXTRAS_LOCK.exists() else {}
+    except ValueError:
+        sys.exit(f"ERROR: {EXTRAS_LOCK.name} is not valid JSON.")
+    new_lock = {}
+    for kind, lines in rows.items():
+        fname = present[kind].name
+        seen_id, seen_name, by_id = set(), set(), {}
+        for n, r in lines:
+            where = f"{fname} line {n}"
+            if not re.fullmatch(r"[1-9]\d*", r.get("id", "")):
+                errors.append(f"{where}: id '{r.get('id', '')}' must be a whole number from 1 up."); continue
+            if r["id"] in seen_id: errors.append(f"{where}: id {r['id']} is used twice.")
+            seen_id.add(r["id"])
+            if not r.get("name"): errors.append(f"{where}: name is empty."); continue
+            if r["name"].lower() in seen_name: errors.append(f"{where}: '{r['name']}' is listed twice.")
+            seen_name.add(r["name"].lower())
+            by_id[r["id"]] = r
+            if r.get("warbond") and r["warbond"] not in warbond_keys: errors.append(f"{where}: unknown warbond '{r['warbond']}' (not in {WARBOND_CSV.name}).")
+            if r.get("release_with") and r["release_with"] not in warbond_keys: errors.append(f"{where}: unknown release_with '{r['release_with']}'.")
+            if r.get("release_date") and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", r["release_date"]): errors.append(f"{where}: release_date '{r['release_date']}' must look like 2024-02-08.")
+            if r.get("img_url") and not r["img_url"].startswith(("http://", "https://")): errors.append(f"{where}: img_url must start with http:// or https://.")
+            for f in split_list(r.get("factions")):
+                if f not in FACTION_VALUES: errors.append(f"{where}: unknown faction '{f}'.")
+            if kind == "armor" and r.get("weight") not in WEIGHTS: errors.append(f"{where}: weight '{r.get('weight', '')}' must be light, medium or heavy.")
+        # permanent ids (same rules as hd2ids.lock.json)
+        lock = old.get(kind, {})
+        top = max((int(k) for k in lock), default=0)
+        for k, v in lock.items():
+            if k not in by_id: errors.append(f"id {k} ('{v['name']}') is in {EXTRAS_LOCK.name} but missing from {fname}. Ids are permanent: never delete or renumber a row.")
+            elif by_id[k]["name"] != v["name"]: notices.append(f"{kind} id {k} renamed: '{v['name']}' -> '{by_id[k]['name']}'")
+        for k, r in by_id.items():
+            if k not in lock and lock and int(k) <= top:
+                errors.append(f"new {kind} '{r['name']}' has id {k}, which is not above the highest id that has shipped ({top}). New rows get the next free number.")
+        merged = {k: {"name": by_id[k]["name"]} if k in by_id else v for k, v in lock.items()}
+        for k, r in by_id.items():
+            merged.setdefault(k, {"name": r["name"]})
+        new_lock[kind] = dict(sorted(merged.items(), key=lambda kv: int(kv[0])))
+    # every passive needs an armor that carries it, and every armor needs a passive that exists
+    if "armor" in rows and "passives" in rows:
+        pnames = {r["name"] for _, r in rows["passives"]}
+        carried = {}
+        for n, r in rows["armor"]:
+            if r.get("passive") not in pnames: errors.append(f"{present['armor'].name} line {n}: passive '{r.get('passive', '')}' is not in {present['passives'].name}.")
+            carried[r.get("passive")] = carried.get(r.get("passive"), 0) + 1
+        for n, r in rows["passives"]:
+            have = carried.get(r["name"], 0)
+            if have == 0: errors.append(f"{present['passives'].name} line {n}: no armor carries '{r['name']}', so it could never be rolled.")
+            elif r.get("armor_count") and r["armor_count"] != str(have):
+                warnings.append(f"{present['passives'].name}: '{r['name']}' says armor_count {r['armor_count']} but {have} armors carry it.")
+    return errors, warnings, notices, new_lock
+
+
+def write_extras_lock(new_lock):
+    if new_lock is None:
+        return
+    kinds = ",\n".join(f' {json.dumps(k)}: {{\n' + ",\n".join(f"  {json.dumps(i)}: {json.dumps(v, ensure_ascii=False)}" for i, v in d.items()) + "\n }" for k, d in new_lock.items())
+    text = ('{\n "_about": "Every armor, passive and booster id that has shipped. Ids are permanent. Maintained by tools/build_gear.py; do not edit by hand.",\n' + kinds + "\n}\n")
+    if not EXTRAS_LOCK.exists() or EXTRAS_LOCK.read_text(encoding="utf-8") != text:
+        EXTRAS_LOCK.write_text(text, encoding="utf-8")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--bundle", action="store_true", help="also write dist/hd2-randomizer.html")
@@ -362,6 +445,10 @@ def main():
 
     id_errors, id_notices, new_lock = check_id_lock(items)
     errors += id_errors
+    x_errors, x_warnings, x_notices, extras_lock = check_extras({k for k, _ in warbonds})
+    errors += x_errors
+    warnings += x_warnings
+    id_notices += x_notices
     for n in id_notices:
         print("note:", n)
     for w in warnings:
@@ -372,6 +459,7 @@ def main():
         sys.exit(f"\n{len(errors)} problem(s) found - nothing was written.")
 
     write_id_lock(new_lock)
+    write_extras_lock(extras_lock)
     images = load_image_map()
     calibration = load_calibration()
     write_data_js(warbonds, items, images, tags, calibration)

@@ -15,6 +15,7 @@ const steps = [
   ["Build data + bundle", "python3", ["tools/build_gear.py", "--bundle"]],
   ["Image tool tests", "python3", ["tests/fetch_images_test.py"]],
   ["Permanent item id tests", "python3", ["tests/id_lock_test.py"]],
+  ["Armor / passive / booster data tests", "python3", ["tests/extras_test.py"]],
   ["Tag check tests", "python3", ["tests/tag_checks_test.py"]],
   ["Tags CSV tests", "python3", ["tests/tags_csv_test.py"]],
   ["Rule tests", "node", ["tests/engine_rules.js"]],
