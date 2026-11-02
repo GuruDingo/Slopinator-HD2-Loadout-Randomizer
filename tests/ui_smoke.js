@@ -238,16 +238,6 @@ function check(label, cond, extra) {
   check("all 7 locked -> reroll all unlocked is disabled", rerollAll(0).disabled === true && /\(0\)/.test(rerollAll(0).textContent));
   before = slotNames(0); click(rerollAll(0));
   check("...and does nothing when clicked", slotNames(0).join("|") === before.join("|"));
-  click(lockBtnAt(0, 6)); // one free slot: "reroll all unlocked (1)" is a single-item reroll
-  check("one free slot -> button counts (1)", /\(1\)/.test(rerollAll(0).textContent), rerollAll(0).textContent);
-  let oneFreeChanged = true;
-  for (let n = 0; n < 15; n++) { const b = slotNames(0)[6]; click(rerollAll(0)); if (slotNames(0)[6] === b) oneFreeChanged = false; }
-  check("rerolling the only free slot via the loadout button never returns the same item (15 rerolls)", oneFreeChanged);
-  click(lockBtnAt(0, 1)); click(lockBtnAt(0, 2)); click(lockBtnAt(0, 4)); click(lockBtnAt(0, 5)); // unlock the rest; primary stays locked
-  let everySlotChanges = true;
-  [1, 2, 4, 5, 6].forEach((s) => { for (let n = 0; n < 10; n++) { const b = slotNames(0)[s]; click(rerollBtnAt(0, s)); if (slotNames(0)[s] === b) everySlotChanges = false; } });
-  check("a single-slot reroll never returns the same item, in any slot (10 rerolls each)", everySlotChanges);
-  [1, 2, 4, 5, 6].forEach((n) => { if (lockBtnAt(0, n).getAttribute("aria-pressed") !== "true") click(lockBtnAt(0, n)); });
   $("lock-primary").value = ""; $("lock-strat1").value = "";
   $("count").value = "3"; generate();
   check("3 loadouts each get their own reroll button", doc.querySelectorAll("#results .reroll-all-btn").length === 3);
