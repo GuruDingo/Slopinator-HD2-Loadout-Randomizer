@@ -454,6 +454,12 @@
   function rerollUnlocked(entry) {
     var callLocks = Object.assign({}, entry.locks);
     if (Object.keys(callLocks).length === SLOT_KEYS.length) return;
+    // Only one slot free: this is a single-item reroll, so the item on screen is taken out of the pool.
+    if (Object.keys(callLocks).length === SLOT_KEYS.length - 1) {
+      var free = SLOT_KEYS.filter(function (k) { return !callLocks[k]; })[0];
+      rebuild(entry, callLocks, itemAt(entry.lo, free), "item for this slot");
+      return;
+    }
     rebuild(entry, callLocks, null, "");
   }
 
