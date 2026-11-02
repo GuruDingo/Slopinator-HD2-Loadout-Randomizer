@@ -1,0 +1,21 @@
+id,name,description,tags,factions,warbond,img_url,release_date,notes
+1,Hellpod Space Optimization,"Start with full ammo, grenades and stims at drop",,any,helldivers_mobilize,,2024-02-08,P3
+2,Vitality Enhancement,Slightly reduced damage taken,,any,helldivers_mobilize,,2024-02-08,P4
+3,UAV Recon Booster,Larger radar range,,any,helldivers_mobilize,,2024-02-08,P6
+4,Stamina Enhancement,Larger stamina capacity and faster recovery,,any,helldivers_mobilize,,2024-02-08,P7
+5,Muscle Enhancement,Terrain slows you less,,any,helldivers_mobilize,,2024-02-08,P9
+6,Increased Reinforcement Budget,More reinforcements available,,any,helldivers_mobilize,,2024-02-08,P10
+7,Flexible Reinforcement Budget,Shorter wait between reinforcements,,any,steeled_veterans,,2024-02-08,P3
+8,Localization Confusion,Longer gaps between enemy encounters,,any,cutting_edge,,2024-03-12,P1
+9,Expert Extraction Pilot,Faster extraction,,any,democratic_detonation,,2024-04-11,P2
+10,Motivational Shocks,Faster recovery from slowing attacks,,any,polar_patriots,,2024-05-09,P1
+11,Experimental Infusion,Stims boost speed and damage reduction,,any,viper_commandos,,2024-06-13,P3
+12,Firebomb Hellpods,Hellpods start fires on impact,,any,freedoms_flame,,2024-08-06,P3
+13,Dead Sprint,"Sprint past empty stamina, draining health instead",,any,truth_enforcers,,2024-10-31,P1
+14,Armed Resupply Pods,Resupply pods are armed,,any,urban_legends,,2024-12-05,P2
+15,Sample Extricator,Large enemies drop samples,,any,borderline_justice,,2025-03-18,P3
+16,Sample Scanner,15% chance of double samples,,any,masters_of_ceremony,,2025-05-13,P3
+17,Stun Pods,Hellpods stun nearby enemies,,any,force_of_law,,2025-06-12,P2
+18,Concealed Insertion,Smoke at drop,,any,redacted_regiment,,2026-01-22,P3
+19,Surplus EAT Allocation,Two free EAT uses,,any,ironclad_democracy,,2026-09-22,P2
+20,Integrated Extinguishers,Extinguishes fire automatically,,any,ironclad_democracy,,2026-09-22,P3
