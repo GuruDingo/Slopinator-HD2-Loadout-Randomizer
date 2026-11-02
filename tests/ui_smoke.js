@@ -1053,6 +1053,15 @@ function check(label, cond, extra) {
     check("the footer has the bug link and a Reddit message link to u/gurudingo", links.length === 2 && /gurudingo/.test(links[1].textContent) && /reddit\.com\/message\/compose\/\?to=gurudingo$/.test(links[1].getAttribute("href")), links.map((a) => a.href).join(" "));
     click($("gear-select-all"));
     click(blockBtn("AC-8 Autocannon"));   // back to the state the later tests expect
+    {
+      const ownBox = () => doc.querySelector('#blocked-list [data-blocked-owned="AC-8 Autocannon"]');
+      const listBox = () => doc.querySelector('#gear-list input[data-item="AC-8 Autocannon"]');
+      check("a blocked item shows an Owned checkbox in the Blocked items section, ticked when owned", !!ownBox() && ownBox().checked === true && !ownBox().disabled);
+      ownBox().checked = false; ownBox().dispatchEvent(new win.Event("change", { bubbles: true }));
+      check("unticking it there marks the item not owned in the list (and it stays blocked)", listBox().checked === false && blockBtn("AC-8 Autocannon").getAttribute("aria-pressed") === "true" && !!ownBox() && ownBox().checked === false);
+      ownBox().checked = true; ownBox().dispatchEvent(new win.Event("change", { bubbles: true }));
+      check("ticking it again marks it owned", listBox().checked === true && ownBox().checked === true);
+    }
   }
   console.log("Shared loadouts and markers");
   {

@@ -1615,7 +1615,16 @@
       var btn = h("button", { type: "button", class: "block-btn unblock-btn", "data-unblock": item.name, "aria-pressed": "true",
         title: "Unblock: allow this item to roll again" }, "Unblock");
       btn.addEventListener("click", function () { delete blocked[item.name]; onGearChange(); });
+      // Owned / not owned can be changed here too (the same switch as the checkbox in the list above).
+      var own = h("input", { type: "checkbox", "data-blocked-owned": item.name, "aria-label": "I own " + item.name });
+      own.checked = isOwned(item);
+      if (isBase(item)) { own.disabled = true; own.title = "Base Game gear is always owned"; }
+      own.addEventListener("change", function () {
+        if (own.checked) owned[item.name] = true; else delete owned[item.name];
+        onGearChange();
+      });
       list.appendChild(h("div", { class: "blocked-row" },
+        h("label", { class: "blocked-own", title: "Mark as owned or not owned" }, own, " Owned"),
         gearThumb(item),
         h("span", { class: "tr-name" }, item.name),
         h("span", { class: "tr-type" }, warbondName[item.warbond] || item.warbond),
