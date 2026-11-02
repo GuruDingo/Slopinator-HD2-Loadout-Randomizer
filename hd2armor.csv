@@ -1,5 +1,5 @@
 id,name,weight,passive,warbond,img_url,release_date,release_with,always_owned,notes
-1,SC-37 Legionnaire,light,Servo-Assisted,superstore,https://helldivers.wiki.gg/images/SC-37_Legionnaire_Armor_Render.png,2024-02-08,,,150 SC
+1,SC-37 Legionnaire,light,Servo-Assisted,superstore,https://helldivers.wiki.gg/images/SC-37_Legionnaire_Armor_Render.png,2024-02-08,steeled_veterans,,150 SC
 2,SC-34 Infiltrator,light,Scout,helldivers_mobilize,https://helldivers.wiki.gg/images/SC-34_Infiltrator_Armor_Render.png,2024-02-08,,,P1
 3,SC-30 Trailblazer Scout,light,Scout,helldivers_mobilize,https://helldivers.wiki.gg/images/SC-30_Trailblazer_Scout_Armor_Render.png,2024-02-08,,,P7
 4,CW-4 Arctic Ranger,light,Scout,polar_patriots,https://helldivers.wiki.gg/images/CW-4_Arctic_Ranger_Armor_Render.png,2024-05-09,,,P3
@@ -37,8 +37,8 @@ id,name,weight,passive,warbond,img_url,release_date,release_with,always_owned,no
 36,DP-53 Savior of the Free,medium,Democracy Protects,super_citizen,https://helldivers.wiki.gg/images/DP-53_Savior_of_the_Free_Armor_Render.png,2024-02-08,,,Super Citizen Edition
 37,DP-40 Hero of the Federation,medium,Democracy Protects,helldivers_mobilize,https://helldivers.wiki.gg/images/DP-40_Hero_of_the_Federation_Armor_Render.png,2024-02-08,,,P5
 38,DP-11 Champion of the People,medium,Democracy Protects,helldivers_mobilize,https://helldivers.wiki.gg/images/DP-11_Champion_of_the_People_Armor_Render.png,2024-02-08,,,P10
-39,DP-00 Tactical,medium,Democracy Protects,super_citizen,https://helldivers.wiki.gg/images/DP-00_Tactical_Armor_Render.png,,,,Liberty Day
-40,B-22 Model Citizen,medium,Democracy Protects,super_citizen,https://helldivers.wiki.gg/images/B-22_Model_Citizen_Armor_Render.png,,,,Anniversary Gift
+39,DP-00 Tactical,medium,Democracy Protects,super_citizen,https://helldivers.wiki.gg/images/DP-00_Tactical_Armor_Render.png,2024-10-27,,,Liberty Day
+40,B-22 Model Citizen,medium,Democracy Protects,super_citizen,https://helldivers.wiki.gg/images/B-22_Model_Citizen_Armor_Render.png,2025-02-08,,,Anniversary Gift
 41,TR-117 Alpha Commander,medium,Med-Kit,super_citizen,https://helldivers.wiki.gg/images/TR-117_Alpha_Commander_Armor_Render.png,2024-02-08,,,DLC / Twitch Drop
 42,CM-09 Bonesnapper,medium,Med-Kit,helldivers_mobilize,https://helldivers.wiki.gg/images/CM-09_Bonesnapper_Armor_Render.png,2024-02-08,,,P4
 43,CM-14 Physician,medium,Med-Kit,helldivers_mobilize,https://helldivers.wiki.gg/images/CM-14_Physician_Armor_Render.png,2024-02-08,,,P9
@@ -55,7 +55,7 @@ id,name,weight,passive,warbond,img_url,release_date,release_with,always_owned,no
 54,EX-03 Prototype 3,medium,Electrical Conduit,cutting_edge,https://helldivers.wiki.gg/images/EX-03_Prototype_3_Armor_Render.png,2024-03-12,,,P1
 55,EX-16 Prototype 16,medium,Electrical Conduit,cutting_edge,https://helldivers.wiki.gg/images/EX-16_Prototype_16_Armor_Render.png,2024-03-12,,,P2
 56,CW-9 White Wolf,medium,Extra Padding,superstore,https://helldivers.wiki.gg/images/CW-9_White_Wolf_Armor_Render.png,2024-05-09,polar_patriots,,300 SC
-57,TR-40 Gold Eagle,medium,Extra Padding,super_citizen,https://helldivers.wiki.gg/images/TR-40_Gold_Eagle_Armor_Render.png,,,,Escalation of Freedom (free update)
+57,TR-40 Gold Eagle,medium,Extra Padding,super_citizen,https://helldivers.wiki.gg/images/TR-40_Gold_Eagle_Armor_Render.png,2024-08-06,,,Escalation of Freedom (free update)
 58,PH-56 Jaguar,medium,Peak Physique,superstore,https://helldivers.wiki.gg/images/PH-56_Jaguar_Armor_Render.png,2024-06-13,viper_commandos,,150 SC
 59,I-92 Fire Fighter,medium,Inflammable,superstore,https://helldivers.wiki.gg/images/I-92_Fire_Fighter_Armor_Render.png,2024-08-06,freedoms_flame,,
 60,I-102 Draconaught,medium,Inflammable,freedoms_flame,https://helldivers.wiki.gg/images/I-102_Draconaught_Armor_Render.png,2024-08-06,,,P2
