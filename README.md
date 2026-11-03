@@ -44,7 +44,7 @@ tests/                 rule tests, seeded regression test, UI smoke test (run_al
 
 ## Updating the gear (new content from the wiki)
 
-**Game version note.** The line under the page title ("Updated for Helldivers 2 version ...") is the `game-version` paragraph in `docs/index.html`. Change its text by hand whenever the gear is brought up to date with a new game patch (the wiki's Game Version page lists the current number).
+**Game version note.** The line under the page title ("Updated for Helldivers 2 version ...") is the `game-version` paragraph in `docs/index.html`. Change its text by hand whenever the gear is brought up to date with a new game patch (the wiki's Game Version page lists the current number). The "Last updated" date after it is set automatically by `node tools/presend.js` (the day a pull request goes out); it is the `last-updated` span in the same paragraph.
 
 Do this when a release adds weapons, stratagems or a warbond. The wiki's page for each item has what you need.
 
