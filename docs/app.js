@@ -1694,7 +1694,7 @@
   var xOwned = {}, xBlocked = {}, xRows = {}, xRowList = {}, xCounters = [];
   // Where each armor, passive and booster is listed in My Gear (inside the warbond lists, beside the weapons):
   //  - armor and boosters sit in their own warbond
-  //  - with "Superstore items under their warbonds" on, a Superstore armor or weapon that came with a warbond (releaseWith) is also
+  //  - with "Superstore items in warbonds" on, a Superstore armor or weapon that came with a warbond (releaseWith) is also
   //    listed again after that warbond's own items (the same item: owning or blocking either row changes both), and a passive is
   //    listed in every warbond that has an armor carrying it (those duplicates included); the Superstore then lists only the
   //    passives that no other warbond has
