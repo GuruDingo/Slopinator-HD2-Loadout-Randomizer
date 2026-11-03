@@ -1390,6 +1390,8 @@ function check(label, cond, extra) {
     const nEK = nBW + D.armor.filter((a) => a.passive === "Engineering Kit" || "a" + a.id === ce67).length;   // + the blocked passive's armor and the armor blocked by itself (counted once)
     check("My Gear's summary: owned counts armor and boosters (no passives); rolling and blocked follow the blocked passive's armor", $("grand-total").textContent === TOT + " / " + TOT + " items owned" && $("gear-detail").textContent === "Rolling from " + (TOT - nEK) + " (" + nEK + " blocked)", $("grand-total").textContent + " | " + $("gear-detail").textContent);
     check("...and so does the Randomizer's pool line", new RegExp("Rolling from " + (TOT - nEK) + " of " + TOT + " items \\(" + nEK + " blocked\\)").test(poolText()), poolText());
+    check("a blocked passive's name is not green", !xrow(ek).classList.contains("passive-live"));
+    check("...every other passive with an owned armor is green", doc.querySelectorAll("#gear-list .x-row.passive-live").length > 0 && Array.from(doc.querySelectorAll('#gear-list .x-row[data-x-key^="p"]')).every((r) => r.classList.contains("passive-live") === (r.getAttribute("data-x-key") !== ek && !/^0 of/.test(r.querySelector(".tr-type").textContent))));
     check("...its armor rows are dimmed, not struck through", xrow(keyOf("armor", "CE-74 Breaker")).classList.contains("passive-blocked") && !xrow(keyOf("armor", "CE-74 Breaker")).classList.contains("is-blocked"));
     check("the Blocked items section lists the armor and the passive once each", (() => { const t = Array.from(doc.querySelectorAll("#blocked-list .blocked-row .tr-name")).map((e) => e.textContent); return t.filter((n) => n === "CE-67 Titan").length === 1 && t.includes("Engineering Kit") && t.length === blockedBefore + 2 && $("blocked-count").textContent === "(" + (blockedBefore + 2) + ")"; })(), $("blocked-count").textContent);
     // owned / not owned from the Blocked items section
@@ -1401,6 +1403,7 @@ function check(label, cond, extra) {
     check("ticking it again owns it", xcb(ce67).checked === true);
     click(doc.querySelector('#blocked-list [data-x-unblock="' + ek + '"]'));
     click(doc.querySelector('#blocked-list [data-x-unblock="' + ce67 + '"]'));
+    check("an unblocked passive with owned armor is green again", xrow(ek).classList.contains("passive-live"));
     check("Unblock in the section brings the passive and armor back", poolN("a") === nArmor && poolN("p") === nPass && doc.querySelectorAll("#blocked-list .blocked-row").length === blockedBefore);
     // ticking the duplicate row owns the Superstore's armor too
     const dupRow = doc.querySelector('#gear-list .x-dupe[data-x-key="' + ce67 + '"]');
@@ -1412,6 +1415,7 @@ function check(label, cond, extra) {
     const polarW = D.items.filter((i) => i.warbond === "polar_patriots").length;
     click(polar.querySelector("[data-none]"));
     check("Own None on a warbond drops its armor and boosters out of the pool and keeps the others", wbPool("polar_patriots") === 0 && poolN("a") === nArmor - D.armor.filter((a) => a.warbond === "polar_patriots").length - polarDup);
+    check("a passive with no owned armor left is not green (every passive follows its armor count)", Array.from(doc.querySelectorAll('#gear-list .x-row[data-x-key^="p"]')).every((r) => r.classList.contains("passive-live") === !/^0 of/.test(r.querySelector(".tr-type").textContent)));
     click(polar.querySelector("[data-all]"));
     check("Own All brings it back (" + (polarW + polarX) + " in its header)", poolN("a") === nArmor && wbPool("polar_patriots") === polarW + polarX, wbPool("polar_patriots"));
     // the Superstore's menus

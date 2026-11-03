@@ -1837,6 +1837,7 @@
           var arms = ARMOR_OF[e.name] || [];
           var n = arms.filter(xInPool).length;
           row.querySelector(".tr-type").textContent = n + " of " + arms.length + " armor in your pool";
+          row.classList.toggle("passive-live", n > 0 && !isBl);   // green name while at least one owned, unblocked armor carries it
         }
       });
     });
