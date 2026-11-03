@@ -28,7 +28,7 @@ Found a bug or wrong data? Use the **Report a bug / wrong data** link at the bot
 hd2gear.csv            gear database - you edit this (Excel is fine)
 hd2warbonds.csv        warbond keys + display names, in display order
 hd2tags.csv            tag display titles, short descriptions, rule-builder sections (group) + pill colours and order
-hd2armor.csv, hd2passives.csv, hd2boosters.csv   armor, armor passives and boosters (checked and id-locked by the build, ids in hd2extras.lock.json; not used by the website yet)
+hd2armor.csv, hd2passives.csv, hd2boosters.csv   armor, armor passives and boosters (checked and id-locked by the build, ids in hd2extras.lock.json)
 hd2ids.lock.json       every item id that has shipped (kept by the build; see "Permanent ids")
 odds_calibration.json  per-faction odds multipliers that even out how often items are rolled (made by tools/calibrate_odds.js; see "Calibrate odds")
 tools/build_gear.py    validates both CSVs and writes docs/gear-data.js
@@ -145,9 +145,17 @@ Each card in a generated loadout has a lock toggle (🔒/🔓), a reroll button 
 - **Reroll all unlocked** keeps the locked slots and rebuilds the rest as a whole, so the rules can be met again.
 - Locks on cards belong to that loadout only (they are not copied into the Locks panel, and Generate starts fresh). Rerolls use the faction, rules (default rows, edits and your own) the loadout was generated with, but your current My Gear pool.
 
+## Armor passives and boosters
+
+Every diver's loadout also gets one **armor passive** (the "Armor" card, listing the armors that carry it by Light / Medium / Heavy) and one **booster**, shown under the stratagems in a Passives row. The **Include armor passives and boosters** switch in the options turns them off (on by default). Both cards can be rerolled, locked and blocked like any slot; squadmates avoid sharing a booster when the pool allows it (a duplicate can simply be rerolled).
+
+**My Gear** lists every armor (own / block, grouped by warbond), the armor passives (block only: a passive can roll when at least one owned, unblocked armor carries it) and the boosters (own / block). Blocking a passive removes it and all its armors; blocking one armor only hides it on the card. Capes and helmets are not included. The data is `hd2armor.csv`, `hd2passives.csv` and `hd2boosters.csv`; their ids are locked in `hd2extras.lock.json` and `tools/build_gear.py` checks them like the gear (a passive with no armor is an error). Owned armor and boosters are saved as `hd2_x_owned` and `hd2_x_blocked`.
+
+**Synergy.** A passive or booster whose `tags` share a tag with any rolled weapon or stratagem is rolled 3 times as often. Entries with blank tags are never boosted, so this does nothing until tags are filled in the CSVs. A passive or booster whose `factions` doesn't fit the chosen faction is only used when nothing fits, and then shows the OFF-FACTION marker.
+
 ## Sharing a loadout
 
-Each loadout has a **🔗 Share** button that copies a link to that one loadout. The link carries only the seven items (as their permanent ids, in slot order, `0` for an empty slot), for example `.../#l1=6.21.50.12.30.41.77`; `l1` is the format version. It holds no faction, rules or gear, and the part after `#` is never sent to a server. Anyone who opens it sees that loadout with a **Shared loadout** banner, shown as it was sent (Any faction, only the default rules checked), and can reroll, lock or block slots like in any other loadout. A damaged link, one with an item this version doesn't know, or one with an item in the wrong slot shows a short message instead. Because item ids never change, old links keep working.
+Each loadout has a **🔗 Share** button that copies a link to that one loadout. The link carries only the seven items (as their permanent ids, in slot order, `0` for an empty slot), for example `.../#l1=6.21.50.12.30.41.77`; `l1` is the format version (links that also carry the armor passive and booster use `l2`, with two more ids on the end; `l1` links still open). It holds no faction, rules or gear, and the part after `#` is never sent to a server. Anyone who opens it sees that loadout with a **Shared loadout** banner, shown as it was sent (Any faction, only the default rules checked), and can reroll, lock or block slots like in any other loadout. A damaged link, one with an item this version doesn't know, or one with an item in the wrong slot shows a short message instead. Because item ids never change, old links keep working.
 
 Cards carry two markers: **NOT OWNED** for an item that isn't in your My Gear (typical on a shared loadout) and **BLOCKED** for an item you have blocked, including one you blocked after it was rolled. They follow My Gear as you change it.
 
