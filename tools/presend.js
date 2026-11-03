@@ -87,7 +87,8 @@ for (const word of banned) {
   if (g.stdout.trim()) problems.push('tracked files mention "' + word + '":\n' + g.stdout.trim().split("\n").slice(0, 5).join("\n"));
 }
 const base = run("git", ["rev-parse", "--verify", "-q", "origin/main"]).status === 0 ? "origin/main" : "main";
-const msgs = run("git", ["log", base + "..HEAD", "--format=%an <%ae>%n%B"]).stdout;
+// (the GitHub Actions bot's own address is public and not a problem: the Fetch images workflow commits as it)
+const msgs = run("git", ["log", base + "..HEAD", "--format=%an <%ae>%n%B"]).stdout.split("41898282+github-actions[bot]@users.noreply.github.com").join("");
 for (const word of banned.concat(["users.noreply.github.com"])) {
   if (msgs.indexOf(word) !== -1) problems.push('a commit on this branch mentions "' + word + '"');
 }
