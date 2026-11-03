@@ -3,13 +3,13 @@ id,name,weight,passive,warbond,img_url,release_date,release_with,always_owned,no
 2,SC-34 Infiltrator,light,Scout,helldivers_mobilize,https://helldivers.wiki.gg/images/SC-34_Infiltrator_Armor_Render.png,2024-02-08,,,P1
 3,SC-30 Trailblazer Scout,light,Scout,helldivers_mobilize,https://helldivers.wiki.gg/images/SC-30_Trailblazer_Scout_Armor_Render.png,2024-02-08,,,P7
 4,CW-4 Arctic Ranger,light,Scout,polar_patriots,https://helldivers.wiki.gg/images/CW-4_Arctic_Ranger_Armor_Render.png,2024-05-09,,,P3
-5,CE-74 Breaker,light,Engineering Kit,superstore,https://helldivers.wiki.gg/images/CE-74_Breaker_Armor_Render.png,2024-02-10,,,
+5,CE-74 Breaker,light,Engineering Kit,superstore,https://helldivers.wiki.gg/images/CE-74_Breaker_Armor_Render.png,2024-02-10,steeled_veterans,,
 6,CE-67 Titan,light,Engineering Kit,superstore,https://helldivers.wiki.gg/images/CE-67_Titan_Armor_Render.png,2024-03-12,cutting_edge,,
 7,CE-07 Demolition Specialist,light,Engineering Kit,democratic_detonation,https://helldivers.wiki.gg/images/CE-07_Demolition_Specialist_Armor_Render.png,2024-04-11,,,P2
 8,FS-37 Ravager,light,Engineering Kit,superstore,https://helldivers.wiki.gg/images/FS-37_Ravager_Armor_Render.png,2024-04-11,democratic_detonation,,
-9,FS-38 Eradicator,light,Fortified,superstore,https://helldivers.wiki.gg/images/FS-38_Eradicator_Armor_Render.png,2024-02-12,,,250 SC
-10,B-08 Light Gunner,light,Extra Padding,superstore,https://helldivers.wiki.gg/images/B-08_Light_Gunner_Armor_Render.png,2024-02-14,,,150 SC
-11,CM-21 Trench Paramedic,light,Med-Kit,superstore,https://helldivers.wiki.gg/images/CM-21_Trench_Paramedic_Armor_Render.png,2024-02-16,,,250 SC
+9,FS-38 Eradicator,light,Fortified,superstore,https://helldivers.wiki.gg/images/FS-38_Eradicator_Armor_Render.png,2024-02-12,steeled_veterans,,250 SC
+10,B-08 Light Gunner,light,Extra Padding,superstore,https://helldivers.wiki.gg/images/B-08_Light_Gunner_Armor_Render.png,2024-02-14,helldivers_mobilize,,150 SC
+11,CM-21 Trench Paramedic,light,Med-Kit,superstore,https://helldivers.wiki.gg/images/CM-21_Trench_Paramedic_Armor_Render.png,2024-02-16,helldivers_mobilize,,250 SC
 12,EX-00 Prototype X,light,Electrical Conduit,cutting_edge,https://helldivers.wiki.gg/images/EX-00_Prototype_X_Armor_Render.png,2024-03-12,,,P3
 13,PH-9 Predator,light,Peak Physique,viper_commandos,https://helldivers.wiki.gg/images/PH-9_Predator_Armor_Render.png,2024-06-13,,,P1
 14,I-09 Heatseeker,light,Inflammable,freedoms_flame,https://helldivers.wiki.gg/images/I-09_Heatseeker_Armor_Render.png,2024-08-06,,,P1
@@ -43,15 +43,15 @@ id,name,weight,passive,warbond,img_url,release_date,release_with,always_owned,no
 42,CM-09 Bonesnapper,medium,Med-Kit,helldivers_mobilize,https://helldivers.wiki.gg/images/CM-09_Bonesnapper_Armor_Render.png,2024-02-08,,,P4
 43,CM-14 Physician,medium,Med-Kit,helldivers_mobilize,https://helldivers.wiki.gg/images/CM-14_Physician_Armor_Render.png,2024-02-08,,,P9
 44,CM-10 Clinician,medium,Med-Kit,superstore,https://helldivers.wiki.gg/images/CM-10_Clinician_Armor_Render.png,2024-04-11,democratic_detonation,,
-45,SC-15 Drone Master,medium,Engineering Kit,superstore,https://helldivers.wiki.gg/images/SC-15_Drone_Master_Armor_Render.png,2024-02-08,,,
+45,SC-15 Drone Master,medium,Engineering Kit,superstore,https://helldivers.wiki.gg/images/SC-15_Drone_Master_Armor_Render.png,2024-02-08,steeled_veterans,,
 46,CE-35 Trench Engineer,medium,Engineering Kit,helldivers_mobilize,https://helldivers.wiki.gg/images/CE-35_Trench_Engineer_Armor_Render.png,2024-02-08,,,P3
-47,CE-81 Juggernaut,medium,Engineering Kit,superstore,https://helldivers.wiki.gg/images/CE-81_Juggernaut_Armor_Render.png,2024-02-18,,,
+47,CE-81 Juggernaut,medium,Engineering Kit,superstore,https://helldivers.wiki.gg/images/CE-81_Juggernaut_Armor_Render.png,2024-02-18,helldivers_mobilize,,
 48,CE-27 Ground Breaker,medium,Engineering Kit,democratic_detonation,https://helldivers.wiki.gg/images/CE-27_Ground_Breaker_Armor_Render.png,2024-04-11,,,P1
 49,SA-04 Combat Technician,medium,Scout,helldivers_mobilize,https://helldivers.wiki.gg/images/SA-04_Combat_Technician_Armor_Render.png,2024-02-08,,,P8
 50,SA-25 Steel Trooper,medium,Servo-Assisted,steeled_veterans,https://helldivers.wiki.gg/images/SA-25_Steel_Trooper_Armor_Render.png,2024-02-08,,,P1
 51,SA-12 Servo Assisted,medium,Servo-Assisted,steeled_veterans,https://helldivers.wiki.gg/images/SA-12_Servo_Assisted_Armor_Render.png,2024-02-08,,,P2
-52,B-24 Enforcer,medium,Fortified,superstore,https://helldivers.wiki.gg/images/B-24_Enforcer_Body_Icon.png,2024-02-10,,,150 SC
-53,FS-34 Exterminator,medium,Fortified,superstore,https://helldivers.wiki.gg/images/FS-34_Exterminator_Armor_Render.png,2024-02-18,,,400 SC
+52,B-24 Enforcer,medium,Fortified,superstore,https://helldivers.wiki.gg/images/B-24_Enforcer_Body_Icon.png,2024-02-10,steeled_veterans,,150 SC
+53,FS-34 Exterminator,medium,Fortified,superstore,https://helldivers.wiki.gg/images/FS-34_Exterminator_Armor_Render.png,2024-02-18,helldivers_mobilize,,400 SC
 54,EX-03 Prototype 3,medium,Electrical Conduit,cutting_edge,https://helldivers.wiki.gg/images/EX-03_Prototype_3_Armor_Render.png,2024-03-12,,,P1
 55,EX-16 Prototype 16,medium,Electrical Conduit,cutting_edge,https://helldivers.wiki.gg/images/EX-16_Prototype_16_Armor_Render.png,2024-03-12,,,P2
 56,CW-9 White Wolf,medium,Extra Padding,superstore,https://helldivers.wiki.gg/images/CW-9_White_Wolf_Armor_Render.png,2024-05-09,polar_patriots,,300 SC
@@ -80,18 +80,18 @@ id,name,weight,passive,warbond,img_url,release_date,release_with,always_owned,no
 79,SA-7 Headfirst,medium,Supplemental Adrenaline,siege_breakers,https://helldivers.wiki.gg/images/SA-7_Headfirst_Armor_Render.png,2026-02-10,,,P1
 80,RS-67 Null Cipher,medium,Reduced Signature,redacted_regiment,https://helldivers.wiki.gg/images/RS-67_Null_Cipher_Armor_Render.png,2026-01-22,,,P2
 81,RS-6 Fiend Destroyer,medium,Rock Solid,superstore,https://helldivers.wiki.gg/images/RS-6_Fiend_Destroyer_Armor_Render.png,2025-12-02,python_commandos,,300 SC
-82,DP-8 Mountain-Scaled,medium,Siege-Ready,superstore,https://helldivers.wiki.gg/images/DP-8_Mountain-Scaled_Armor_Render.png,2026-02-10,,,250 SC
+82,DP-8 Mountain-Scaled,medium,Siege-Ready,superstore,https://helldivers.wiki.gg/images/DP-8_Mountain-Scaled_Armor_Render.png,2026-02-10,urban_legends,,250 SC
 83,O-44 Bonded Pilot,medium,Oxygenator,superstore,https://helldivers.wiki.gg/images/O-44_Bonded_Pilot_Armor_Render.png,2026-04-28,exo_experts,,250 SC
 84,CE-64 Grenadier,heavy,Engineering Kit,superstore,https://helldivers.wiki.gg/images/CE-64_Grenadier_Armor_Render.png,2024-05-09,polar_patriots,,
 85,CE-101 Guerilla Gorilla,heavy,Engineering Kit,superstore,https://helldivers.wiki.gg/images/CE-101_Guerilla_Gorilla_Armor_Render.png,2024-06-13,viper_commandos,,
-86,B-27 Fortified Commando,heavy,Extra Padding,superstore,https://helldivers.wiki.gg/images/B-27_Fortified_Commando_Armor_Render.png,2024-02-12,,,400 SC
-87,FS-11 Executioner,heavy,Fortified,superstore,https://helldivers.wiki.gg/images/FS-11_Executioner_Armor_Render.png,2024-02-16,,,150 SC
+86,B-27 Fortified Commando,heavy,Extra Padding,superstore,https://helldivers.wiki.gg/images/B-27_Fortified_Commando_Armor_Render.png,2024-02-12,steeled_veterans,,400 SC
+87,FS-11 Executioner,heavy,Fortified,superstore,https://helldivers.wiki.gg/images/FS-11_Executioner_Armor_Render.png,2024-02-16,helldivers_mobilize,,150 SC
 88,FS-05 Marksman,heavy,Fortified,helldivers_mobilize,https://helldivers.wiki.gg/images/FS-05_Marksman_Body_Icon.png,2024-02-08,,,P2
 89,FS-23 Battle Master,heavy,Fortified,helldivers_mobilize,https://helldivers.wiki.gg/images/FS-23_Battle_Master_Armor_Render.png,2024-02-08,,,P6
 90,CW-22 Kodiak,heavy,Fortified,polar_patriots,https://helldivers.wiki.gg/images/CW-22_Kodiak_Armor_Render.png,2024-05-09,,,P2
 91,FS-55 Devastator,heavy,Fortified,democratic_detonation,https://helldivers.wiki.gg/images/FS-55_Devastator_Armor_Render.png,2024-04-11,,,P3
 92,CM-17 Butcher,heavy,Med-Kit,superstore,https://helldivers.wiki.gg/images/CM-17_Butcher_Body_Icon.png,2024-03-12,cutting_edge,,
-93,FS-61 Dreadnought,heavy,Servo-Assisted,superstore,https://helldivers.wiki.gg/images/FS-61_Dreadnought_Armor_Render.png,2024-02-14,,,250 SC
+93,FS-61 Dreadnought,heavy,Servo-Assisted,superstore,https://helldivers.wiki.gg/images/FS-61_Dreadnought_Armor_Render.png,2024-02-14,helldivers_mobilize,,250 SC
 94,SA-32 Dynamo,heavy,Servo-Assisted,steeled_veterans,https://helldivers.wiki.gg/images/SA-32_Dynamo_Armor_Render.png,2024-02-08,,,P3
 95,CW-36 Winter Warrior,heavy,Servo-Assisted,polar_patriots,https://helldivers.wiki.gg/images/CW-36_Winter_Warrior_Armor_Render.png,2024-05-09,,,P1
 96,TR-62 Knight,heavy,Servo-Assisted,super_citizen,https://helldivers.wiki.gg/images/TR-62_Knight_Armor_Render.png,2024-02-08,,,Pre-Order Bonus
