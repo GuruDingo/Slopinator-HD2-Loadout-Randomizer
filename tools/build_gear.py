@@ -135,6 +135,12 @@ def load_items(warbond_keys):
                     menu_order = int(order_raw)
                 else:
                     errors.append(f"{where}: menu_order '{order_raw}' must be a whole number (1, 2, 3...) or blank")
+            # release_with: the warbond a Superstore item came out with; the My Gear list shows it there again (blank = none)
+            release_with = (row.get("release_with") or "").strip()
+            if release_with and release_with not in warbond_keys:
+                errors.append(f"{where}: unknown release_with '{release_with}'.")
+            elif release_with and warbond != "superstore":
+                warnings.append(f"{where}: release_with only matters for Superstore items")
             always_raw = (row.get("always_owned") or "").strip().lower()
             if always_raw not in ("", "yes"):
                 errors.append(f"{where}: always_owned '{always_raw}' must be 'yes' or blank")
@@ -188,6 +194,7 @@ def load_items(warbond_keys):
                 "armorPen": armor_pen,
                 "menuOrder": menu_order,
                 "alwaysOwned": always_raw == "yes",
+                "releaseWith": release_with,
             })
             if menu_order is not None:
                 key = (warbond, menu_order)

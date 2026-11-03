@@ -740,6 +740,7 @@
   var owned = {};   // name -> true (doesn't hold Base Game items; they are always owned)
   var blocked = {}; // name -> true: never rolled, even if owned
   var gearRows = {}; // item name -> its row in the My Gear list (filled by buildGear)
+  var gearRowList = {}; // item name -> every row it has (a Superstore item can also be listed under the warbond it came with)
 
   // ---- Editable faction lists ----
   // Each item's CSV "factions" are the defaults. "Edit factions" (My Gear tab) lets you tick which of Terminid /
@@ -917,13 +918,24 @@
     saveExtras();
   }
   // Counts over the items valid for a faction (omit the faction to count every item).
+  // The totals shown to the player: weapons and stratagems, plus armor and boosters (a Superstore item listed under a warbond too counts once).
+  // Passives are left out, so "Rolling from" is the number of items you can picture. An armor whose passive is blocked counts as blocked here.
   function poolStats(faction) {
-    var st = { total: 0, owned: 0, blocked: 0, pool: 0 };
+    var st = { total: 0, owned: 0, blocked: 0, pool: 0, gearPool: 0 };   // gearPool: weapons and stratagems only (what a build needs)
     ALL_ITEMS.forEach(function (i) {
       if (faction && !Engine.worksFor(i, faction)) return;
       st.total++;
       if (isOwned(i)) { st.owned++; if (blocked[i.name]) st.blocked++; }
-      if (inPool(i)) st.pool++;
+      if (inPool(i)) { st.pool++; st.gearPool++; }
+    });
+    ARMOR.concat(BOOSTERS).forEach(function (e) {
+      if (faction) {
+        var p = e.kind === "armor" ? PASSIVE_BY_NAME[e.passive] : e;
+        if (p && !Engine.worksFor(p, faction)) return;
+      }
+      st.total++;
+      if (xIsOwned(e)) { st.owned++; if (xBlocked[e.key] || (e.kind === "armor" && xPassiveBlocked(e))) st.blocked++; }
+      if (xInPool(e)) st.pool++;
     });
     return st;
   }
@@ -1488,6 +1500,7 @@
   function settingsObject() {
     var o = { faction: selectedFaction(), disabledRules: Object.keys(state.disabledRules), requirements: state.requirements, customRules: state.customRules, weights: state.weights };
     if (!extrasOn()) o.noExtras = true;   // on is the default, so only "off" is saved
+    if (!dupesOn()) o.noDupes = true;
     return o;
   }
   function saveSettings() {
@@ -1498,6 +1511,7 @@
   function loadSettings() {
     var s = store.get(SETTINGS_KEY, null);
     if ($("use-extras")) $("use-extras").checked = !(s && typeof s === "object" && s.noExtras === true);
+    if ($("show-dupes")) $("show-dupes").checked = !(s && typeof s === "object" && s.noDupes === true);
     if (!s || typeof s !== "object") return;
     if (s.faction && FACTION_NAMES[s.faction]) {
       var radio = document.querySelector('input[name="faction"][value="' + s.faction + '"]');
@@ -1597,7 +1611,7 @@
     if (!(count >= 1 && count <= MAX_COUNT)) errors.push("Loadouts must be a whole number from 1 to " + MAX_COUNT + ".");
 
     var st = poolStats();
-    if (!st.pool) errors.push("Your gear pool is empty. Tick some items in My Gear first.");
+    if (!st.gearPool) errors.push("Your gear pool is empty. Tick some items in My Gear first.");
 
     var locks = readLocks(errors);
     var xLocks = readExtraLocks(errors);
@@ -1679,29 +1693,35 @@
   ARMOR.forEach(function (a) { (ARMOR_OF[a.passive] = ARMOR_OF[a.passive] || []).push(a); });
   var xOwned = {}, xBlocked = {}, xRows = {}, xRowList = {}, xCounters = [];
   // Where each armor, passive and booster is listed in My Gear (inside the warbond lists, beside the weapons):
-  //  - armor and boosters sit in their own warbond; a Superstore armor that was released with a warbond (releaseWith) also gets a
-  //    duplicate row at the bottom of that warbond's list (the same armor: owning or blocking either row changes both)
-  //  - a passive is listed in every warbond that has an armor carrying it (those duplicate rows included); the Superstore lists
-  //    only the passives that no other warbond has
-  var xPlace = null;
+  //  - armor and boosters sit in their own warbond
+  //  - with "Superstore items in warbonds" on, a Superstore armor or weapon that came with a warbond (releaseWith) is also
+  //    listed again after that warbond's own items (the same item: owning or blocking either row changes both), and a passive is
+  //    listed in every warbond that has an armor carrying it (those duplicates included); the Superstore then lists only the
+  //    passives that no other warbond has
+  //  - with it off, everything is listed once, in its own warbond, and a passive under every warbond with its own armor
+  function dupesOn() { return !$("show-dupes") || $("show-dupes").checked; }
+  var xPlace = {};
+  function tiedTo(i) { return i.warbond === "superstore" && i.releaseWith && i.releaseWith !== "superstore" && warbondName[i.releaseWith] ? i.releaseWith : ""; }
   function xPlacement() {
-    if (xPlace) return xPlace;
-    var armorBy = {}, boosterBy = {}, dupeBy = {}, passiveBy = {}, elsewhere = {}, superOnly = {};
+    var on = dupesOn(), cacheKey = on ? "on" : "off";
+    if (xPlace[cacheKey]) return xPlace[cacheKey];
+    var armorBy = {}, boosterBy = {}, dupeBy = {}, dupeItemBy = {}, passiveBy = {}, elsewhere = {}, superOnly = {};
     function add(map, k, v) { (map[k] = map[k] || []).push(v); }
     ARMOR.forEach(function (a) {
-      a.tiedTo = a.warbond === "superstore" && a.releaseWith && a.releaseWith !== "superstore" && warbondName[a.releaseWith] ? a.releaseWith : "";
+      a.tiedTo = tiedTo(a);
       add(armorBy, a.warbond, a);
-      if (a.tiedTo) add(dupeBy, a.tiedTo, a);
-      var where = a.tiedTo || (a.warbond !== "superstore" ? a.warbond : "");
+      if (on && a.tiedTo) add(dupeBy, a.tiedTo, a);
+      var where = on ? (a.tiedTo || (a.warbond !== "superstore" ? a.warbond : "")) : a.warbond;
       if (where) { elsewhere[a.passive] = true; passiveBy[where] = passiveBy[where] || {}; passiveBy[where][a.passive] = true; }
       else superOnly[a.passive] = true;
     });
+    if (on) ALL_ITEMS.forEach(function (i) { var t = tiedTo(i); if (t) add(dupeItemBy, t, i); });
     BOOSTERS.forEach(function (b) { add(boosterBy, b.warbond, b); });
     Object.keys(superOnly).forEach(function (n) { if (!elsewhere[n]) { passiveBy.superstore = passiveBy.superstore || {}; passiveBy.superstore[n] = true; } });
     var passivesBy = {};
     Object.keys(passiveBy).forEach(function (k) { passivesBy[k] = PASSIVES.filter(function (p) { return passiveBy[k][p.name]; }); });
-    xPlace = { armor: armorBy, boosters: boosterBy, dupes: dupeBy, passives: passivesBy };
-    return xPlace;
+    xPlace[cacheKey] = { armor: armorBy, boosters: boosterBy, dupes: dupeBy, dupeItems: dupeItemBy, passives: passivesBy };
+    return xPlace[cacheKey];
   }
   function hasExtras(wk) { var p = xPlacement(); return !!((p.armor[wk] || []).length || (p.boosters[wk] || []).length); }
 
@@ -1890,21 +1910,13 @@
       // "pool / total", or "blocked / pool / total" once something owned is blocked
       h("span", { class: "wb-count", "data-total": String(items.length) },
         h("span", { class: "blocked-part", hidden: true }, h("span", { class: "blocked-count" }, "0"), " / "),
-        h("span", { class: "pool-count" }, "0"), " / " + items.length));
+        h("span", { class: "pool-count" }, "0"), h("span", { class: "total-part" }, " / " + items.length)));
     header.addEventListener("click", function () { o.body.classList.toggle("open"); });
     return header;
   }
 
-  function makeBlock(w, label, withIcon) {
-    // Items with a menu_order come first, in that order (the game's own menu order); the rest keep file order.
-    var items = ALL_ITEMS.filter(function (i) { return i.warbond === w.key; })
-      .map(function (i, k) { return { i: i, k: k }; })
-      .sort(function (x, y) {
-        var a = x.i.menuOrder == null ? 1e9 : x.i.menuOrder, b = y.i.menuOrder == null ? 1e9 : y.i.menuOrder;
-        return a - b || x.k - y.k;
-      }).map(function (x) { return x.i; });
-    var base = w.key === "base";
-    var rows = items.map(function (item) {
+  // One weapon / stratagem row. `dupe`: a Superstore item listed again under the warbond it came with (same item, Super Credit icon).
+  function gearRowFor(item, w, dupe, base) {
       var cb = h("input", { type: "checkbox", "data-item": item.name, "aria-label": "I own " + item.name });
       if (base || item.alwaysOwned) { cb.disabled = true; cb.title = "Base Game gear is always owned"; }
       cb.addEventListener("change", function () {
@@ -1935,27 +1947,42 @@
           return h("label", { class: "fac-chk fac-" + f, title: FACTION_ADJECTIVE[f] },
             facBoxes[k], facIcon(f, FAC_LETTER[f]));
         }), revert);
-      var row = h("div", { class: "gear-row", "data-search": [item.name].concat(item.nicknames || [], [w.name, w.key]).join(" ").toLowerCase() },
+      var name = h("span", { class: "tr-name" }, item.name);
+      if (dupe) name.appendChild(h("span", { class: "x-sc", title: "Also sold in the Superstore" }, warbondIcon("superstore")));
+      var row = h("div", { class: "gear-row" + (dupe ? " x-dupe gear-dupe" : ""), "data-search": [item.name].concat(item.nicknames || [], [w.name, w.key]).join(" ").toLowerCase() },
         h("label", { class: "gear-main" }, cb, gearThumb(item),
-          h("span", { class: "tr-name" }, item.name),
+          name,
           h("span", { class: "tr-type" }, TYPE_LABELS[item.cat] || WEAPON_CAT_LABELS[item.cat] || item.cat)),
         facSet, nv);
-      gearRows[item.name] = row;
+      (gearRowList[item.name] = gearRowList[item.name] || []).push(row);
+      if (!dupe) gearRows[item.name] = row;
       return row;
-    });
+  }
+
+  function makeBlock(w, label, withIcon) {
+    // Items with a menu_order come first, in that order (the game's own menu order); the rest keep file order.
+    var items = ALL_ITEMS.filter(function (i) { return i.warbond === w.key; })
+      .map(function (i, k) { return { i: i, k: k }; })
+      .sort(function (x, y) {
+        var a = x.i.menuOrder == null ? 1e9 : x.i.menuOrder, b = y.i.menuOrder == null ? 1e9 : y.i.menuOrder;
+        return a - b || x.k - y.k;
+      }).map(function (x) { return x.i; });
+    var base = w.key === "base";
+    var rows = items.map(function (item) { return gearRowFor(item, w, false, base); });
     // Armor, boosters and passives share the list (see xPlacement). The header's totals and bulk buttons cover the weapons, stratagems,
     // armor and boosters in this list, the Superstore armor listed here included, but never the passives.
     var place = xPlacement(), armor = place.armor[w.key] || [], boosters = place.boosters[w.key] || [];
     var extraRows = [];
     if (WEIGHT_SPLIT[w.key]) extraRows = extraRows.concat(xWeightMenus(w.key, armor));
     else extraRows = extraRows.concat(armor.map(function (a) { return xRow(a, { warbond: w.key }); }));
-    var dupes = place.dupes[w.key] || [];
+    var dupes = place.dupes[w.key] || [], dupeItems = place.dupeItems[w.key] || [];
     extraRows = extraRows.concat(boosters.map(function (b) { return xRow(b, { warbond: w.key }); }),
+      dupeItems.map(function (i) { return gearRowFor(i, w, true, false); }),
       dupes.map(function (a) { return xRow(a, { warbond: w.key, dupe: true }); }),
       (place.passives[w.key] || []).map(function (p) { return xRow(p, { warbond: w.key }); }));
-    // Order: weapons / stratagems, armor (the Superstore: its three menus), boosters, the Superstore armor that came with this warbond, then the passives.
+    // Order: weapons / stratagems, armor (the Superstore: its three menus), boosters, the Superstore weapons and armor that came with this warbond, then the passives.
     var body = h("div", { class: "wb-items wb-cols" }, rows.concat(extraRows));
-    var header = makeHeader({ key: w.key, label: label, icon: withIcon ? warbondIcon(w.key) : null, items: items.concat(armor, boosters, dupes), body: body,
+    var header = makeHeader({ key: w.key, label: label, icon: withIcon ? warbondIcon(w.key) : null, items: items.concat(armor, boosters, dupeItems, dupes), body: body,
       fixedOwned: base, noun: "warbond" });
     return h("div", { class: "wb-block", "data-wb": w.key }, header, body);
   }
@@ -1974,7 +2001,7 @@
     var list = $("gear-list");
     list.textContent = "";
     facBulkRefreshers = [];
-    xRows = {}; xRowList = {}; xCounters = [];
+    xRows = {}; xRowList = {}; xCounters = []; gearRows = {}; gearRowList = {};
     var done = {};
     function listed(k) { return ALL_ITEMS.some(function (i) { return i.warbond === k; }) || hasExtras(k); }
     DATA.warbonds.forEach(function (w) {
@@ -1992,10 +2019,10 @@
   }
 
   // While the search box is filtering, every bulk button (per warbond or global) only touches the rows on screen.
-  // `scope` (a list's body): an armor counts as shown when its row inside that list is, since a duplicated armor has two rows.
+  // `scope` (a list's body): an item counts as shown when its row inside that list is, since a duplicated Superstore item has two rows.
   function shownOnly(items, scope) {
     return items.filter(function (i) {
-      if (i.kind && scope) return (xRowList[i.key] || []).some(function (r) { return !r.hidden && scope.contains(r); });
+      if (scope) return ((i.kind ? xRowList[i.key] : gearRowList[i.name]) || []).some(function (r) { return !r.hidden && scope.contains(r); });
       var r = i.kind ? xRows[i.key] : gearRows[i.name];
       return r && !r.hidden;
     });
@@ -2017,6 +2044,24 @@
     onGearChange();
   }
   function onGearChange() { saveGear(); refreshGear(); }
+
+  // The "Superstore items in warbonds" switch: lists are rebuilt (rows move), keeping the lists you had open and the search text.
+  function rebuildGear() {
+    var open = {};
+    document.querySelectorAll("#gear-list .wb-block").forEach(function (b) {
+      var body = b.querySelector(":scope > .wb-items");
+      var key = b.getAttribute("data-wb") || b.getAttribute("data-x-block-id") || b.querySelector(":scope > .wb-header .wb-name").textContent;
+      if (body && body.classList.contains("open")) open[key] = true;
+    });
+    buildGear();
+    document.querySelectorAll("#gear-list .wb-block").forEach(function (b) {
+      var body = b.querySelector(":scope > .wb-items");
+      var key = b.getAttribute("data-wb") || b.getAttribute("data-x-block-id") || b.querySelector(":scope > .wb-header .wb-name").textContent;
+      if (body) body.classList.toggle("open", !!open[key]);
+    });
+    filterGear();
+    updateFacTools();
+  }
 
   // The "Blocked items" list at the bottom of My Gear: every blocked item in one place, with an Unblock button. Hidden when empty.
   function updateBlockedSection() {
@@ -2269,6 +2314,7 @@
     initRuleBuilder();
     $("presets-reset").addEventListener("click", resetPresets);
     $("use-extras").addEventListener("change", saveSettings);
+    $("show-dupes").addEventListener("change", function () { saveSettings(); rebuildGear(); });
     $("even-odds").addEventListener("change", function () {
       if ($("even-odds").checked) delete state.disabledRules.evenOdds; else state.disabledRules.evenOdds = true;
       onRulesChanged();
