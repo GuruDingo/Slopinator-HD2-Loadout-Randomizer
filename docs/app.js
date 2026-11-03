@@ -1756,10 +1756,22 @@
     });
     return header;
   }
+  // `o.open`: start expanded. `o.cols`: rows sit in two columns on a wide screen (armor, passive and booster lists).
   function xBlock(id, label, items, o) {
-    var body = h("div", { class: "wb-items" }, items.map(xRow));
+    var body = h("div", { class: "wb-items" + (o.cols === false ? "" : " x-list") + (o.open ? " open" : "") }, items.map(xRow));
     return h("div", { class: "wb-block", "data-x-block-id": id },
       xHeader({ id: id, label: label, items: items, body: body, ownable: !o.fixed && o.ownable !== false, fixedText: o.fixed ? "always owned" : null }), body);
+  }
+  // The Superstore has so many armors that its list is split into collapsed Light / Medium / Heavy menus.
+  var WEIGHT_SPLIT = { superstore: true };
+  function xWeightBlock(w, list) {
+    var subs = ["light", "medium", "heavy"].map(function (wt) {
+      var part = list.filter(function (a) { return a.weight === wt; });
+      return part.length ? xBlock("armor_" + w.key + "_" + wt, WEIGHT_LABELS[wt] + " armor", part, {}) : null;
+    }).filter(Boolean);
+    var body = h("div", { class: "wb-items wb-group-body open" }, subs);
+    return h("div", { class: "wb-block", "data-x-block-id": "armor_" + w.key },
+      xHeader({ id: "armor_" + w.key, label: w.name, items: list, body: body, ownable: true }), body);
   }
   function buildExtras() {
     var host = $("extras-list");
@@ -1769,13 +1781,14 @@
     if ($("extras-section").hidden) return;
     var perWarbond = DATA.warbonds.map(function (w) {
       var list = ARMOR.filter(function (a) { return a.warbond === w.key; });
-      return list.length ? xBlock("armor_" + w.key, w.name, list, { fixed: w.key === "base" }) : null;
+      if (!list.length) return null;
+      return WEIGHT_SPLIT[w.key] ? xWeightBlock(w, list) : xBlock("armor_" + w.key, w.name, list, { fixed: w.key === "base", open: true });
     }).filter(Boolean);
-    var armorBody = h("div", { class: "wb-items wb-group-body" }, perWarbond);
+    var armorBody = h("div", { class: "wb-items wb-group-body open" }, perWarbond);
     host.appendChild(h("div", { class: "wb-block wb-group", "data-x-block-id": "armor" },
       xHeader({ id: "armor", label: "Armor", items: ARMOR, body: armorBody, ownable: true }), armorBody));
-    host.appendChild(xBlock("passives", "Armor passives", PASSIVES, { ownable: false }));
-    host.appendChild(xBlock("boosters", "Boosters", BOOSTERS, {}));
+    host.appendChild(xBlock("passives", "Armor passives", PASSIVES, { ownable: false, open: true }));
+    host.appendChild(xBlock("boosters", "Boosters", BOOSTERS, { open: true }));
   }
   function refreshExtras() {
     Object.keys(xRows).forEach(function (k) {

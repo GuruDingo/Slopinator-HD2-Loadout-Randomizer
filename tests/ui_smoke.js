@@ -1318,6 +1318,21 @@ function check(label, cond, extra) {
     check("Own None on a warbond's armor drops it out of the pool and keeps the others", poolOf("armor_polar_patriots") === 0 && poolOf("armor") === nArmor - D.armor.filter((a) => a.warbond === "polar_patriots").length);
     click(polar.querySelector("[data-x-all]"));
     check("Own All brings it back", poolOf("armor") === nArmor);
+    // layout: lists start open (two columns on a wide screen); the Superstore is split into collapsed weight menus
+    const isOpen = (id) => doc.querySelector('#extras-list [data-x-block-id="' + id + '"] > .wb-items').classList.contains("open");
+    check("armor, passives, boosters and a normal warbond start open, in the two-column layout", ["armor", "passives", "boosters", "armor_polar_patriots"].every((id) => isOpen(id)) && doc.querySelector('#extras-list [data-x-block-id="passives"] > .wb-items').classList.contains("x-list"));
+    const ssSub = (wt) => doc.querySelector('#extras-list [data-x-block-id="armor_superstore_' + wt + '"]');
+    const ssAll = D.armor.filter((a) => a.warbond === "superstore");
+    check("Superstore is open and holds Light / Medium / Heavy menus, all collapsed", isOpen("armor_superstore") && ["light", "medium", "heavy"].every((wt) => ssSub(wt) && !isOpen("armor_superstore_" + wt)));
+    check("...each menu holds just its weight class, and together they hold every Superstore armor", ["light", "medium", "heavy"].every((wt) => ssSub(wt).querySelectorAll(".gear-row").length === ssAll.filter((a) => a.weight === wt).length) && doc.querySelectorAll('#extras-list [data-x-block-id="armor_superstore"] .gear-row').length === ssAll.length);
+    check("...a normal warbond is one flat list with no weight menus", !doc.querySelector('#extras-list [data-x-block-id="armor_polar_patriots"] .wb-block'));
+    click(ssSub("light").querySelector("[data-x-none]"));
+    check("Own None on the Light menu drops only the Light armor from the pool", poolOf("armor_superstore_light") === 0 && poolOf("armor_superstore") === ssAll.length - ssAll.filter((a) => a.weight === "light").length && poolOf("armor_superstore_heavy") === ssAll.filter((a) => a.weight === "heavy").length);
+    click(ssSub("light").querySelector("[data-x-all]"));
+    check("...and Own All brings it back", poolOf("armor") === nArmor);
+    $("gear-search").value = "juggernaut"; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true }));
+    check("searching opens the collapsed Superstore menu that holds the match", isOpen("armor_superstore_medium") && !ssSub("medium").hidden && ssSub("light").hidden);
+    $("gear-search").value = ""; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true }));
     // search finds armor, passives and boosters
     $("gear-search").value = "scout"; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true }));
     const found = Array.from(doc.querySelectorAll("#extras-list .gear-row")).filter((r) => !r.hidden).map((r) => r.querySelector(".tr-name").textContent);
