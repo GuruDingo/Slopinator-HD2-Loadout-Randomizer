@@ -720,11 +720,13 @@
       if (isLegacyKey(key)) legacy = true;
       if (it) blocked[it.name] = true;
     });
+    loadExtras();
     if (legacy) saveGear(); // rewrite the old name-keyed save with ids
   }
   function saveGear() {
     store.set(TRACKER_KEY, byId(owned));
     store.set(BLOCK_KEY, Object.keys(byId(blocked)));
+    saveExtras();
   }
   // Counts over the items valid for a faction (omit the faction to count every item).
   function poolStats(faction) {
@@ -1435,6 +1437,140 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Armor, armor passives and boosters (My Gear)
+  // ---------------------------------------------------------------------------
+  // They have their own permanent ids (hd2extras.lock.json), so a saved entry is "a12" (armor), "p3" (passive) or "b7" (booster).
+  // Armor and boosters are owned or not owned. A passive is only ever blocked: it is in your pool when an armor you own, and
+  // haven't blocked, carries it. Blocking a passive takes out the passive and every armor that carries it; blocking one armor
+  // only takes out that armor.
+  var XOWN_KEY = "hd2_x_owned";      // owned armor and boosters: { "a12": true }
+  var XBLOCK_KEY = "hd2_x_blocked";  // blocked armor, passives and boosters: ["a5", "p7"]
+  var WEIGHT_LABELS = { light: "Light", medium: "Medium", heavy: "Heavy" };
+  function xTag(list, prefix, kind) { return (list || []).map(function (e) { e.kind = kind; e.key = prefix + e.id; return e; }); }
+  var ARMOR = xTag(DATA.armor, "a", "armor"), PASSIVES = xTag(DATA.passives, "p", "passive"), BOOSTERS = xTag(DATA.boosters, "b", "booster");
+  var X_BY_KEY = Object.create(null);
+  ARMOR.concat(PASSIVES, BOOSTERS).forEach(function (e) { X_BY_KEY[e.key] = e; });
+  var PASSIVE_BY_NAME = {}, ARMOR_OF = {};
+  PASSIVES.forEach(function (p) { PASSIVE_BY_NAME[p.name] = p; ARMOR_OF[p.name] = []; });
+  ARMOR.forEach(function (a) { (ARMOR_OF[a.passive] = ARMOR_OF[a.passive] || []).push(a); });
+  var xOwned = {}, xBlocked = {}, xRows = {}, xCounters = [];
+
+  function xIsOwned(e) { return !!e.alwaysOwned || !!xOwned[e.key]; }   // armor and boosters
+  function xPassiveBlocked(a) { var p = PASSIVE_BY_NAME[a.passive]; return !!(p && xBlocked[p.key]); }
+  // In the pool: armor = owned, not blocked, passive not blocked; booster = owned and not blocked;
+  // passive = not blocked, with at least one armor in the pool.
+  function xInPool(e) {
+    if (xBlocked[e.key]) return false;
+    if (e.kind === "passive") return (ARMOR_OF[e.name] || []).some(xInPool);
+    if (e.kind === "armor" && xPassiveBlocked(e)) return false;
+    return xIsOwned(e);
+  }
+  // First visit with these lists (or a browser that saved before they existed): own the armor and boosters of every warbond you
+  // own something from (Superstore and event items count as one warbond each), plus everything of a warbond with no weapons.
+  function defaultExtraOwned() {
+    var has = {}, got = {}, m = {};
+    ALL_ITEMS.forEach(function (i) { if (isBase(i)) return; has[i.warbond] = true; if (owned[i.name]) got[i.warbond] = true; });
+    ARMOR.concat(BOOSTERS).forEach(function (e) { if (!has[e.warbond] || got[e.warbond]) m[e.key] = true; });
+    return m;
+  }
+  function loadExtras() {
+    var o = store.get(XOWN_KEY, null);
+    xOwned = {};
+    if (o && typeof o === "object" && !Array.isArray(o)) Object.keys(o).forEach(function (k) { if (X_BY_KEY[k] && o[k]) xOwned[k] = true; });
+    else { xOwned = defaultExtraOwned(); store.set(XOWN_KEY, xOwned); }
+    xBlocked = {};
+    var b = store.get(XBLOCK_KEY, []);
+    if (Array.isArray(b)) b.forEach(function (k) { if (X_BY_KEY[k]) xBlocked[k] = true; });
+  }
+  function saveExtras() { store.set(XOWN_KEY, xOwned); store.set(XBLOCK_KEY, Object.keys(xBlocked)); }
+
+  function xSub(e) {
+    if (e.kind === "armor") return WEIGHT_LABELS[e.weight] + " · " + e.passive;
+    if (e.kind === "booster") return warbondName[e.warbond] || e.warbond;
+    return "Armor passive";
+  }
+  function xRow(e) {
+    var nv = h("button", { type: "button", class: "block-btn", "data-x-block": e.key, "aria-pressed": "false",
+      title: e.kind === "passive" ? "Block: never roll this passive, or any armor that carries it" : "Block: never roll this " + e.kind }, "Block");
+    nv.addEventListener("click", function () { if (xBlocked[e.key]) delete xBlocked[e.key]; else xBlocked[e.key] = true; onGearChange(); });
+    var sub = h("span", { class: "tr-type" }, xSub(e)), main;
+    if (e.kind === "passive") {
+      main = h("div", { class: "gear-main x-static" }, gearThumb(e), h("span", { class: "tr-name" }, e.name), sub);
+    } else {
+      var cb = h("input", { type: "checkbox", "data-x-item": e.key, "aria-label": "I own " + e.name });
+      if (e.alwaysOwned) { cb.disabled = true; cb.title = "Starting armor is always owned"; }
+      cb.addEventListener("change", function () { if (cb.checked) xOwned[e.key] = true; else delete xOwned[e.key]; onGearChange(); });
+      main = h("label", { class: "gear-main" }, cb, gearThumb(e), h("span", { class: "tr-name" }, e.name), sub);
+    }
+    var hay = [e.name, e.passive || "", e.kind === "passive" ? "armor passive" : e.kind, warbondName[e.warbond] || "", e.warbond || ""].join(" ").toLowerCase();
+    var row = h("div", { class: "gear-row x-row", "data-search": hay }, main, nv);
+    xRows[e.key] = row;
+    return row;
+  }
+  // Header with Own / Block buttons and the "in your pool / total" count. `o`: label, items, body, ownable, fixedText.
+  function xHeader(o) {
+    var items = o.items, tools = [];
+    function toolBtn(label, attr, title, fn) {
+      var attrs = { type: "button", class: "ctrl-btn", title: title };
+      attrs[attr] = o.id;
+      var btn = h("button", attrs, label);
+      btn.addEventListener("click", function (e) { e.stopPropagation(); fn(); });
+      return btn;
+    }
+    if (o.ownable) tools.push(toolBtn("Own All", "data-x-all", "Own everything in this list", function () { setOwned(items, true); }),
+      toolBtn("Own None", "data-x-none", "Own nothing in this list", function () { setOwned(items, false); }));
+    else if (o.fixedText) tools.push(h("span", { class: "wb-fixed" }, o.fixedText));
+    tools.push(toolBtn("Block All", "data-x-block-all", "Block everything in this list", function () { setBlocked(items, true); }),
+      toolBtn("Block None", "data-x-block-none", "Unblock everything in this list", function () { setBlocked(items, false); }));
+    var count = h("span", { class: "wb-count", "data-total": String(items.length) }, h("span", { class: "pool-count" }, "0"), " / " + items.length);
+    var header = h("div", { class: "wb-header" }, h("span", { class: "wb-name" }, o.label), h("span", { class: "wb-tools" }, tools), count);
+    header.addEventListener("click", function () { o.body.classList.toggle("open"); });
+    xCounters.push(function () {
+      var n = items.filter(xInPool).length;
+      count.querySelector(".pool-count").textContent = n;
+      count.title = n + " in your pool · " + items.length + " in this list";
+    });
+    return header;
+  }
+  function xBlock(id, label, items, o) {
+    var body = h("div", { class: "wb-items" }, items.map(xRow));
+    return h("div", { class: "wb-block", "data-x-block-id": id },
+      xHeader({ id: id, label: label, items: items, body: body, ownable: !o.fixed && o.ownable !== false, fixedText: o.fixed ? "always owned" : null }), body);
+  }
+  function buildExtras() {
+    var host = $("extras-list");
+    host.textContent = "";
+    xRows = {}; xCounters = [];
+    $("extras-section").hidden = !(ARMOR.length || BOOSTERS.length);
+    if ($("extras-section").hidden) return;
+    var perWarbond = DATA.warbonds.map(function (w) {
+      var list = ARMOR.filter(function (a) { return a.warbond === w.key; });
+      return list.length ? xBlock("armor_" + w.key, w.name, list, { fixed: w.key === "base" }) : null;
+    }).filter(Boolean);
+    var armorBody = h("div", { class: "wb-items wb-group-body" }, perWarbond);
+    host.appendChild(h("div", { class: "wb-block wb-group", "data-x-block-id": "armor" },
+      xHeader({ id: "armor", label: "Armor", items: ARMOR, body: armorBody, ownable: true }), armorBody));
+    host.appendChild(xBlock("passives", "Armor passives", PASSIVES, { ownable: false }));
+    host.appendChild(xBlock("boosters", "Boosters", BOOSTERS, {}));
+  }
+  function refreshExtras() {
+    Object.keys(xRows).forEach(function (k) {
+      var e = X_BY_KEY[k], row = xRows[k], isBl = !!xBlocked[k];
+      row.classList.toggle("is-blocked", isBl);
+      row.classList.toggle("passive-blocked", e.kind === "armor" && xPassiveBlocked(e));
+      var cb = row.querySelector("input[data-x-item]");
+      if (cb) cb.checked = xIsOwned(e);
+      row.querySelector(".block-btn").setAttribute("aria-pressed", isBl ? "true" : "false");
+      if (e.kind === "passive") {
+        var arms = ARMOR_OF[e.name] || [];
+        var n = arms.filter(xInPool).length;
+        row.querySelector(".tr-type").textContent = n + " of " + arms.length + " armor in your pool";
+      }
+    });
+    xCounters.forEach(function (fn) { fn(); });
+  }
+
+  // ---------------------------------------------------------------------------
   // My Gear tab
   // ---------------------------------------------------------------------------
   // Warbonds that are shown together under one collapsible header. The members keep their full names in the data
@@ -1585,20 +1721,28 @@
       });
       list.appendChild(makeGroup(g, members));
     });
+    buildExtras();
     refreshGear();
   }
 
   // While the search box is filtering, every bulk button (per warbond or global) only touches the rows on screen.
   function shownOnly(items) {
-    return items.filter(function (i) { var r = gearRows[i.name]; return r && !r.hidden; });
+    return items.filter(function (i) { var r = i.kind ? xRows[i.key] : gearRows[i.name]; return r && !r.hidden; });
   }
   function gearFiltered() { return $("gear-search").value.trim() !== ""; }
   function setOwned(items, on) {
-    shownOnly(items).forEach(function (i) { if (isBase(i)) return; if (on) owned[i.name] = true; else delete owned[i.name]; });
+    shownOnly(items).forEach(function (i) {
+      if (i.kind) { if (i.kind === "passive" || i.alwaysOwned) return; if (on) xOwned[i.key] = true; else delete xOwned[i.key]; return; }
+      if (isBase(i)) return;
+      if (on) owned[i.name] = true; else delete owned[i.name];
+    });
     onGearChange();
   }
   function setBlocked(items, on) {
-    shownOnly(items).forEach(function (i) { if (on) blocked[i.name] = true; else delete blocked[i.name]; });
+    shownOnly(items).forEach(function (i) {
+      var map = i.kind ? xBlocked : blocked, key = i.kind ? i.key : i.name;
+      if (on) map[key] = true; else delete map[key];
+    });
     onGearChange();
   }
   function onGearChange() { saveGear(); refreshGear(); }
@@ -1606,29 +1750,38 @@
   // The "Blocked items" list at the bottom of My Gear: every blocked item in one place, with an Unblock button. Hidden when empty.
   function updateBlockedSection() {
     var items = ALL_ITEMS.filter(function (i) { return blocked[i.name]; });
+    var xs = ARMOR.concat(PASSIVES, BOOSTERS).filter(function (e) { return xBlocked[e.key]; });
     var sec = $("blocked-section");
-    sec.hidden = items.length === 0;
-    $("blocked-count").textContent = items.length ? "(" + items.length + ")" : "";
+    sec.hidden = items.length + xs.length === 0;
+    $("blocked-count").textContent = items.length + xs.length ? "(" + (items.length + xs.length) + ")" : "";
     var list = $("blocked-list");
     list.textContent = "";
-    items.forEach(function (item) {
-      var btn = h("button", { type: "button", class: "block-btn unblock-btn", "data-unblock": item.name, "aria-pressed": "true",
-        title: "Unblock: allow this item to roll again" }, "Unblock");
-      btn.addEventListener("click", function () { delete blocked[item.name]; onGearChange(); });
-      // Owned / not owned can be changed here too (the same switch as the checkbox in the list above).
-      var own = h("input", { type: "checkbox", "data-blocked-owned": item.name, "aria-label": "I own " + item.name });
-      own.checked = isOwned(item);
-      if (isBase(item)) { own.disabled = true; own.title = "Base Game gear is always owned"; }
-      own.addEventListener("change", function () {
-        if (own.checked) owned[item.name] = true; else delete owned[item.name];
-        onGearChange();
-      });
-      list.appendChild(h("div", { class: "blocked-row" },
+    // `own` = [checked, disabled, title, onchange]: owned / not owned can be changed here too (the same switch as the checkbox in the list above).
+    function blockedRow(thumbFor, name, type, unblockAttr, onUnblock, isOwnedNow, locked, onOwn) {
+      var btn = h("button", { type: "button", class: "block-btn unblock-btn", "aria-pressed": "true", title: "Unblock: allow this to roll again" }, "Unblock");
+      btn.setAttribute(unblockAttr[0], unblockAttr[1]);
+      btn.addEventListener("click", onUnblock);
+      var own = h("input", { type: "checkbox", "aria-label": "I own " + name });
+      own.checked = isOwnedNow;
+      if (locked) { own.disabled = true; own.title = "Starting gear is always owned"; }
+      own.addEventListener("change", function () { onOwn(own.checked); onGearChange(); });
+      own.setAttribute(unblockAttr[0] === "data-unblock" ? "data-blocked-owned" : "data-x-blocked-owned", unblockAttr[1]);
+      return h("div", { class: "blocked-row" },
         h("label", { class: "blocked-own", title: "Mark as owned or not owned" }, own, " Owned"),
-        gearThumb(item),
-        h("span", { class: "tr-name" }, item.name),
-        h("span", { class: "tr-type" }, warbondName[item.warbond] || item.warbond),
-        btn));
+        thumbFor, h("span", { class: "tr-name" }, name), h("span", { class: "tr-type" }, type), btn);
+    }
+    items.forEach(function (item) {
+      list.appendChild(blockedRow(gearThumb(item), item.name, warbondName[item.warbond] || item.warbond, ["data-unblock", item.name],
+        function () { delete blocked[item.name]; onGearChange(); }, isOwned(item), isBase(item),
+        function (on) { if (on) owned[item.name] = true; else delete owned[item.name]; }));
+    });
+    xs.forEach(function (e) {
+      var passive = e.kind === "passive";
+      var row = blockedRow(gearThumb(e), e.name, xSub(e), ["data-x-unblock", e.key],
+        function () { delete xBlocked[e.key]; onGearChange(); }, passive ? true : xIsOwned(e), passive || !!e.alwaysOwned,
+        function (on) { if (on) xOwned[e.key] = true; else delete xOwned[e.key]; });
+      if (passive) row.querySelector(".blocked-own").style.visibility = "hidden";
+      list.appendChild(row);
     });
   }
 
@@ -1666,6 +1819,7 @@
     var st = poolStats();
     $("grand-total").textContent = st.owned + " / " + st.total + " items owned";
     $("gear-detail").textContent = "Rolling from " + st.pool + (st.blocked ? " (" + st.blocked + " blocked)" : "");
+    refreshExtras();
     updateFacTools();
     updateBlockedSection();
     updatePoolLine();
@@ -1716,7 +1870,7 @@
   function filterGear() {
     var words = $("gear-search").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
     var shown = 0;
-    document.querySelectorAll("#gear-list .gear-row").forEach(function (row) {
+    document.querySelectorAll("#gear-list .gear-row, #extras-list .gear-row").forEach(function (row) {
       var hay = row.getAttribute("data-search");
       var match = words.every(function (w) { return hay.indexOf(w) !== -1; });
       row.hidden = !match;
@@ -1724,7 +1878,7 @@
     });
     // Blocks include the group blocks and the warbond blocks inside them: hide any with no visible row, and open
     // the ones that match while a search is active.
-    document.querySelectorAll("#gear-list .wb-block").forEach(function (block) {
+    document.querySelectorAll("#gear-list .wb-block, #extras-list .wb-block").forEach(function (block) {
       var any = !!block.querySelector(".gear-row:not([hidden])");
       block.hidden = !any;
       if (words.length && any) block.querySelector(".wb-items").classList.add("open");
@@ -1750,6 +1904,7 @@
     return JSON.stringify({
       app: EXPORT_APP, version: EXPORT_VERSION, exported: new Date().toISOString(),
       owned: byId(owned), blocked: Object.keys(byId(blocked)), factions: byId(facOverrides), settings: settingsObject(),
+      extras: { owned: Object.keys(xOwned), blocked: Object.keys(xBlocked) },
     }, null, 1);
   }
   function exportData() {
@@ -1779,6 +1934,14 @@
     if (!confirm("Replace the gear, faction edits and rules saved in this browser with the ones in the file?")) { dataMessage("Import cancelled."); return; }
     if (plainObject(d.owned)) store.set(TRACKER_KEY, d.owned);
     if (Array.isArray(d.blocked)) store.set(BLOCK_KEY, d.blocked.filter(function (k) { return typeof k === "string" || typeof k === "number"; }).slice(0, 1000));
+    if (plainObject(d.extras)) {
+      if (Array.isArray(d.extras.owned)) {
+        var om = {};
+        d.extras.owned.forEach(function (k) { if (typeof k === "string" && X_BY_KEY[k]) om[k] = true; });
+        store.set(XOWN_KEY, om);
+      }
+      if (Array.isArray(d.extras.blocked)) store.set(XBLOCK_KEY, d.extras.blocked.filter(function (k) { return typeof k === "string" && X_BY_KEY[k]; }).slice(0, 1000));
+    } else { store.remove(XOWN_KEY); store.remove(XBLOCK_KEY); }   // an older file: work out the armor and boosters from the gear
     if (plainObject(d.factions)) store.set(FACTIONS_KEY, d.factions);
     if (plainObject(d.settings)) store.set(SETTINGS_KEY, d.settings);
     reloadSaved();
@@ -1843,15 +2006,15 @@
     $("fac-reset").addEventListener("click", function () { onBulkFactionClick("reset"); });
     $("fac-all").addEventListener("click", function () { onBulkFactionClick("all"); });
     $("gear-expand").addEventListener("click", function () {
-      document.querySelectorAll("#gear-list .wb-items").forEach(function (el) { el.classList.add("open"); });
+      document.querySelectorAll("#gear-list .wb-items, #extras-list .wb-items").forEach(function (el) { el.classList.add("open"); });
     });
     $("gear-collapse").addEventListener("click", function () {
-      document.querySelectorAll("#gear-list .wb-items").forEach(function (el) { el.classList.remove("open"); });
+      document.querySelectorAll("#gear-list .wb-items, #extras-list .wb-items").forEach(function (el) { el.classList.remove("open"); });
     });
-    $("gear-select-all").addEventListener("click", function () { setOwned(ALL_ITEMS, true); });
-    $("gear-unblock-all").addEventListener("click", function () { setBlocked(ALL_ITEMS, false); });
+    $("gear-select-all").addEventListener("click", function () { setOwned(ALL_ITEMS.concat(ARMOR, BOOSTERS), true); });
+    $("gear-unblock-all").addEventListener("click", function () { setBlocked(ALL_ITEMS.concat(ARMOR, PASSIVES, BOOSTERS), false); });
     $("gear-clear").addEventListener("click", function () {
-      if (confirm("Mark " + (gearFiltered() ? "the items shown" : "everything except Base Game gear") + " as not owned?")) setOwned(ALL_ITEMS, false);
+      if (confirm("Mark " + (gearFiltered() ? "the items shown" : "everything except Base Game gear") + " as not owned?")) setOwned(ALL_ITEMS.concat(ARMOR, BOOSTERS), false);
     });
   }
 

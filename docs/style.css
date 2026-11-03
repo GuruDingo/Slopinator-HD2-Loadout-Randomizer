@@ -325,6 +325,11 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
 .blocked-row { display: flex; align-items: center; gap: .75rem; padding: .3rem .75rem; border-bottom: 1px solid #1e1e1e; }
 .blocked-row:last-child { border-bottom: none; }
 .blocked-row .tr-name { flex: 1; min-width: 0; }
+.x-title { margin: 1.5rem 0 .3rem; font-size: 1rem; color: #ccc; }
+.extras-section .hint { margin: 0 0 .6rem; max-width: 70ch; }
+.x-row.is-blocked .tr-name { color: #e57373; text-decoration: line-through; }
+.x-row.passive-blocked:not(.is-blocked) { opacity: .55; }
+.gear-main.x-static { cursor: default; }
 .blocked-own { display: flex; align-items: center; gap: .3rem; font-size: .75rem; color: #aaa; cursor: pointer; flex-shrink: 0; }
 .blocked-row .tr-type { color: #888; font-size: .75rem; }
 .rules-subtitle { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: #888; margin: .9rem 0 .2rem; }

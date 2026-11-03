@@ -294,7 +294,7 @@ def load_calibration():
     return factors
 
 
-def data_js_text(warbonds, items, images, tags=(), calibration=None):
+def data_js_text(warbonds, items, images, tags=(), calibration=None, extras=None):
     # One warbond / one item / one image per line: compact, but still readable in a git diff.
     def lines(rows):
         return ",\n".join("  " + json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in rows)
@@ -304,6 +304,8 @@ def data_js_text(warbonds, items, images, tags=(), calibration=None):
         "{\n"
         ' "warbonds": [\n' + lines([{"key": k, "name": n} for k, n in warbonds]) + "\n ],\n"
         ' "items": [\n' + lines(items) + "\n ],\n"
+        # Armor, armor passives and boosters (hd2armor.csv, hd2passives.csv, hd2boosters.csv).
+        + "".join(' ' + json.dumps(k) + ': [\n' + lines(extras[k]) + "\n ],\n" for k in ("armor", "passives", "boosters") if extras and k in extras) +
         ' "tags": [\n' + lines(tags) + "\n ],\n"
         # Per-faction odds multipliers (tools/calibrate_odds.js); the engine uses them unless the "evenOdds" rule is removed.
         + (' "calibration": {\n' + ",\n".join("  " + json.dumps(f) + ":" + json.dumps(t, separators=(",", ":")) for f, t in calibration.items()) + "\n },\n" if calibration else "")
@@ -317,12 +319,12 @@ def data_js_text(warbonds, items, images, tags=(), calibration=None):
     )
 
 
-def write_data_js(warbonds, items, images, tags=(), calibration=None):
+def write_data_js(warbonds, items, images, tags=(), calibration=None, extras=None):
     OUT_JS.parent.mkdir(parents=True, exist_ok=True)
-    OUT_JS.write_text(data_js_text(warbonds, items, images, tags, calibration), encoding="utf-8")
+    OUT_JS.write_text(data_js_text(warbonds, items, images, tags, calibration, extras), encoding="utf-8")
 
 
-def write_bundle(warbonds, items, images, tags=(), calibration=None):
+def write_bundle(warbonds, items, images, tags=(), calibration=None, extras=None):
     """Inline style.css, gear-data.js, engine.js and app.js into one self-contained HTML file.
     The saved images are embedded too (as data: addresses), so the single file works offline."""
     docs = ROOT / "docs"
@@ -335,7 +337,7 @@ def write_bundle(warbonds, items, images, tags=(), calibration=None):
 
     def inline_js(match):
         if match.group(1) == "gear-data.js":
-            code = data_js_text(warbonds, items, embedded, tags, calibration)
+            code = data_js_text(warbonds, items, embedded, tags, calibration, extras)
         else:
             code = (docs / match.group(1)).read_text(encoding="utf-8")
         code = code.replace("</script", "<\\/script")
@@ -419,6 +421,29 @@ def check_extras(warbond_keys):
     return errors, warnings, notices, new_lock
 
 
+def load_extras_data():
+    """The armor / passive / booster rows as the website reads them (camelCase like the items). Run after check_extras passed."""
+    out = {}
+    for kind, path in EXTRAS.items():
+        if not path.exists():
+            continue
+        rows = []
+        for _, r in read_extra(path):
+            row = {"id": r["id"], "name": r["name"]}
+            if kind == "armor":
+                row.update(weight=r["weight"], passive=r["passive"], warbond=r["warbond"], releaseWith=r.get("release_with", ""),
+                           released=r.get("release_date", ""), imgUrl=r.get("img_url", ""), alwaysOwned=r["warbond"] == "base")
+            elif kind == "passives":
+                row.update(description=r.get("description", ""), tags=split_list(r.get("tags")), factions=split_list(r.get("factions")) or ["any"],
+                           imgUrl=r.get("img_url", ""))
+            else:
+                row.update(description=r.get("description", ""), tags=split_list(r.get("tags")), factions=split_list(r.get("factions")) or ["any"],
+                           warbond=r["warbond"], released=r.get("release_date", ""), imgUrl=r.get("img_url", ""))
+            rows.append(row)
+        out[kind] = rows
+    return out
+
+
 def write_extras_lock(new_lock):
     if new_lock is None:
         return
@@ -462,11 +487,12 @@ def main():
     write_extras_lock(extras_lock)
     images = load_image_map()
     calibration = load_calibration()
-    write_data_js(warbonds, items, images, tags, calibration)
+    extras = load_extras_data()
+    write_data_js(warbonds, items, images, tags, calibration, extras)
     live = sum(1 for i in items if "none" not in i["factions"])
     print(f"Wrote {OUT_JS.relative_to(ROOT)}: {len(items)} items ({live} active), {len(warbonds)} warbonds, {len(images)} saved images.")
     if args.bundle:
-        write_bundle(warbonds, items, images, tags, calibration)
+        write_bundle(warbonds, items, images, tags, calibration, extras)
 
 
 if __name__ == "__main__":
