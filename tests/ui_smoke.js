@@ -590,7 +590,7 @@ function check(label, cond, extra) {
   click(firstBlock.querySelector("[data-none]"));
   click(firstBlock.querySelector("[data-all]"));
   const n1 = Number(firstBlock.querySelector(".pool-count").textContent);
-  const nW = firstBlock.querySelectorAll("input[data-item]").length, nX = firstBlock.querySelectorAll(".x-row:not(.x-dupe) input[data-x-item]").length;
+  const nW = firstBlock.querySelectorAll("input[data-item]").length, nX = firstBlock.querySelectorAll(".x-row input[data-x-item]").length;
   check("per-warbond All owns just that warbond (its weapons / stratagems, armor and boosters)", n1 === nW + nX && $("grand-total").textContent === (6 + nW) + " / " + ACTIVE + " items owned", n1 + " / " + nW + " / " + nX + " / " + $("grand-total").textContent);
   click(firstBlock.querySelector("[data-none]"));
   check("per-warbond None clears it", firstBlock.querySelector(".pool-count").textContent === "0" && $("grand-total").textContent === "6 / " + ACTIVE + " items owned");
@@ -1321,14 +1321,21 @@ function check(label, cond, extra) {
     })());
     // Superstore armor released with a warbond: a duplicate row at the bottom of that warbond's list, with the Super Credit icon
     const titan = D.armor.find((a) => a.name === "CE-67 Titan"), titanKey = "a" + titan.id;
-    check("a Superstore armor tied to a warbond is listed again at the bottom of that warbond, with the Super Credit icon", (() => {
+    check("a Superstore armor tied to a warbond is listed again after that warbond's own armor and boosters, with the Super Credit icon", (() => {
       const cut = wbBlock(titan.releaseWith), rows = Array.from(cut.querySelectorAll(".gear-row")), last = rows[rows.length - 1];
       const dupe = rows.filter((r) => r.getAttribute("data-x-key") === titanKey);
-      return dupe.length === 1 && dupe[0].classList.contains("x-dupe") && !!dupe[0].querySelector(".x-sc img.wb-icon") && rows.slice(rows.indexOf(dupe[0])).every((r) => r.classList.contains("x-dupe")) && !!last
+      return dupe.length === 1 && dupe[0].classList.contains("x-dupe") && !!dupe[0].querySelector(".x-sc img.wb-icon") && rows.slice(rows.indexOf(dupe[0])).every((r) => r.classList.contains("x-dupe") || r.getAttribute("data-x-key")[0] === "p") && !!last
         && wbBlock("superstore").querySelectorAll('.x-row[data-x-key="' + titanKey + '"]').length === 1 && !wbBlock("superstore").querySelector('.x-row[data-x-key="' + titanKey + '"] .x-sc');
     })());
     check("...and every tied armor has exactly one duplicate, in the right warbond", dupes.every((a) => Array.from(wbBlock(a.releaseWith).querySelectorAll(".x-dupe")).filter((r) => r.getAttribute("data-x-key") === "a" + a.id).length === 1));
-    check("...the duplicates are not counted in that warbond's total", Number(wbBlock(titan.releaseWith).querySelector(":scope > .wb-header .wb-count").getAttribute("data-total")) === D.items.filter((i) => i.warbond === titan.releaseWith).length + D.armor.filter((a) => a.warbond === titan.releaseWith).length + D.boosters.filter((b) => b.warbond === titan.releaseWith).length);
+    check("the passives come last in every warbond's list, below the Superstore armor", Array.from(doc.querySelectorAll("#gear-list .wb-block[data-wb]")).every((b) => { const k = Array.from(b.querySelectorAll(":scope > .wb-items > .gear-row")).map((r) => (r.getAttribute("data-x-key") || "w")[0]).join(""); return !/p[^p]/.test(k); }));
+    check("...a warbond's total counts its weapons, armor, boosters and the Superstore armor listed in it (not passives)", Number(wbBlock(titan.releaseWith).querySelector(":scope > .wb-header .wb-count").getAttribute("data-total")) === D.items.filter((i) => i.warbond === titan.releaseWith).length + D.armor.filter((a) => a.warbond === titan.releaseWith).length + D.boosters.filter((b) => b.warbond === titan.releaseWith).length + dupes.filter((a) => a.releaseWith === titan.releaseWith).length);
+    check("...Block All on a warbond blocks its Superstore armor (in both lists) but never a passive", (() => {
+      click(wbBlock(titan.releaseWith).querySelector("[data-block-all]"));
+      const ok = Array.from(doc.querySelectorAll('#gear-list .x-row[data-x-key="' + titanKey + '"]')).every((r) => r.classList.contains("is-blocked")) && !stored("hd2_x_blocked").some((k) => k[0] === "p");
+      click(wbBlock(titan.releaseWith).querySelector("[data-block-none]"));
+      return ok && !stored("hd2_x_blocked").includes(titanKey);
+    })());
     // passives: under every warbond that has an armor with them; the Superstore only lists the ones no other warbond has
     const placeOf = (a) => (tied(a) ? a.releaseWith : a.warbond);
     const passiveWbs = (name) => new Set(D.armor.filter((a) => a.passive === name && placeOf(a) !== "superstore").map(placeOf));
@@ -1373,10 +1380,10 @@ function check(label, cond, extra) {
     check("owning is shared between the two rows of a duplicated armor", doc.querySelector('#gear-list .x-row:not(.x-dupe)[data-x-key="' + ce67 + '"] input').checked === false && poolN("a") === nArmor - 1);
     dupRow.querySelector("input").checked = true; dupRow.querySelector("input").dispatchEvent(new win.Event("change", { bubbles: true }));
     // own none / own all for a warbond (its weapons, armor and boosters; never the duplicates or passives)
-    const polar = wbBlock("polar_patriots"), polarX = D.armor.filter((a) => a.warbond === "polar_patriots").length + D.boosters.filter((b) => b.warbond === "polar_patriots").length;
+    const polar = wbBlock("polar_patriots"), polarDup = dupes.filter((a) => a.releaseWith === "polar_patriots").length, polarX = D.armor.filter((a) => a.warbond === "polar_patriots").length + D.boosters.filter((b) => b.warbond === "polar_patriots").length + polarDup;
     const polarW = D.items.filter((i) => i.warbond === "polar_patriots").length;
     click(polar.querySelector("[data-none]"));
-    check("Own None on a warbond drops its armor and boosters out of the pool and keeps the others", wbPool("polar_patriots") === 0 && poolN("a") === nArmor - D.armor.filter((a) => a.warbond === "polar_patriots").length);
+    check("Own None on a warbond drops its armor and boosters out of the pool and keeps the others", wbPool("polar_patriots") === 0 && poolN("a") === nArmor - D.armor.filter((a) => a.warbond === "polar_patriots").length - polarDup);
     click(polar.querySelector("[data-all]"));
     check("Own All brings it back (" + (polarW + polarX) + " in its header)", poolN("a") === nArmor && wbPool("polar_patriots") === polarW + polarX, wbPool("polar_patriots"));
     // the Superstore's menus

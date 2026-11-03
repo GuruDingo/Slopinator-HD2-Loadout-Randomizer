@@ -1774,11 +1774,11 @@
       btn.addEventListener("click", function (e) { e.stopPropagation(); fn(); });
       return btn;
     }
-    if (o.ownable) tools.push(toolBtn("Own All", "data-x-all", "Own everything in this list", function () { setOwned(items, true); }),
-      toolBtn("Own None", "data-x-none", "Own nothing in this list", function () { setOwned(items, false); }));
+    if (o.ownable) tools.push(toolBtn("Own All", "data-x-all", "Own everything in this list", function () { setOwned(items, true, o.body); }),
+      toolBtn("Own None", "data-x-none", "Own nothing in this list", function () { setOwned(items, false, o.body); }));
     else if (o.fixedText) tools.push(h("span", { class: "wb-fixed" }, o.fixedText));
-    tools.push(toolBtn("Block All", "data-x-block-all", "Block everything in this list", function () { setBlocked(items, true); }),
-      toolBtn("Block None", "data-x-block-none", "Unblock everything in this list", function () { setBlocked(items, false); }));
+    tools.push(toolBtn("Block All", "data-x-block-all", "Block everything in this list", function () { setBlocked(items, true, o.body); }),
+      toolBtn("Block None", "data-x-block-none", "Unblock everything in this list", function () { setBlocked(items, false, o.body); }));
     var count = h("span", { class: "wb-count", "data-total": String(items.length) }, h("span", { class: "pool-count" }, "0"), " / " + items.length);
     var header = h("div", { class: "wb-header" }, h("span", { class: "wb-name" }, o.label), h("span", { class: "wb-tools" }, tools), count);
     header.addEventListener("click", function () { o.body.classList.toggle("open"); });
@@ -1854,12 +1854,12 @@
       tools.push(h("span", { class: "wb-fixed" }, "always owned"));
     } else {
       tools.push(
-        toolBtn("Own All", "data-all", "Own every item in this " + o.noun, function () { setOwned(items, true); }),
-        toolBtn("Own None", "data-none", "Own nothing in this " + o.noun, function () { setOwned(items, false); }));
+        toolBtn("Own All", "data-all", "Own every item in this " + o.noun, function () { setOwned(items, true, o.body); }),
+        toolBtn("Own None", "data-none", "Own nothing in this " + o.noun, function () { setOwned(items, false, o.body); }));
     }
     tools.push(
-      toolBtn("Block All", "data-block-all", "Block every item in this " + o.noun, function () { setBlocked(items, true); }),
-      toolBtn("Block None", "data-block-none", "Unblock every item in this " + o.noun, function () { setBlocked(items, false); }));
+      toolBtn("Block All", "data-block-all", "Block every item in this " + o.noun, function () { setBlocked(items, true, o.body); }),
+      toolBtn("Block None", "data-block-none", "Unblock every item in this " + o.noun, function () { setBlocked(items, false, o.body); }));
     // Edit-factions ticks for the whole warbond (only visible while "Edit factions" is on): ticked = every item shown has that
     // faction, dash = some do. Clicking sets it for every item shown (the search filter applies, like the other bulk buttons).
     var bulkBoxes = FAC_KEYS.map(function (f) {
@@ -1944,17 +1944,18 @@
       return row;
     });
     // Armor, boosters and passives share the list (see xPlacement). The header's totals and bulk buttons cover the weapons, stratagems,
-    // armor and boosters that belong to this warbond, not passives or the duplicate rows.
+    // armor and boosters in this list, the Superstore armor listed here included, but never the passives.
     var place = xPlacement(), armor = place.armor[w.key] || [], boosters = place.boosters[w.key] || [];
     var extraRows = [];
     if (WEIGHT_SPLIT[w.key]) extraRows = extraRows.concat(xWeightMenus(w.key, armor));
     else extraRows = extraRows.concat(armor.map(function (a) { return xRow(a, { warbond: w.key }); }));
-    extraRows = extraRows.concat((place.passives[w.key] || []).map(function (p) { return xRow(p, { warbond: w.key }); }),
-      boosters.map(function (b) { return xRow(b, { warbond: w.key }); }),
-      (place.dupes[w.key] || []).map(function (a) { return xRow(a, { warbond: w.key, dupe: true }); }));
-    // The Superstore's passives follow its menus; every other warbond lists armor, passives, boosters, then the duplicates.
+    var dupes = place.dupes[w.key] || [];
+    extraRows = extraRows.concat(boosters.map(function (b) { return xRow(b, { warbond: w.key }); }),
+      dupes.map(function (a) { return xRow(a, { warbond: w.key, dupe: true }); }),
+      (place.passives[w.key] || []).map(function (p) { return xRow(p, { warbond: w.key }); }));
+    // Order: weapons / stratagems, armor (the Superstore: its three menus), boosters, the Superstore armor that came with this warbond, then the passives.
     var body = h("div", { class: "wb-items wb-cols" }, rows.concat(extraRows));
-    var header = makeHeader({ key: w.key, label: label, icon: withIcon ? warbondIcon(w.key) : null, items: items.concat(armor, boosters), body: body,
+    var header = makeHeader({ key: w.key, label: label, icon: withIcon ? warbondIcon(w.key) : null, items: items.concat(armor, boosters, dupes), body: body,
       fixedOwned: base, noun: "warbond" });
     return h("div", { class: "wb-block", "data-wb": w.key }, header, body);
   }
@@ -1991,20 +1992,25 @@
   }
 
   // While the search box is filtering, every bulk button (per warbond or global) only touches the rows on screen.
-  function shownOnly(items) {
-    return items.filter(function (i) { var r = i.kind ? xRows[i.key] : gearRows[i.name]; return r && !r.hidden; });
+  // `scope` (a list's body): an armor counts as shown when its row inside that list is, since a duplicated armor has two rows.
+  function shownOnly(items, scope) {
+    return items.filter(function (i) {
+      if (i.kind && scope) return (xRowList[i.key] || []).some(function (r) { return !r.hidden && scope.contains(r); });
+      var r = i.kind ? xRows[i.key] : gearRows[i.name];
+      return r && !r.hidden;
+    });
   }
   function gearFiltered() { return $("gear-search").value.trim() !== ""; }
-  function setOwned(items, on) {
-    shownOnly(items).forEach(function (i) {
+  function setOwned(items, on, scope) {
+    shownOnly(items, scope).forEach(function (i) {
       if (i.kind) { if (i.kind === "passive" || i.alwaysOwned) return; if (on) xOwned[i.key] = true; else delete xOwned[i.key]; return; }
       if (isBase(i)) return;
       if (on) owned[i.name] = true; else delete owned[i.name];
     });
     onGearChange();
   }
-  function setBlocked(items, on) {
-    shownOnly(items).forEach(function (i) {
+  function setBlocked(items, on, scope) {
+    shownOnly(items, scope).forEach(function (i) {
       var map = i.kind ? xBlocked : blocked, key = i.kind ? i.key : i.name;
       if (on) map[key] = true; else delete map[key];
     });
@@ -2072,9 +2078,9 @@
       var rows = Array.prototype.slice.call(block.querySelectorAll(".gear-row"));
       var pool = 0, lost = 0;
       rows.forEach(function (row) {
-        if (row.classList.contains("x-row")) {   // armor and boosters count once, in their own warbond; passives and duplicates not at all
+        if (row.classList.contains("x-row")) {   // armor and boosters count (a duplicated Superstore armor in both lists); passives never
           var e = X_BY_KEY[row.getAttribute("data-x-key")];
-          if (row.classList.contains("x-dupe") || e.kind === "passive") return;
+          if (e.kind === "passive") return;
           if (xInPool(e)) pool++; else if (xIsOwned(e) && xBlocked[e.key]) lost++;
           return;
         }
