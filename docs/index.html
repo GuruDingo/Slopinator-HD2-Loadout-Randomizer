@@ -52,7 +52,7 @@
       <details class="section">
         <summary>Lock slots <span class="summary-note" id="lock-summary"></span></summary>
         <div class="section-body">
-          <p class="hint">Pin specific gear and randomize the rest. Type a name or nickname (e.g. <em>liberator</em>, <em>eat-17</em>). Locks override the slot rules (backpack count, support caps, etc.). If your locks make some guarantees impossible, the loadout is still built and the missed guarantees are listed above it.</p>
+          <p class="hint">Pin specific gear and randomize the rest. Type a name or nickname (e.g. <em>liberator</em>, <em>eat-17</em>). Locks override the slot rules (backpack count, support caps, etc.). An armor passive lock applies to every loadout; a booster lock goes to the first loadout only, because squadmates can't share a booster. If your locks make some guarantees impossible, the loadout is still built and the missed guarantees are listed above it.</p>
           <div class="lock-grid" id="lock-grid"></div>
         </div>
       </details>
@@ -164,6 +164,8 @@
 <datalist id="dl-secondary"></datalist>
 <datalist id="dl-throwable"></datalist>
 <datalist id="dl-strat"></datalist>
+<datalist id="dl-passive"></datalist>
+<datalist id="dl-booster"></datalist>
 
 <script src="gear-data.js"></script>
 <script src="engine.js"></script>

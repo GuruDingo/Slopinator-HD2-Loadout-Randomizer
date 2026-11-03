@@ -381,10 +381,11 @@
     return r ? r.item : emptyExtra(kind);
   }
   function loItems(lo) { return [lo.primary, lo.secondary, lo.throwable].concat(lo.strategems || []); }
-  function attachExtras(lo, faction, taken) {
+  function attachExtras(lo, faction, taken, forced) {
     if (!extrasOn()) { lo.passive = null; lo.booster = null; return; }
-    lo.passive = pickX("passive", faction, { items: loItems(lo) });
-    lo.booster = pickX("booster", faction, { taken: taken, items: loItems(lo) });
+    forced = forced || {};
+    lo.passive = forced.passive || pickX("passive", faction, { items: loItems(lo) });
+    lo.booster = forced.booster || pickX("booster", faction, { taken: taken, items: loItems(lo) });
     if (!lo.booster.empty) taken.add(lo.booster.name);
   }
   function xStatus(e) {
@@ -958,6 +959,9 @@
     { key: "strat2", label: "Stratagem 2", list: "dl-strat", cats: Engine.STRATAGEM_CATEGORIES },
     { key: "strat3", label: "Stratagem 3", list: "dl-strat", cats: Engine.STRATAGEM_CATEGORIES },
     { key: "strat4", label: "Stratagem 4", list: "dl-strat", cats: Engine.STRATAGEM_CATEGORIES },
+    // Not engine slots: handled by readExtraLocks / attachExtras.
+    { key: "xpassive", label: "Armor passive", list: "dl-passive", extra: "passive" },
+    { key: "xbooster", label: "Booster", list: "dl-booster", extra: "booster" },
   ];
 
   // Suggestion lists show item NAMES only. (An earlier version added the category as an option
@@ -1548,6 +1552,7 @@
   function readLocks(errors) {
     var locks = {};
     LOCK_SLOTS.forEach(function (slot) {
+      if (slot.extra) return;
       var text = $("lock-" + slot.key).value.trim();
       if (!text) return;
       var item = engine.resolve(text);
@@ -1563,6 +1568,26 @@
     return locks;
   }
 
+  // The Armor passive / Booster lock boxes. Returns { passive: entry, booster: entry } for the ones filled in (errors are pushed).
+  function readExtraLocks(errors) {
+    var out = {};
+    LOCK_SLOTS.forEach(function (slot) {
+      if (!slot.extra) return;
+      var text = $("lock-" + slot.key).value.trim();
+      if (!text) return;
+      if (!extrasOn()) { errors.push(slot.label + ": turn on \u201CInclude armor passives and boosters\u201D in the options to lock one."); return; }
+      var low = text.toLowerCase();
+      var e = (slot.extra === "passive" ? PASSIVES : BOOSTERS).filter(function (x) { return x.name.toLowerCase() === low; })[0];
+      if (!e) { errors.push(slot.label + ": unknown " + (slot.extra === "passive" ? "armor passive" : "booster") + " \u2018" + text + "\u2019. Pick a name from the suggestions."); return; }
+      if (!xInPool(e)) {
+        errors.push("\u2018" + e.name + "\u2019 isn't in your gear pool (" + (xBlocked[e.key] ? "blocked" : e.kind === "passive" ? "you own no armor with it" : "not owned") + "). Change it in My Gear, or lock something else.");
+        return;
+      }
+      out[slot.extra] = e;
+    });
+    return out;
+  }
+
   function onGenerate(evt) {
     if (evt) evt.preventDefault();
     var errors = [];
@@ -1575,6 +1600,7 @@
     if (!st.pool) errors.push("Your gear pool is empty. Tick some items in My Gear first.");
 
     var locks = readLocks(errors);
+    var xLocks = readExtraLocks(errors);
 
     // The same stratagem can't sit in two slots (the game won't allow it). Locks override the
     // rules, but not this one.
@@ -1612,7 +1638,7 @@
           faction: faction, locks: locks,
           requirements: state.requirements, excluded: excluded, disabledRules: disabledList(), customRules: state.customRules, weights: state.weights,
         });
-        attachExtras(made, faction, takenB);
+        attachExtras(made, faction, takenB, { passive: xLocks.passive, booster: i === 0 ? xLocks.booster : null });
         loadouts.push(made);
       } catch (e) {
         if (!(e instanceof Engine.GenerationError)) throw e;
@@ -1623,6 +1649,11 @@
     showMessages(problems);
     if (loadouts.length) {
       renderLoadouts(loadouts, faction, locks, state.requirements, disabledList(), state.customRules, state.weights);
+      lastRun.entries.forEach(function (en, ix) {
+        if (xLocks.passive) en.locks.passive = en.lo.passive;
+        if (xLocks.booster && ix === 0) en.locks.booster = en.lo.booster;
+        if (en.locks.passive || en.locks.booster) redraw(en);
+      });
       $("results").scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
       $("results").textContent = "";
@@ -2159,6 +2190,8 @@
     fillDatalist("dl-secondary", engine.pools.secondaries);
     fillDatalist("dl-throwable", engine.pools.throwables);
     fillDatalist("dl-strat", engine.pools.strategems);
+    fillDatalist("dl-passive", PASSIVES.filter(function (x) { return x.factions.indexOf("none") === -1; }));
+    fillDatalist("dl-booster", BOOSTERS.filter(function (x) { return x.factions.indexOf("none") === -1; }));
 
     buildLockGrid();
     loadSettings();

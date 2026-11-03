@@ -74,7 +74,7 @@ function check(label, cond, extra) {
   const defaultOf = (name) => DEFAULTS[name];
   const customCount = () => doc.querySelectorAll("#gear-list .gear-row.fac-custom").length;
   check("first visit wrote the owned list to localStorage", Object.keys(JSON.parse(win.localStorage.getItem("hd2_tracker"))).length === ACTIVE - win.HD2_DATA.items.filter((i) => (i.warbond === "base" || i.alwaysOwned) && i.factions.indexOf("none") === -1).length); // everything except the always-owned Base Game items
-  check("7 lock inputs", doc.querySelectorAll("#lock-grid input").length === 7);
+  check("9 lock inputs (7 slots, armor passive, booster)", doc.querySelectorAll("#lock-grid input").length === 9);
   check("datalists filled", $("dl-primary").children.length > 40 && $("dl-strat").children.length > 60);
   check("the rule builder lists the 44 titled tags, in sections from hd2tags.csv, in file order inside each", (() => {
     const tagGroups = Array.from(doc.querySelectorAll('#builder-body .b-row[data-role="must"] optgroup')).filter((g) => g.label !== "Categories" && !/^Item: /.test(g.label));
@@ -1153,6 +1153,20 @@ function check(label, cond, extra) {
     check("...the seven weapon / stratagem cards are unchanged", doc.querySelectorAll("#results .item-card, #results .item-card2").length === 7);
     check("...Reroll all counts nine free slots", free(0) === 9, free(0));
     check("...the setting is saved only when it is off", stored("hd2_settings").noExtras === undefined);
+    // Lock slots panel
+    const someP = D.passives[2].name, someB = D.boosters[3].name;
+    $("count").value = "3";
+    $("lock-xpassive").value = someP; $("lock-xbooster").value = someB; $("lock-xbooster").dispatchEvent(new win.Event("input", { bubbles: true })); generate();
+    check("Lock slots: a locked passive is on every loadout, a locked booster on the first only", errors().length === 0 && [0, 1, 2].every((i) => passiveName(i) === someP) && boosterName(0) === someB && boosterName(1) !== someB && boosterName(2) !== someB, [0, 1, 2].map(passiveName).join() + " / " + [0, 1, 2].map(boosterName).join());
+    check("...they show as locked on the card, and the summary counts them", pbtn(0, "lock-btn").getAttribute("aria-pressed") === "true" && bbtn(0, "lock-btn").getAttribute("aria-pressed") === "true" && bbtn(1, "lock-btn").getAttribute("aria-pressed") === "false" && /2 locked/.test($("lock-summary").textContent), [pbtn(0, "lock-btn").getAttribute("aria-pressed"), bbtn(0, "lock-btn").getAttribute("aria-pressed"), bbtn(1, "lock-btn").getAttribute("aria-pressed"), $("lock-summary").textContent].join());
+    check("...and the seven weapon / stratagem cards are unaffected", doc.querySelectorAll("#results .item-card, #results .item-card2").length === 21);
+    $("lock-xpassive").value = "No Such Passive"; generate();
+    check("Lock slots: an unknown passive name is an error", errors().some((e) => /unknown armor passive/.test(e)), errors());
+    $("lock-xpassive").value = ""; $("lock-xbooster").value = "Nope"; generate();
+    check("...and so is an unknown booster", errors().some((e) => /unknown booster/.test(e)), errors());
+    setExtras(false); $("lock-xbooster").value = someB; generate();
+    check("Lock slots: with the switch off, a passive / booster lock says to turn it on", errors().some((e) => /turn on/.test(e)), errors());
+    setExtras(true); $("lock-xbooster").value = ""; $("lock-xpassive").value = ""; $("count").value = "1"; generate();
     // armor shown on the card = owned, unblocked armor of that passive
     const cur = () => D.passives.find((p) => p.name === passiveName(0));
     const tilesNow = () => Array.from(los()[0].querySelectorAll(".x-passive .x-tile")).map((t) => t.getAttribute("title"));
