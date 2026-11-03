@@ -62,7 +62,7 @@ function check(label, cond, extra) {
   console.log("Page build");
   check("no script errors / HD2Engine loaded", typeof win.HD2Engine === "object");
   check("My Gear: 35 warbonds, the six Requisition shops grouped under one header (30 top-level blocks)", doc.querySelectorAll("#gear-list .wb-block:not(.wb-group):not(.x-sub-block)").length === 35 && doc.querySelectorAll("#gear-list .wb-group").length === 1 && doc.querySelectorAll("#gear-list > .wb-block").length === 30, doc.querySelectorAll("#gear-list .wb-block").length);
-  check(ACTIVE + " gear rows (every active item)", doc.querySelectorAll("#gear-list .gear-row:not(.x-row)").length === ACTIVE);
+  check(ACTIVE + " gear rows (every active item)", doc.querySelectorAll("#gear-list .gear-row:not(.x-row):not(.x-dupe)").length === ACTIVE);
   check("every gear row has a lazy thumbnail from the item's image link", Array.from(doc.querySelectorAll("#gear-list .gear-row")).every((r) => { const i = r.querySelector("img.gear-thumb"); return i && i.getAttribute("loading") === "lazy" && /^https:\/\//.test(i.getAttribute("src")); }));
   { const t = rowOf("AR-23 Liberator").querySelector("img.gear-thumb"); t.dispatchEvent(new win.Event("error"));
     check("a thumbnail that can't load becomes a blank square of the same size", !rowOf("AR-23 Liberator").querySelector("img.gear-thumb") && !!rowOf("AR-23 Liberator").querySelector(".gear-thumb-blank")); }
@@ -171,7 +171,7 @@ function check(label, cond, extra) {
   check("own nothing -> only the 6 Base Game items left in the pool", new RegExp("Rolling from 6 of " + ACTIVE).test(poolText()), poolText());
   generate();
   check("only the starting gear -> it still builds (two stratagems, two empty slots), no error", errors().length === 0 && cards() === 7 && doc.querySelectorAll("#results .is-empty").length === 2, errors());
-  doc.querySelectorAll('#gear-list .gear-row:not(.x-row)').forEach((row) => { if (row.querySelector("input").disabled) click(row.querySelector(".block-btn")); });
+  doc.querySelectorAll('#gear-list .gear-row:not(.x-row):not(.x-dupe)').forEach((row) => { if (row.querySelector("input").disabled) click(row.querySelector(".block-btn")); });
   generate();
   check("empty pool -> clear error", errors().some((e) => /gear pool is empty/.test(e)), errors());
   click($("gear-unblock-all")); click($("gear-select-all"));
@@ -626,7 +626,7 @@ function check(label, cond, extra) {
   click(firstBlock.querySelector("[data-block-none]"));
   click(blockBtn("AC-8 Autocannon"));
   const search = (q) => { $("gear-search").value = q; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true })); };
-  const shownNames = () => Array.from(doc.querySelectorAll("#gear-list .gear-row:not(.x-row)")).filter((r) => !r.hidden).map((r) => r.querySelector("input[data-item]").getAttribute("data-item"));
+  const shownNames = () => Array.from(doc.querySelectorAll("#gear-list .gear-row:not(.x-row):not(.x-dupe)")).filter((r) => !r.hidden).map((r) => r.querySelector("input[data-item]").getAttribute("data-item"));
   search("scope of authority");
   const soa = shownNames();
   check("searching a warbond name lists that warbond's items", soa.includes("R-40 Sightliner") && soa.includes("G-11 Caltrops") && soa.length === 5 && Array.from(doc.querySelectorAll("#gear-list .wb-block")).filter((b) => !b.hidden).length === 1, soa.join(", "));
@@ -1272,7 +1272,7 @@ function check(label, cond, extra) {
       const domR = new JSDOM(rawBundle, { runScripts: "dangerously", pretendToBeVisual: true, url: "http://localhost/" });
       await new Promise((resolve) => domR.window.addEventListener("load", resolve));
       const dr = domR.window.document;
-      const thumbs = Array.from(dr.querySelectorAll("#gear-list .gear-row:not(.x-row) img.gear-thumb")).map((i) => i.getAttribute("src"));
+      const thumbs = Array.from(dr.querySelectorAll("#gear-list .gear-row:not(.x-row):not(.x-dupe) img.gear-thumb")).map((i) => i.getAttribute("src"));
       const saved = Object.keys(domR.window.HD2_DATA.images).length;
       check("the single-file build shows every saved picture from inside the file (no network needed)", saved > 0 && thumbs.length === ACTIVE && thumbs.filter((t) => t.startsWith("data:image/")).length >= 150, thumbs.filter((t) => t.startsWith("data:image/")).length + " of " + thumbs.length + " thumbnails are embedded");
       domR.window.close();
@@ -1307,7 +1307,7 @@ function check(label, cond, extra) {
     check("there is no separate armor / booster section any more", !$("extras-section") && !doc.getElementById("extras-list"));
     check("every armor, booster and passive has a row in its warbond's list (armor " + nArmor + " + " + dupes.length + " duplicates, boosters " + nBoost + ")",
       doc.querySelectorAll("#gear-list .x-row:not(.x-dupe) input[data-x-item]").length === nArmor + nBoost && doc.querySelectorAll("#gear-list .x-row.x-dupe").length === dupes.length && xKeys("p").length === nPass);
-    check("none of them are counted in the weapon rows or the owned total", doc.querySelectorAll("#gear-list .gear-row:not(.x-row)").length === ACTIVE && /items owned/.test($("grand-total").textContent));
+    check("none of them are counted in the weapon rows or the owned total", doc.querySelectorAll("#gear-list .gear-row:not(.x-row):not(.x-dupe)").length === ACTIVE && /items owned/.test($("grand-total").textContent));
     check("a first visit owns all armor and boosters (starting armor is locked on)", poolN("a") === nArmor && poolN("b") === nBoost && poolN("p") === nPass && xcb(keyOf("armor", "B-01 Tactical")).disabled === true);
     check("an armor sits in its own warbond's list (Polar Patriots' armor, flat, after the weapons)", (() => {
       const pb = wbBlock("polar_patriots"), rows = Array.from(pb.querySelectorAll(".gear-row")), firstX = rows.findIndex((r) => r.classList.contains("x-row"));
@@ -1319,6 +1319,23 @@ function check(label, cond, extra) {
       const kids = Array.from(body.children), looseArmor = kids.filter((k) => k.classList.contains("x-row") && k.getAttribute("data-x-key")[0] === "a");
       return kids.filter((k) => k.classList.contains("gear-row") && !k.classList.contains("x-row")).length === 8 && ss.querySelectorAll(":scope > .wb-items > .x-sub-block").length === 3 && looseArmor.length === 0;
     })());
+    // Superstore weapons released with a warbond (the release_with column) are listed again in that warbond too
+    const wDupes = D.items.filter((i) => i.active !== false && i.warbond === "superstore" && i.releaseWith && i.releaseWith !== "superstore");
+    check("some Superstore weapons are tied to a warbond (" + wDupes.length + ")", wDupes.length >= 5, wDupes.length);
+    check("each tied Superstore weapon has one duplicate row in its warbond, with the Super Credit icon, and one plain row in the Superstore", wDupes.every((i) => {
+      const inWb = Array.from(wbBlock(i.releaseWith).querySelectorAll(".gear-dupe")).filter((r) => r.querySelector("input[data-item]").getAttribute("data-item") === i.name);
+      const inSs = Array.from(wbBlock("superstore").querySelectorAll(".gear-row")).filter((r) => r.querySelector("input[data-item]") && r.querySelector("input[data-item]").getAttribute("data-item") === i.name);
+      return inWb.length === 1 && !!inWb[0].querySelector(".x-sc img.wb-icon") && inSs.length === 1 && !inSs[0].querySelector(".x-sc");
+    }));
+    check("...after the warbond's own weapons, armor and boosters, and before its passives", wDupes.every((i) => {
+      const rows = Array.from(wbBlock(i.releaseWith).querySelectorAll(":scope > .wb-items > .gear-row")), at = rows.findIndex((r) => r.classList.contains("gear-dupe"));
+      return at > 0 && rows.slice(0, at).every((r) => !r.classList.contains("x-dupe")) && rows.slice(at).every((r) => r.classList.contains("x-dupe") || r.getAttribute("data-x-key")[0] === "p");
+    }));
+    const wDupe = wDupes[0], wDupeRow = () => Array.from(wbBlock(wDupe.releaseWith).querySelectorAll(".gear-dupe")).find((r) => r.querySelector("input[data-item]").getAttribute("data-item") === wDupe.name);
+    wDupeRow().querySelector(".block-btn").dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }));
+    check("blocking a Superstore weapon in its warbond blocks it everywhere", blockBtn(wDupe.name).getAttribute("aria-pressed") === "true" && wDupeRow().querySelector(".block-btn").getAttribute("aria-pressed") === "true");
+    wDupeRow().querySelector(".block-btn").dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }));
+    check("...and unblocking from either row undoes it", blockBtn(wDupe.name).getAttribute("aria-pressed") === "false");
     // Superstore armor released with a warbond: a duplicate row at the bottom of that warbond's list, with the Super Credit icon
     const titan = D.armor.find((a) => a.name === "CE-67 Titan"), titanKey = "a" + titan.id;
     check("a Superstore armor tied to a warbond is listed again after that warbond's own armor and boosters, with the Super Credit icon", (() => {
@@ -1329,7 +1346,7 @@ function check(label, cond, extra) {
     })());
     check("...and every tied armor has exactly one duplicate, in the right warbond", dupes.every((a) => Array.from(wbBlock(a.releaseWith).querySelectorAll(".x-dupe")).filter((r) => r.getAttribute("data-x-key") === "a" + a.id).length === 1));
     check("the passives come last in every warbond's list, below the Superstore armor", Array.from(doc.querySelectorAll("#gear-list .wb-block[data-wb]")).every((b) => { const k = Array.from(b.querySelectorAll(":scope > .wb-items > .gear-row")).map((r) => (r.getAttribute("data-x-key") || "w")[0]).join(""); return !/p[^p]/.test(k); }));
-    check("...a warbond's total counts its weapons, armor, boosters and the Superstore armor listed in it (not passives)", Number(wbBlock(titan.releaseWith).querySelector(":scope > .wb-header .wb-count").getAttribute("data-total")) === D.items.filter((i) => i.warbond === titan.releaseWith).length + D.armor.filter((a) => a.warbond === titan.releaseWith).length + D.boosters.filter((b) => b.warbond === titan.releaseWith).length + dupes.filter((a) => a.releaseWith === titan.releaseWith).length);
+    check("...a warbond's total counts its weapons, armor, boosters and the Superstore armor listed in it (not passives)", Number(wbBlock(titan.releaseWith).querySelector(":scope > .wb-header .wb-count").getAttribute("data-total")) === D.items.filter((i) => i.warbond === titan.releaseWith).length + D.armor.filter((a) => a.warbond === titan.releaseWith).length + D.boosters.filter((b) => b.warbond === titan.releaseWith).length + dupes.filter((a) => a.releaseWith === titan.releaseWith).length + wDupes.filter((i) => i.releaseWith === titan.releaseWith).length);
     check("...Block All on a warbond blocks its Superstore armor (in both lists) but never a passive", (() => {
       click(wbBlock(titan.releaseWith).querySelector("[data-block-all]"));
       const ok = Array.from(doc.querySelectorAll('#gear-list .x-row[data-x-key="' + titanKey + '"]')).every((r) => r.classList.contains("is-blocked")) && !stored("hd2_x_blocked").some((k) => k[0] === "p");
@@ -1399,6 +1416,20 @@ function check(label, cond, extra) {
     $("gear-search").value = "juggernaut"; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true }));
     check("searching opens the collapsed Superstore menu that holds the match", isOpen("armor_superstore_medium") && !ssSub("medium").hidden && ssSub("light").hidden);
     $("gear-search").value = ""; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true }));
+    // the "Superstore items in warbonds" switch
+    const sw = $("show-dupes"), totalOf = (key) => Number(wbBlock(key).querySelector(":scope > .wb-header .wb-count").getAttribute("data-total"));
+    const wbKey = wDupe.releaseWith, beforeTotal = totalOf(wbKey), nDupeRows = doc.querySelectorAll("#gear-list .x-dupe").length;
+    check("the switch starts on", sw.checked && nDupeRows === dupes.length + wDupes.length, nDupeRows);
+    wbBlock(wbKey).querySelector(":scope > .wb-items").classList.add("open");
+    sw.checked = false; sw.dispatchEvent(new win.Event("change", { bubbles: true }));
+    check("switching it off removes every duplicate row (weapons and armor)", doc.querySelectorAll("#gear-list .x-dupe").length === 0 && doc.querySelectorAll("#gear-list .gear-dupe").length === 0);
+    check("...the warbond totals shrink by what was duplicated into them", totalOf(wbKey) === beforeTotal - wDupes.filter((i) => i.releaseWith === wbKey).length - dupes.filter((a) => a.releaseWith === wbKey).length);
+    check("...every weapon and armor still has its own row, and the lists you had open stay open", doc.querySelectorAll("#gear-list .gear-row:not(.x-row)").length === ACTIVE && doc.querySelectorAll("#gear-list .x-row input[data-x-item]").length === nArmor + nBoost && wbBlock(wbKey).querySelector(":scope > .wb-items").classList.contains("open"));
+    check("...the choice is saved (only when off)", JSON.parse(win.localStorage.getItem("hd2_settings")).noDupes === true);
+    check("...owned counts are unchanged", poolN("a") === nArmor && /items owned/.test($("grand-total").textContent));
+    check("...a passive is listed under every warbond that has its armor, and the Superstore under its own armor's", xKeys("p").length === nPass);
+    sw.checked = true; sw.dispatchEvent(new win.Event("change", { bubbles: true }));
+    check("switching it on again brings the duplicates back and drops the saved flag", doc.querySelectorAll("#gear-list .x-dupe").length === nDupeRows && totalOf(wbKey) === beforeTotal && JSON.parse(win.localStorage.getItem("hd2_settings")).noDupes === undefined);
     // search finds armor, passives and boosters
     $("gear-search").value = "scout"; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true }));
     const found = Array.from(doc.querySelectorAll("#gear-list .gear-row")).filter((r) => !r.hidden).map((r) => r.querySelector(".tr-name").textContent);

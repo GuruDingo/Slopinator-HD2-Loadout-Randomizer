@@ -96,14 +96,21 @@
       <p class="hint gear-intro">
         Tick what you own; the randomizer only rolls owned gear. <strong>Block</strong> takes an item out of the
         pool without un-owning it. Base Game gear is always owned (you can still block it).
-        Armor and boosters sit in their warbond's list; an armor passive is listed under every warbond that has armor with it, and can roll when you own at least one armor that carries it. Block a passive to take it out along with all its armor, or block a single armor to hide just that one.
+        Armor and boosters sit in their warbond's list; an armor passive is listed under every warbond that has armor with it, and can roll when you own at least one armor that carries it. Superstore weapons and armor that came with a warbond are also listed at the bottom of that warbond (switch them off at the top right). Block a passive to take it out along with all its armor, or block a single armor to hide just that one.
         Saved in this browser only.
       </p>
-      <label class="switch" title="Change which factions each item is recommended against">
-        <input type="checkbox" id="edit-factions" role="switch">
-        <span class="switch-track" aria-hidden="true"></span>
-        <span>Edit factions</span>
-      </label>
+      <div class="gear-switches">
+        <label class="switch" title="Change which factions each item is recommended against">
+          <input type="checkbox" id="edit-factions" role="switch">
+          <span class="switch-track" aria-hidden="true"></span>
+          <span>Edit factions</span>
+        </label>
+        <label class="switch" title="List Superstore weapons and armor again under the warbond they came with (the same item: owning or blocking either row changes both)">
+          <input type="checkbox" id="show-dupes" role="switch" checked>
+          <span class="switch-track" aria-hidden="true"></span>
+          <span>Superstore items in warbonds</span>
+        </label>
+      </div>
     </div>
     <div class="fac-tools" id="fac-tools" hidden>
       <p class="hint">
