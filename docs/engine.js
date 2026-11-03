@@ -858,8 +858,27 @@
       return pick;
     }
 
+    // Picks one armor passive or booster from `list` (the ones in the player's pool). Items marked for other factions are skipped
+    // while any fit the faction; `o.taken` (a Set of names, e.g. the boosters squadmates already carry) and `o.avoid` (a name, e.g.
+    // the one being rerolled) are skipped as long as something else is left. Returns { item, offFaction } or null for an empty list.
+    function pickExtra(list, o) {
+      o = o || {};
+      var cands = (list || []).filter(function (e) { return (e.factions || ["any"]).indexOf("none") === -1; });
+      if (!cands.length) return null;
+      var offFaction = false;
+      if (o.faction && o.faction !== "any") {
+        var fit = cands.filter(function (e) { return worksFor({ factions: e.factions || ["any"] }, o.faction); });
+        if (fit.length) cands = fit; else offFaction = true;
+      }
+      function without(test) { var rest = cands.filter(function (e) { return !test(e); }); return rest.length ? rest : cands; }
+      if (o.taken) cands = without(function (e) { return o.taken.has(e.name); });
+      if (o.avoid) cands = without(function (e) { return e.name === o.avoid; });
+      return { item: randomChoice(cands), offFaction: offFaction };
+    }
+
     return {
       pools: { primaries: primaries, secondaries: secondaries, throwables: throwables, strategems: strategems },
+      pickExtra: pickExtra,
       allWarbondKeys: allWarbondKeys,
       resolve: resolve,
       tryBuild: tryBuild,

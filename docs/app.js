@@ -258,7 +258,11 @@
 
   function itemAt(lo, key) {
     if (key.indexOf("strat") === 0) return lo.strategems[parseInt(key.slice(5), 10) - 1];
-    return lo[key];
+    return lo[key];   // also "passive" and "booster"
+  }
+  // A loadout rolled with the armor passive / booster switch on also has a passive and a booster slot (each can be locked).
+  function slotKeysFor(entry) {
+    return entry.lo.passive || entry.lo.booster ? SLOT_KEYS.concat(["passive", "booster"]) : SLOT_KEYS;
   }
 
   function loadoutNode(entry, idx, total) {
@@ -273,7 +277,7 @@
         onBlock: function () { blockSlot(entry, key); } };
       return itemCard(item, slotLabel, opts);
     }
-    var unlockedCount = SLOT_KEYS.filter(function (k) { return !locks[k]; }).length;
+    var unlockedCount = slotKeysFor(entry).filter(function (k) { return !locks[k]; }).length;
 
     var box = h("div", { class: "loadout", "data-idx": String(idx) });
     var title = total > 1 ? "Loadout " + (idx + 1) : "Loadout";
@@ -352,8 +356,169 @@
     }
     box.appendChild(h("div", { class: "card-row" },
       lo.strategems.map(function (st, i) { return card("strat" + (i + 1), st.empty ? "Stratagem" : (TYPE_LABELS[st.cat] || st.cat)); })));
+    if (lo.passive || lo.booster) {
+      box.appendChild(h("h3", { class: "section-title" }, "Passives"));
+      box.appendChild(h("div", { class: "card-row" }, passiveCard(entry), boosterCard(entry)));
+    }
     box.appendChild(h("hr", { class: "divider" }));
     return box;
+  }
+
+  // ---- Armor passive and booster cards ----
+  function extrasOn() { return !$("use-extras") || $("use-extras").checked; }
+  function emptyExtra(kind) {
+    return { kind: kind, empty: true, id: "empty", key: "", name: kind === "passive" ? "No armor passive" : "No booster", description: "", factions: ["any"], imgUrl: "" };
+  }
+  // Booster names squadmates (the other loadouts on screen) already carry: a roll avoids them when it can.
+  function takenBoosters(entry) {
+    var taken = new Set();
+    if (lastRun) lastRun.entries.forEach(function (e) { if (e !== entry && e.lo.booster && !e.lo.booster.empty) taken.add(e.lo.booster.name); });
+    return taken;
+  }
+  function pickX(kind, faction, o) {
+    var list = (kind === "passive" ? PASSIVES : BOOSTERS).filter(xInPool);
+    var r = engine.pickExtra(list, { faction: faction, avoid: o && o.avoid && !o.avoid.empty ? o.avoid.name : null, taken: o && o.taken });
+    return r ? r.item : emptyExtra(kind);
+  }
+  function attachExtras(lo, faction, taken) {
+    if (!extrasOn()) { lo.passive = null; lo.booster = null; return; }
+    lo.passive = pickX("passive", faction, {});
+    lo.booster = pickX("booster", faction, { taken: taken });
+    if (!lo.booster.empty) taken.add(lo.booster.name);
+  }
+  function xStatus(e) {
+    var b = [];
+    if (e.empty) return null;
+    if (e.kind === "passive") {
+      if (xBlocked[e.key]) b.push(h("span", { class: "status-badge is-blocked-badge", title: "You have blocked this passive in My Gear" }, "BLOCKED"));
+      else if (!(ARMOR_OF[e.name] || []).some(xIsOwned)) b.push(h("span", { class: "status-badge not-owned", title: "You don't own any armor with this passive (My Gear)" }, "NO ARMOR OWNED"));
+    } else {
+      if (!xIsOwned(e)) b.push(h("span", { class: "status-badge not-owned", title: "You don't own this booster (My Gear)" }, "NOT OWNED"));
+      if (xBlocked[e.key]) b.push(h("span", { class: "status-badge is-blocked-badge", title: "You have blocked this booster in My Gear" }, "BLOCKED"));
+    }
+    return b.length ? h("div", { class: "status-row" }, b) : null;
+  }
+  function xSlotBtns(entry, key, item, label) {
+    var locked = !!entry.locks[key];
+    var what = key === "passive" ? "armor passive" : "booster";
+    var reroll = h("button", { type: "button", class: "slot-btn reroll-btn", disabled: locked ? true : null,
+      title: locked ? "Unlock this slot to reroll it" : "Reroll just this " + what, "aria-label": "Reroll " + label + ": " + item.name,
+      onclick: function () { rerollExtra(entry, key); } }, "\uD83C\uDFB2");
+    if (item.empty) return h("span", { class: "slot-btns" }, reroll);
+    var block = h("button", { type: "button", class: "slot-btn block-slot-btn", disabled: locked ? true : null,
+      title: locked ? "Unlock this slot to block its " + what : "Block this " + what + " in My Gear and reroll this slot", "aria-label": "Block " + label + ": " + item.name,
+      onclick: function () { blockExtra(entry, key); } }, "\uD83D\uDEAB");
+    var lock = h("button", { type: "button", class: "slot-btn lock-btn", "aria-pressed": locked ? "true" : "false",
+      title: locked ? "Unlock this slot" : "Lock this slot (kept when you reroll)", "aria-label": (locked ? "Unlock " : "Lock ") + label + ": " + item.name,
+      onclick: function () { toggleLock(entry, key); } }, locked ? "\uD83D\uDD12" : "\uD83D\uDD13");
+    return h("span", { class: "slot-btns" }, reroll, block, lock);
+  }
+  function xHeaderBar(entry, key, label, item) {
+    var faction = lastRun.faction, off = !item.empty && faction !== "any" && !Engine.worksFor(item, faction);
+    return h("div", { class: "card-header", style: "background:#3d3a5c" },
+      h("span", { class: "slot-label" }, label),
+      off ? h("span", { class: "suboptimal-badge", title: "Not a good pick against " + (FACTION_NAMES[faction] || "this faction") + " \u2014 it\u2019s meant for: " + factionsText(item) }, "\u26A0 OFF-FACTION") : null,
+      xSlotBtns(entry, key, item, label));
+  }
+  function xArt(e, cls) {
+    if (!e.imgUrl) return h("div", { class: cls + " x-art-blank" }, e.empty ? "" : "No image");
+    var box = h("div", { class: cls });
+    var img = h("img", { src: imgSrc(e.imgUrl), alt: e.name, loading: "lazy", referrerpolicy: "no-referrer" });
+    img.addEventListener("error", function () { img.remove(); box.classList.add("x-art-blank"); box.textContent = "No image"; });
+    box.appendChild(img);
+    return box;
+  }
+  var ARMOR_WEIGHTS = ["light", "medium", "heavy"];
+  function armorShown(a) { return xIsOwned(a) && !xBlocked[a.key]; }
+  function armorTile(a) {
+    var code = a.name.split(" ")[0], short = a.name.slice(code.length + 1);
+    var art = h("div", { class: "x-tile-art" });
+    if (a.imgUrl) {
+      var img = h("img", { src: imgSrc(a.imgUrl), alt: "", loading: "lazy", referrerpolicy: "no-referrer" });
+      img.addEventListener("error", function () { img.remove(); art.textContent = code; });
+      art.appendChild(img);
+    } else art.textContent = code;
+    var blockBtn = h("button", { type: "button", class: "x-tile-block", title: "Block " + a.name + " in My Gear (just this armor)", "aria-label": "Block armor " + a.name }, "\uD83D\uDEAB");
+    blockBtn.addEventListener("click", function (e) { e.stopPropagation(); xBlocked[a.key] = true; onGearChange(); });
+    var tile = h("div", { class: "x-tile", title: a.name, tabindex: "0" }, art, h("div", { class: "x-tile-cap" }, short || code),
+      h("span", { class: "x-tile-wb" }, warbondPillName[a.warbond] || warbondName[a.warbond] || a.warbond), blockBtn);
+    tile.addEventListener("click", function () { tile.classList.toggle("open"); });   // a tap shows the block button (no hover on touch screens)
+    return tile;
+  }
+  function weightSection(p, w) {
+    var all = (ARMOR_OF[p.name] || []).filter(function (a) { return a.weight === w; });
+    var shown = all.filter(armorShown);
+    var label = h("div", { class: "x-wlab" }, WEIGHT_LABELS[w]);
+    if (shown.length) return h("div", { class: "x-wsec", "data-weight": w }, label, h("div", { class: "x-tiles" }, shown.map(armorTile)));
+    var msg;
+    if (!all.length) msg = "No " + w + " armor has this passive";
+    else if (all.every(function (a) { return xBlocked[a.key]; })) msg = all.length === 1 ? "The " + w + " armor is blocked" : "All " + all.length + " " + w + " armors blocked";
+    else if (!all.some(xIsOwned)) msg = "None owned";
+    else msg = "None available (blocked or not owned)";
+    return h("div", { class: "x-wsec x-wsec-empty", "data-weight": w }, label, h("div", { class: "x-empty-line" }, msg));
+  }
+  function passiveCard(entry) {
+    var p = entry.lo.passive;
+    if (!p) return null;
+    if (p.empty) {
+      return h("div", { class: "x-card x-card-empty", style: "--w:376px" }, xHeaderBar(entry, "passive", "Armor", p),
+        h("div", { class: "x-body" }, h("div", { class: "x-name" }, p.name),
+          h("p", { class: "x-desc" }, "No armor passive is in your pool: own at least one armor (and don\u2019t block its passive) in My Gear.")));
+    }
+    var mx = 0;
+    (ARMOR_OF[p.name] || []).forEach(function (a) { mx = Math.max(mx, (ARMOR_OF[p.name] || []).filter(function (b) { return b.weight === a.weight && armorShown(b); }).length); });
+    var width = Math.min(564, Math.max(376, 184 + mx * 52 + Math.max(0, mx - 1) * 5));
+    var cls = "x-card x-passive" + (entry.locks.passive ? " is-locked" : "");
+    return h("div", { class: cls, style: "--w:" + width + "px" },
+      xHeaderBar(entry, "passive", "Armor", p),
+      h("div", { class: "x-body x-cols" },
+        h("div", { class: "x-left" }, xArt(p, "x-art"), h("div", { class: "x-name" }, p.name), h("div", { class: "x-desc" }, p.description), xStatus(p)),
+        h("div", { class: "x-right" }, ARMOR_WEIGHTS.map(function (w) { return weightSection(p, w); }))));
+  }
+  function boosterCard(entry) {
+    var b = entry.lo.booster;
+    if (!b) return null;
+    var cls = "x-card x-booster" + (entry.locks.booster ? " is-locked" : "") + (b.empty ? " x-card-empty" : "");
+    if (b.empty) {
+      return h("div", { class: cls }, xHeaderBar(entry, "booster", "Booster", b),
+        h("div", { class: "x-body" }, h("div", { class: "x-name" }, b.name), h("p", { class: "x-desc" }, "Own a booster in My Gear to roll one.")));
+    }
+    return h("div", { class: cls }, xHeaderBar(entry, "booster", "Booster", b), xArt(b, "x-art x-booster-art"),
+      h("div", { class: "card-body" }, h("div", { class: "item-name" }, b.name), h("div", { class: "x-desc" }, b.description),
+        h("div", { class: "warbond-row" }, h("span", { class: "tag-pill", style: "background:#2a2a2a;border:1px solid #555" }, warbondPillName[b.warbond] || warbondName[b.warbond] || b.warbond)),
+        xStatus(b)));
+  }
+  function rerollExtra(entry, key) {
+    if (entry.locks[key]) return;
+    var cur = entry.lo[key];
+    var next = pickX(key, lastRun.faction, { avoid: cur, taken: key === "booster" ? takenBoosters(entry) : null });
+    var note = !next.empty && cur && !cur.empty && next.name === cur.name ? "There is no other " + (key === "passive" ? "armor passive" : "booster") + " in your pool." : null;
+    entry.lo[key] = next;
+    showMessages(note ? [note] : [], "info");
+    redraw(entry);
+  }
+  // Block the passive / booster in this slot in My Gear (a blocked passive takes all its armor with it), then reroll the slot.
+  function blockExtra(entry, key) {
+    if (entry.locks[key]) return;
+    var item = entry.lo[key];
+    if (!item || item.empty) return;
+    xBlocked[item.key] = true;
+    saveGear();
+    var others = 0, kept = 0;
+    lastRun.entries.forEach(function (other) {
+      if (other === entry) return;
+      var it = other.lo[key];
+      if (!it || it.key !== item.key) return;
+      if (other.locks[key]) { kept++; return; }
+      other.lo[key] = pickX(key, lastRun.faction, { avoid: it, taken: key === "booster" ? takenBoosters(other) : null });
+      others++;
+    });
+    entry.lo[key] = pickX(key, lastRun.faction, { avoid: item, taken: key === "booster" ? takenBoosters(entry) : null });
+    var msg = "Blocked " + item.name + " in My Gear" + (key === "passive" ? " (with all its armor)" : "") + ". Unblock it there to roll it again.";
+    if (others) msg += " Also replaced in " + others + " other loadout" + (others === 1 ? "" : "s") + ".";
+    if (kept) msg += " Kept in " + kept + " locked slot" + (kept === 1 ? "" : "s") + ".";
+    refreshGear();                        // counts, lists and every loadout on screen follow
+    showMessages([msg], "info");
   }
 
   function renderLoadouts(loadouts, faction, locks, requirements, disabledRules, customRules, weights, shared) {
@@ -411,6 +576,7 @@
         return false;
       }
     }
+    lo.passive = entry.lo.passive; lo.booster = entry.lo.booster;   // the passive and booster don't depend on the weapons and stratagems
     entry.lo = lo;
     if (!quiet) showMessages([firstNote, note].filter(Boolean), "info");
     redraw(entry);
@@ -452,9 +618,16 @@
   }
 
   function rerollUnlocked(entry) {
-    var callLocks = Object.assign({}, entry.locks);
-    if (Object.keys(callLocks).length === SLOT_KEYS.length) return;
-    rebuild(entry, callLocks, null, "");
+    var keys = slotKeysFor(entry);
+    if (keys.every(function (k) { return entry.locks[k]; })) return;
+    var itemLocks = {};
+    SLOT_KEYS.forEach(function (k) { if (entry.locks[k]) itemLocks[k] = entry.locks[k]; });
+    ["passive", "booster"].forEach(function (k) {
+      if (keys.indexOf(k) === -1 || entry.locks[k]) return;
+      entry.lo[k] = pickX(k, lastRun.faction, { taken: k === "booster" ? takenBoosters(entry) : null });
+    });
+    if (Object.keys(itemLocks).length < SLOT_KEYS.length) rebuild(entry, itemLocks, null, "");
+    else redraw(entry);   // only the passive / booster were free
   }
 
   // ---------------------------------------------------------------------------
@@ -462,17 +635,29 @@
   // ---------------------------------------------------------------------------
   // A link carries one loadout as its 7 permanent item ids in slot order (primary, secondary, throwable, four stratagems), 0 for an
   // empty slot: ".../#l1=6.21.50.12.30.41.77". "l1" is the format version. The part after # never reaches a server.
-  var SHARE_KEY = "l1";
+  // A loadout with an armor passive / booster adds their two ids ("l2", 9 numbers: the 7 items, the passive id, the booster id; 0 = none),
+  // and the old 7-number "l1" links still open.
+  var SHARE_KEY = "l1", SHARE_KEY2 = "l2";
   function shareHash(lo) {
     var items = [lo.primary, lo.secondary, lo.throwable].concat(lo.strategems);
-    return "#" + SHARE_KEY + "=" + items.map(function (i) { return i.empty ? 0 : i.id; }).join(".");
+    var ids = items.map(function (i) { return i.empty ? 0 : i.id; });
+    if (!(lo.passive || lo.booster)) return "#" + SHARE_KEY + "=" + ids.join(".");
+    ids.push(lo.passive && !lo.passive.empty ? lo.passive.id : 0, lo.booster && !lo.booster.empty ? lo.booster.id : 0);
+    return "#" + SHARE_KEY2 + "=" + ids.join(".");
   }
   // The 7 slot items for a hash, or { error } when the link is damaged or names an item this version doesn't have.
   function parseShareHash(hash) {
-    var m = /^#?l1=([0-9.]*)$/.exec(String(hash || ""));
+    var m = /^#?(l1|l2)=([0-9.]*)$/.exec(String(hash || ""));
     if (!m) return null;                                   // not a share link at all
-    var parts = m[1].split(".");
-    if (parts.length !== 7 || parts.some(function (p) { return !/^\d{1,6}$/.test(p); })) return { error: "That shared link is damaged, so it can\u2019t be shown." };
+    var parts = m[2].split("."), want = m[1] === "l2" ? 9 : 7;
+    if (parts.length !== want || parts.some(function (p) { return !/^\d{1,6}$/.test(p); })) return { error: "That shared link is damaged, so it can\u2019t be shown." };
+    var extra = { passive: null, booster: null };
+    if (want === 9) {
+      var px = parts[7] === "0" ? null : X_BY_KEY["p" + parseInt(parts[7], 10)], bx = parts[8] === "0" ? null : X_BY_KEY["b" + parseInt(parts[8], 10)];
+      if ((parts[7] !== "0" && !px) || (parts[8] !== "0" && !bx)) return { error: "That shared link has items this version doesn\u2019t know about, so it can\u2019t be shown." };
+      extra = { passive: px, booster: bx };
+      parts = parts.slice(0, 7);
+    }
     var items = [], missing = false;
     parts.forEach(function (p, i) {
       if (p === "0") { items.push(makeEmptyFor(i)); return; }
@@ -489,7 +674,7 @@
         return { error: "That shared link has an item in the wrong slot, so it can\u2019t be shown." };
       }
     }
-    return { items: items };
+    return { items: items, passive: extra.passive, booster: extra.booster };
   }
   function makeEmptyFor(slot) { return Engine.makeEmptySlot(slot < 3 ? ["primary", "secondary", "throwable"][slot] : undefined); }
 
@@ -520,6 +705,7 @@
       if (!(e instanceof Engine.GenerationError)) throw e;
       showMessages([e.message]); return true;
     }
+    lo.passive = parsed.passive; lo.booster = parsed.booster;
     showMessages([]);
     showView("randomizer");
     renderLoadouts([lo], "any", {}, {}, [], [], [], true);
@@ -1295,7 +1481,9 @@
 
   // ---- Persistence (faction) ----
   function settingsObject() {
-    return { faction: selectedFaction(), disabledRules: Object.keys(state.disabledRules), requirements: state.requirements, customRules: state.customRules, weights: state.weights };
+    var o = { faction: selectedFaction(), disabledRules: Object.keys(state.disabledRules), requirements: state.requirements, customRules: state.customRules, weights: state.weights };
+    if (!extrasOn()) o.noExtras = true;   // on is the default, so only "off" is saved
+    return o;
   }
   function saveSettings() {
     store.set(SETTINGS_KEY, settingsObject());
@@ -1304,6 +1492,7 @@
   function applyFactionTheme() { document.documentElement.setAttribute("data-faction", selectedFaction()); }
   function loadSettings() {
     var s = store.get(SETTINGS_KEY, null);
+    if ($("use-extras")) $("use-extras").checked = !(s && typeof s === "object" && s.noExtras === true);
     if (!s || typeof s !== "object") return;
     if (s.faction && FACTION_NAMES[s.faction]) {
       var radio = document.querySelector('input[name="faction"][value="' + s.faction + '"]');
@@ -1341,6 +1530,7 @@
   function resetAll() {
     document.querySelector('input[name="faction"][value="any"]').checked = true;
     $("count").value = 1;
+    $("use-extras").checked = true;
     LOCK_SLOTS.forEach(function (s) { $("lock-" + s.key).value = ""; });
     state.requirements = {};
     state.disabledRules = {};
@@ -1414,13 +1604,15 @@
 
     if (errors.length) { showMessages(errors); return; }
 
-    var loadouts = [], problems = [];
+    var loadouts = [], problems = [], takenB = new Set();
     for (var i = 0; i < count; i++) {
       try {
-        loadouts.push(engine.generateLoadoutRelaxed({
+        var made = engine.generateLoadoutRelaxed({
           faction: faction, locks: locks,
           requirements: state.requirements, excluded: excluded, disabledRules: disabledList(), customRules: state.customRules, weights: state.weights,
-        }));
+        });
+        attachExtras(made, faction, takenB);
+        loadouts.push(made);
       } catch (e) {
         if (!(e instanceof Engine.GenerationError)) throw e;
         problems.push(e.message);
@@ -1989,6 +2181,7 @@
     showSharedFromHash();
     initRuleBuilder();
     $("presets-reset").addEventListener("click", resetPresets);
+    $("use-extras").addEventListener("change", saveSettings);
     $("even-odds").addEventListener("change", function () {
       if ($("even-odds").checked) delete state.disabledRules.evenOdds; else state.disabledRules.evenOdds = true;
       onRulesChanged();

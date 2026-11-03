@@ -758,4 +758,36 @@ test("Empty slots: the repair step and seeded builds accept empty slots", () => 
   assert.strictEqual(l.emptySlots, 2);
 });
 
+// ---- armor passives and boosters ----
+test("pickExtra: picks from the list, null for an empty list", () => {
+  const list = globalThis.HD2_DATA.passives;
+  for (let i = 0; i < 100; i++) assert(list.includes(engine.pickExtra(list, {}).item));
+  assert.strictEqual(engine.pickExtra([], {}), null);
+});
+test("pickExtra: avoid and taken are skipped while anything else is left, and not when nothing is", () => {
+  const [a, b, c] = globalThis.HD2_DATA.boosters;
+  for (let i = 0; i < 200; i++) {
+    assert.notStrictEqual(engine.pickExtra([a, b], { avoid: a.name }).item, a);
+    assert.strictEqual(engine.pickExtra([a, b, c], { taken: new Set([a.name, b.name]) }).item, c);
+  }
+  assert.strictEqual(engine.pickExtra([a], { avoid: a.name }).item, a);                      // nothing else: allowed
+  assert.strictEqual(engine.pickExtra([a, b], { taken: new Set([a.name, b.name]) }).item !== undefined, true);
+});
+test("pickExtra: faction-specific entries are preferred for their faction, and used (flagged) when nothing fits", () => {
+  const bug = { name: "bugOnly", factions: ["bug"] }, bot = { name: "botOnly", factions: ["bot"] }, any = { name: "anyOne", factions: ["any"] };
+  for (let i = 0; i < 100; i++) {
+    const r = engine.pickExtra([bug, bot], { faction: "bug" });
+    assert.strictEqual(r.item, bug); assert.strictEqual(r.offFaction, false);
+    assert.notStrictEqual(engine.pickExtra([bug, bot, any], { faction: "bot" }).item, bug);
+  }
+  const r = engine.pickExtra([bug], { faction: "bot" });
+  assert.strictEqual(r.item, bug); assert.strictEqual(r.offFaction, true);
+  assert.strictEqual(engine.pickExtra([{ name: "off", factions: ["none"] }], {}), null);
+});
+test("pickExtra is uniform over a list (every entry shows up)", () => {
+  const list = globalThis.HD2_DATA.passives, seen = new Set();
+  for (let i = 0; i < 3000; i++) seen.add(engine.pickExtra(list, {}).item.name);
+  assert.strictEqual(seen.size, list.length);
+});
+
 console.log("\n" + passed + " engine rule tests passed" + (process.exitCode ? " (with failures)" : ""));
