@@ -918,13 +918,24 @@
     saveExtras();
   }
   // Counts over the items valid for a faction (omit the faction to count every item).
+  // The totals shown to the player: weapons and stratagems, plus armor and boosters (a Superstore item listed under a warbond too counts once).
+  // Passives are left out, so "Rolling from" is the number of items you can picture. An armor whose passive is blocked counts as blocked here.
   function poolStats(faction) {
-    var st = { total: 0, owned: 0, blocked: 0, pool: 0 };
+    var st = { total: 0, owned: 0, blocked: 0, pool: 0, gearPool: 0 };   // gearPool: weapons and stratagems only (what a build needs)
     ALL_ITEMS.forEach(function (i) {
       if (faction && !Engine.worksFor(i, faction)) return;
       st.total++;
       if (isOwned(i)) { st.owned++; if (blocked[i.name]) st.blocked++; }
-      if (inPool(i)) st.pool++;
+      if (inPool(i)) { st.pool++; st.gearPool++; }
+    });
+    ARMOR.concat(BOOSTERS).forEach(function (e) {
+      if (faction) {
+        var p = e.kind === "armor" ? PASSIVE_BY_NAME[e.passive] : e;
+        if (p && !Engine.worksFor(p, faction)) return;
+      }
+      st.total++;
+      if (xIsOwned(e)) { st.owned++; if (xBlocked[e.key] || (e.kind === "armor" && xPassiveBlocked(e))) st.blocked++; }
+      if (xInPool(e)) st.pool++;
     });
     return st;
   }
@@ -1600,7 +1611,7 @@
     if (!(count >= 1 && count <= MAX_COUNT)) errors.push("Loadouts must be a whole number from 1 to " + MAX_COUNT + ".");
 
     var st = poolStats();
-    if (!st.pool) errors.push("Your gear pool is empty. Tick some items in My Gear first.");
+    if (!st.gearPool) errors.push("Your gear pool is empty. Tick some items in My Gear first.");
 
     var locks = readLocks(errors);
     var xLocks = readExtraLocks(errors);

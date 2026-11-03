@@ -34,6 +34,10 @@ function check(label, cond, extra) {
   win.confirm = () => true;
   const $ = (id) => doc.getElementById(id);
   const ACTIVE = win.HD2_DATA.items.filter((i) => i.factions.indexOf("none") === -1).length; // every item that can roll (the tests used to hard-code this number)
+  // The totals count weapons and stratagems plus armor and boosters (never passives): TOT is what "items owned" shows when everything is owned.
+  const XL = win.HD2_DATA.armor.concat(win.HD2_DATA.boosters), PASS_BY = {}; win.HD2_DATA.passives.forEach((p) => { PASS_BY[p.name] = p; });
+  const TOT = ACTIVE + XL.length, BASE_X = XL.filter((e) => e.alwaysOwned).length;
+  const xFactionOk = (e, f) => win.HD2Engine.worksFor(e.passive ? PASS_BY[e.passive] : e, f);
   const idOf = (name) => win.HD2_DATA.items.find((i) => i.name === name).id;
   const click = (el) => el.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }));
   const generate = () => $("controls").dispatchEvent(new win.Event("submit", { bubbles: true, cancelable: true }));
@@ -66,8 +70,8 @@ function check(label, cond, extra) {
   check("every gear row has a lazy thumbnail from the item's image link", Array.from(doc.querySelectorAll("#gear-list .gear-row")).every((r) => { const i = r.querySelector("img.gear-thumb"); return i && i.getAttribute("loading") === "lazy" && /^https:\/\//.test(i.getAttribute("src")); }));
   { const t = rowOf("AR-23 Liberator").querySelector("img.gear-thumb"); t.dispatchEvent(new win.Event("error"));
     check("a thumbnail that can't load becomes a blank square of the same size", !rowOf("AR-23 Liberator").querySelector("img.gear-thumb") && !!rowOf("AR-23 Liberator").querySelector(".gear-thumb-blank")); }
-  check("new browser starts with everything owned", $("grand-total").textContent === ACTIVE + " / " + ACTIVE + " items owned", $("grand-total").textContent);
-  check("pool line on the Randomizer tab", new RegExp("Rolling from " + ACTIVE + " of " + ACTIVE + " items\\.").test(poolText()), poolText());
+  check("new browser starts with everything owned", $("grand-total").textContent === TOT + " / " + TOT + " items owned", $("grand-total").textContent);
+  check("pool line on the Randomizer tab", new RegExp("Rolling from " + TOT + " of " + TOT + " items\\.").test(poolText()), poolText());
   check("old Warbonds / Exclude sections are gone", !$("warbond-grid") && !$("exclude-input"));
   check("Base Game rows: checked and locked", (() => { const b = Array.from(doc.querySelectorAll("#gear-list .wb-block")).find((x) => /Base Game/.test(x.textContent)); const boxes = Array.from(b.querySelectorAll("input[data-item]")); return boxes.length === 4 && boxes.every((c) => c.checked && c.disabled) && !b.querySelector("[data-all]"); })());
   const DEFAULTS = {}; win.HD2_DATA.items.forEach((i) => { DEFAULTS[i.name] = i.factions.join(","); });
@@ -146,11 +150,11 @@ function check(label, cond, extra) {
   $("lock-primary").value = ""; $("lock-strat1").value = ""; $("lock-strat2").value = "";
 
   console.log("Pool line follows the faction");
-  const validFor = (f) => win.HD2_DATA.items.filter((i) => win.HD2Engine.worksFor(i, f)).length;
-  check("any -> 'of N items' with N = every active item", new RegExp("of " + validFor("any") + " items").test(poolText()) && validFor("any") === ACTIVE, poolText());
+  const validFor = (f) => win.HD2_DATA.items.filter((i) => win.HD2Engine.worksFor(i, f)).length + XL.filter((e) => xFactionOk(e, f)).length;
+  check("any -> 'of N items' with N = every active item", new RegExp("of " + validFor("any") + " items").test(poolText()) && validFor("any") === TOT, poolText());
   for (const [f, adj] of [["bug", "Terminid"], ["bot", "Automaton"], ["squid", "Illuminate"]]) {
     setFaction(f);
-    check(f + " -> denominator is the " + validFor(f) + " items valid for that faction", poolText().indexOf("of " + validFor(f) + " " + adj + "-compatible items") !== -1 && validFor(f) < ACTIVE, poolText());
+    check(f + " -> denominator is the " + validFor(f) + " items valid for that faction", poolText().indexOf("of " + validFor(f) + " " + adj + "-compatible items") !== -1 && validFor(f) < TOT, poolText());
   }
   setFaction("bug");
   click(blockBtn(win.HD2_DATA.items.find((i) => win.HD2Engine.worksFor(i, "bug") && i.warbond !== "base").name));
@@ -160,7 +164,7 @@ function check(label, cond, extra) {
   click(blockBtn(botOnly));
   check("blocking an item the faction can't use doesn't change that faction's line", !/blocked/.test(poolText()), poolText());
   click($("gear-unblock-all"));
-  check("My Gear's own totals ignore the faction", $("grand-total").textContent === ACTIVE + " / " + ACTIVE + " items owned");
+  check("My Gear's own totals ignore the faction", $("grand-total").textContent === TOT + " / " + TOT + " items owned");
   setFaction("any");
 
   console.log("Validation");
@@ -168,14 +172,14 @@ function check(label, cond, extra) {
   check("count 0 -> error", errors().some((e) => /Loadouts must be/.test(e)), errors());
   $("count").value = "1";
   click($("gear-clear"));
-  check("own nothing -> only the 6 Base Game items left in the pool", new RegExp("Rolling from 6 of " + ACTIVE).test(poolText()), poolText());
+  check("own nothing -> only the 6 Base Game items left in the pool", new RegExp("Rolling from " + (6 + BASE_X) + " of " + TOT).test(poolText()), poolText());
   generate();
   check("only the starting gear -> it still builds (two stratagems, two empty slots), no error", errors().length === 0 && cards() === 7 && doc.querySelectorAll("#results .is-empty").length === 2, errors());
   doc.querySelectorAll('#gear-list .gear-row:not(.x-row):not(.x-dupe)').forEach((row) => { if (row.querySelector("input").disabled) click(row.querySelector(".block-btn")); });
   generate();
   check("empty pool -> clear error", errors().some((e) => /gear pool is empty/.test(e)), errors());
   click($("gear-unblock-all")); click($("gear-select-all"));
-  check("Unblock all + Own everything -> back to everything", new RegExp("Rolling from " + ACTIVE + " of " + ACTIVE).test(poolText()), poolText());
+  check("Unblock all + Own everything -> back to everything", new RegExp("Rolling from " + TOT + " of " + TOT).test(poolText()), poolText());
   $("lock-primary").value = "definitely not a gun"; generate();
   check("unknown lock -> error", errors().some((e) => /unknown item/.test(e)), errors());
   $("lock-primary").value = "AC-8 Autocannon"; generate();
@@ -265,7 +269,7 @@ function check(label, cond, extra) {
 
   click(blockBtn("AR-23 Liberator"));
   check("Block button pressed", blockBtn("AR-23 Liberator").getAttribute("aria-pressed") === "true");
-  check("pool line counts it", new RegExp("Rolling from " + (ACTIVE - 1) + " of " + ACTIVE + ".*1 blocked").test(poolText()), poolText());
+  check("pool line counts it", new RegExp("Rolling from " + (TOT - 1) + " of " + TOT + ".*1 blocked").test(poolText()), poolText());
   check("block saved (by the item's permanent id, not its name)", JSON.parse(win.localStorage.getItem("hd2_blocked")).includes(idOf("AR-23 Liberator")) && !JSON.parse(win.localStorage.getItem("hd2_blocked")).includes("AR-23 Liberator"));
   $("lock-primary").value = "AR-23 Liberator"; generate();
   check("locking a blocked item -> error", errors().some((e) => /isn't in your gear pool \(blocked\)/.test(e)), errors());
@@ -277,7 +281,7 @@ function check(label, cond, extra) {
   }
   check("blocked item never rolls (25 tries)", !sawExcluded);
   click(blockBtn("AR-23 Liberator"));
-  check("Block toggles back off", blockBtn("AR-23 Liberator").getAttribute("aria-pressed") === "false" && new RegExp("Rolling from " + ACTIVE + " of " + ACTIVE).test(poolText()));
+  check("Block toggles back off", blockBtn("AR-23 Liberator").getAttribute("aria-pressed") === "false" && new RegExp("Rolling from " + TOT + " of " + TOT).test(poolText()));
   setOwnedItem("AC-8 Autocannon", false);
   $("lock-strat1").value = "AC-8 Autocannon"; generate();
   check("locking an item you don't own -> error", errors().some((e) => /not owned/.test(e)), errors());
@@ -583,7 +587,7 @@ function check(label, cond, extra) {
   click(firstBlock.querySelector(".wb-header"));
   check("clicking a header opens that section", firstBlock.querySelector(".wb-items").classList.contains("open"));
   click($("gear-clear"));
-  check("Own nothing -> 6 / everything (Base Game stays) and saves {}", $("grand-total").textContent === "6 / " + ACTIVE + " items owned" && win.localStorage.getItem("hd2_tracker") === "{}", $("grand-total").textContent + " " + win.localStorage.getItem("hd2_tracker"));
+  check("Own nothing -> the starting gear / everything (Base Game stays) and saves {}", $("grand-total").textContent === (6 + BASE_X) + " / " + TOT + " items owned" && win.localStorage.getItem("hd2_tracker") === "{}", $("grand-total").textContent + " " + win.localStorage.getItem("hd2_tracker"));
   const firstBox = firstBlock.querySelector("input[data-item]");
   firstBox.checked = true; firstBox.dispatchEvent(change());
   check("tick saves to localStorage", !!JSON.parse(win.localStorage.getItem("hd2_tracker"))[idOf(firstBox.getAttribute("data-item"))]);
@@ -591,11 +595,13 @@ function check(label, cond, extra) {
   click(firstBlock.querySelector("[data-all]"));
   const n1 = Number(firstBlock.querySelector(".pool-count").textContent);
   const nW = firstBlock.querySelectorAll("input[data-item]").length, nX = firstBlock.querySelectorAll(".x-row input[data-x-item]").length;
-  check("per-warbond All owns just that warbond (its weapons / stratagems, armor and boosters)", n1 === nW + nX && $("grand-total").textContent === (6 + nW) + " / " + ACTIVE + " items owned", n1 + " / " + nW + " / " + nX + " / " + $("grand-total").textContent);
+  const uniq = (sel, attr) => new Set(Array.from(firstBlock.querySelectorAll(sel)).map((i) => i.getAttribute(attr))).size;   // a duplicated Superstore item is one item
+  const nWu = uniq("input[data-item]", "data-item"), nXu = uniq(".x-row input[data-x-item]", "data-x-item");
+  check("per-warbond All owns just that warbond (its weapons / stratagems, armor and boosters)", n1 === nW + nX && $("grand-total").textContent === (6 + BASE_X + nWu + nXu) + " / " + TOT + " items owned", n1 + " / " + nW + " / " + nX + " / " + $("grand-total").textContent);
   click(firstBlock.querySelector("[data-none]"));
-  check("per-warbond None clears it", firstBlock.querySelector(".pool-count").textContent === "0" && $("grand-total").textContent === "6 / " + ACTIVE + " items owned");
+  check("per-warbond None clears it", firstBlock.querySelector(".pool-count").textContent === "0" && $("grand-total").textContent === (6 + BASE_X) + " / " + TOT + " items owned");
   click($("gear-select-all"));
-  check("Own everything -> all owned", $("grand-total").textContent === ACTIVE + " / " + ACTIVE + " items owned");
+  check("Own everything -> all owned", $("grand-total").textContent === TOT + " / " + TOT + " items owned");
   click(blockBtn("AC-8 Autocannon"));
   check("blocked item shown in the summary", /1 blocked/.test($("gear-detail").textContent), $("gear-detail").textContent);
   // Blocked-but-owned styling and the per-warbond counts
@@ -749,7 +755,7 @@ function check(label, cond, extra) {
   for (let n = 0; n < 40; n++) { generate(); if (Array.from(doc.querySelectorAll("#results .item-name")).some((e) => e.textContent === LIB)) libSeen = true; }
   check("...so it never rolls for Automatons (40 builds)", !libSeen);
   tick(facBox(LIB, "squid"), true);
-  check("an item ticked for only one faction leaves the other pools", itemFactions(LIB) === "squid" && denom("bug") === Object.values(DEFAULTS).filter((f) => f !== "none" && (f === "any" || f.split(",").includes("bug"))).length - 1);
+  check("an item ticked for only one faction leaves the other pools", itemFactions(LIB) === "squid" && denom("bug") === Object.values(DEFAULTS).filter((f) => f !== "none" && (f === "any" || f.split(",").includes("bug"))).length + XL.filter((e) => xFactionOk(e, "bug")).length - 1);
   click(rowOf(LIB).querySelector(".fac-revert"));
   check("the per-item revert button restores the default", itemFactions(LIB) === "any" && facTicks(LIB) === "bug,bot,squid" && !rowOf(LIB).classList.contains("fac-custom"));
   setFaction("any");
@@ -1379,6 +1385,11 @@ function check(label, cond, extra) {
     // blocking a passive takes its armor with it
     click(xb(ek));
     check("blocking a passive takes the passive and all its armor out of the pool", poolN("p") === nPass - 1 && poolN("a") === nArmor - armorWith("Engineering Kit") && /^0 of/.test(xrow(ek).querySelector(".tr-type").textContent), poolN("a"));
+    // the totals count armor and boosters (not passives), and an armor lost to a blocked passive counts as blocked
+    const nBW = doc.querySelectorAll("#gear-list .gear-row:not(.x-row):not(.x-dupe).is-blocked").length;   // weapons blocked earlier in this run
+    const nEK = nBW + D.armor.filter((a) => a.passive === "Engineering Kit" || "a" + a.id === ce67).length;   // + the blocked passive's armor and the armor blocked by itself (counted once)
+    check("My Gear's summary: owned counts armor and boosters (no passives); rolling and blocked follow the blocked passive's armor", $("grand-total").textContent === TOT + " / " + TOT + " items owned" && $("gear-detail").textContent === "Rolling from " + (TOT - nEK) + " (" + nEK + " blocked)", $("grand-total").textContent + " | " + $("gear-detail").textContent);
+    check("...and so does the Randomizer's pool line", new RegExp("Rolling from " + (TOT - nEK) + " of " + TOT + " items \\(" + nEK + " blocked\\)").test(poolText()), poolText());
     check("...its armor rows are dimmed, not struck through", xrow(keyOf("armor", "CE-74 Breaker")).classList.contains("passive-blocked") && !xrow(keyOf("armor", "CE-74 Breaker")).classList.contains("is-blocked"));
     check("the Blocked items section lists the armor and the passive once each", (() => { const t = Array.from(doc.querySelectorAll("#blocked-list .blocked-row .tr-name")).map((e) => e.textContent); return t.filter((n) => n === "CE-67 Titan").length === 1 && t.includes("Engineering Kit") && t.length === blockedBefore + 2 && $("blocked-count").textContent === "(" + (blockedBefore + 2) + ")"; })(), $("blocked-count").textContent);
     // owned / not owned from the Blocked items section
@@ -1446,7 +1457,7 @@ function check(label, cond, extra) {
   click($("reset-all"));
   check("reset restores faction any + 1 loadout", doc.querySelector('input[name="faction"]:checked').value === "any" && $("count").value === "1");
   check("reset restores the default rows and clears added rules", chipTexts().join("|") === DEFAULT_ROWS.join("|") && JSON.parse(win.localStorage.getItem("hd2_settings")).disabledRules.length === 0);
-  check("...but leaves My Gear alone", blockBtn("AC-8 Autocannon").getAttribute("aria-pressed") === "true" && $("grand-total").textContent === ACTIVE + " / " + ACTIVE + " items owned");
+  check("...but leaves My Gear alone", blockBtn("AC-8 Autocannon").getAttribute("aria-pressed") === "true" && $("grand-total").textContent === TOT + " / " + TOT + " items owned");
 
   console.log(failed ? "\n" + failed + " check(s) FAILED" : "\nAll UI checks passed");
   process.exit(failed ? 1 : 0);
