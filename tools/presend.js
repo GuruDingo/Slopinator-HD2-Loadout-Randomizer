@@ -13,6 +13,7 @@
 //   3. tools/calibrate_odds.js --write   (~6 minutes)
 //   4. rebuild docs/gear-data.js + dist bundle; refresh tests/baseline.json if the calibration changed
 //   5. the full test run, including the odds-calibration check (what CI runs)
+//   5b. stamps today's date into the page's "Last updated" note (docs/index.html)
 //   6. repo checks: generated files up to date, nothing private in tracked files or commit messages
 // It does not commit or push: look at `git status`, then commit.
 const { spawnSync } = require("child_process");
@@ -57,6 +58,17 @@ else {
   const changed = run("git", ["diff", "--quiet", "--", "odds_calibration.json"]).status !== 0;
   console.log(changed ? "odds_calibration.json changed: refreshing the regression baseline" : "odds_calibration.json unchanged");
   if (changed) stream("Refresh regression baseline", "node", ["tests/regression.js", "--update-baseline"]);
+}
+
+// Stamp the "Last updated" date on the page (the day the pull request goes out; UTC date).
+{
+  const fs = require("fs");
+  const htmlPath = path.join(root, "docs", "index.html");
+  const html = fs.readFileSync(htmlPath, "utf8");
+  const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  const next = html.replace(/(<span id="last-updated">)[^<]*(<\/span>)/, "$1" + today + "$2");
+  if (next === html) console.log('\n"Last updated" already says ' + today + " (or the page has no #last-updated span)");
+  else { fs.writeFileSync(htmlPath, next); console.log('\n"Last updated" set to ' + today + " in docs/index.html (commit it)"); }
 }
 
 // 5. full tests

@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory() as tmp:
     work = Path(tmp) / "proj"
     (work / "docs").mkdir(parents=True)
     (work / "tools").mkdir()
-    for f in ("hd2gear.csv", "hd2warbonds.csv", "hd2tags.csv"):
+    for f in ("hd2gear.csv", "hd2warbonds.csv", "hd2tags.csv", "hd2armor.csv", "hd2passives.csv", "hd2boosters.csv", "hd2extras.lock.json"):
         shutil.copy(ROOT / f, work / f)
     for f in ("app.js", "engine.js", "index.html", "style.css"):
         shutil.copy(ROOT / "docs" / f, work / "docs" / f)
@@ -45,6 +45,8 @@ with tempfile.TemporaryDirectory() as tmp:
 
     jobs = fi.plan()
     check("every image the site uses is planned, once each", len({u for u, _, _ in jobs}) == len(jobs) and len(jobs) > 220, len(jobs))
+    check("armor pictures, armor passive icons and booster icons are planned too", sum(1 for u, k, r in jobs if k == "armor" and r.startswith("img/armor/") and r.endswith(".webp")) == 113
+          and any("Armor_Passive_Icon.svg" in u and r.startswith("img/icons/") for u, _, r in jobs) and any("Booster_Icon.svg" in u and r.startswith("img/icons/") for u, _, r in jobs))
     check("all 13 armor-penetration icons are planned", sum(1 for u, _, _ in jobs if "Armor_AP" in u) == 13)
     check("a /thumb/ address is saved under the plain file name", any(r == "img/icons/Longshot_Title_Icon.png" for _, _, r in jobs))
     check("raster pictures become .webp, SVGs (the stratagem icons) and icons keep their format",
@@ -70,6 +72,8 @@ with tempfile.TemporaryDirectory() as tmp:
     item = next(rel for u, k, rel in jobs if k == "items" and rel.endswith(".webp"))
     im = Image.open(work / "docs" / item)
     check("item pictures are shrunk to at most 320px", im.format == "WEBP" and max(im.size) <= 320, im.size)
+    arm = Image.open(work / "docs" / next(rel for u, k, rel in jobs if k == "armor"))
+    check("armor pictures are shrunk to at most 240px", arm.format == "WEBP" and max(arm.size) <= 240, arm.size)
 
     r = run(work, "tools/fetch_images.py", "--from-dir", str(src))
     check("a second run only fetches what is still missing (1 file)", "1 to fetch" in r.stdout, r.stdout[:200])

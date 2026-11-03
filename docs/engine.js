@@ -858,8 +858,34 @@
       return pick;
     }
 
+    // Picks one armor passive or booster from `list` (the ones in the player's pool). Items marked for other factions are skipped
+    // while any fit the faction; `o.taken` (a Set of names, e.g. the boosters squadmates already carry) and `o.avoid` (a name, e.g.
+    // the one being rerolled) are skipped as long as something else is left. Returns { item, offFaction } or null for an empty list.
+    function pickExtra(list, o) {
+      o = o || {};
+      var cands = (list || []).filter(function (e) { return (e.factions || ["any"]).indexOf("none") === -1; });
+      if (!cands.length) return null;
+      var offFaction = false;
+      if (o.faction && o.faction !== "any") {
+        var fit = cands.filter(function (e) { return worksFor({ factions: e.factions || ["any"] }, o.faction); });
+        if (fit.length) cands = fit; else offFaction = true;
+      }
+      function without(test) { var rest = cands.filter(function (e) { return !test(e); }); return rest.length ? rest : cands; }
+      if (o.taken) cands = without(function (e) { return o.taken.has(e.name); });
+      if (o.avoid) cands = without(function (e) { return e.name === o.avoid; });
+      // Synergy: an entry whose tags match a tag on one of the loadout's items (o.items) is rolled `o.synergy` times as often
+      // (default 3; 1 = off). Entries with no tags are never boosted, so nothing changes until tags are filled in.
+      var factor = o.synergy === undefined ? 3 : o.synergy, have = {};
+      (o.items || []).forEach(function (it) { ((it && it.tags) || []).forEach(function (t) { have[t] = true; }); });
+      var pick = factor !== 1 && Object.keys(have).length
+        ? weightedChoice(cands, function (e) { return (e.tags || []).some(function (t) { return have[t]; }) ? factor : 1; })
+        : randomChoice(cands);
+      return { item: pick, offFaction: offFaction };
+    }
+
     return {
       pools: { primaries: primaries, secondaries: secondaries, throwables: throwables, strategems: strategems },
+      pickExtra: pickExtra,
       allWarbondKeys: allWarbondKeys,
       resolve: resolve,
       tryBuild: tryBuild,

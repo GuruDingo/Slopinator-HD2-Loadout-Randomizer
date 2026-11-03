@@ -12,7 +12,7 @@
   <header class="site-header">
     <h1>Helldivers 2 Slopinator</h1>
     <p class="tagline">A Loadout Randomizer Fan-Project</p>
-    <p class="version-note" id="game-version">Updated for Helldivers 2 version 1.007.202</p>
+    <p class="version-note" id="game-version">Updated for Helldivers 2 version 1.007.202 &middot; Last updated <span id="last-updated">Nov 3, 2026</span></p>
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button type="button" class="tab active" role="tab" data-view="randomizer" aria-selected="true">Randomizer</button>
       <button type="button" class="tab" role="tab" data-view="gear" aria-selected="false">My Gear</button>
@@ -44,10 +44,15 @@
         <button type="button" class="link-btn" id="pool-edit">Edit in My Gear</button>
       </div>
 
+      <div class="extras-switch">
+        <label class="switch"><input type="checkbox" id="use-extras" role="switch" checked><span class="switch-track"></span>
+          <span>Armor passive &amp; booster <span class="rule-note">Rolled for every loadout from the armor and boosters you own.</span></span></label>
+      </div>
+
       <details class="section">
         <summary>Lock slots <span class="summary-note" id="lock-summary"></span></summary>
         <div class="section-body">
-          <p class="hint">Pin specific gear and randomize the rest. Type a name or nickname (e.g. <em>liberator</em>, <em>eat-17</em>). Locks override the slot rules (backpack count, support caps, etc.). If your locks make some guarantees impossible, the loadout is still built and the missed guarantees are listed above it.</p>
+          <p class="hint">Pin specific gear and randomize the rest. Type a name or nickname (e.g. <em>liberator</em>, <em>eat-17</em>). Locks override the slot rules (backpack count, support caps, etc.). An armor passive lock applies to every loadout; a booster lock goes to the first loadout only, because squadmates can't share a booster. If your locks make some guarantees impossible, the loadout is still built and the missed guarantees are listed above it.</p>
           <div class="lock-grid" id="lock-grid"></div>
         </div>
       </details>
@@ -133,6 +138,11 @@
       </div>
     </div>
     <div id="gear-list"></div>
+    <div id="extras-section" class="extras-section" hidden>
+      <h3 class="x-title">Armor, armor passives and boosters</h3>
+      <p class="hint">A passive can roll when you own at least one armor that carries it. Block a passive to take it out along with all its armor, or block a single armor to just hide that one.</p>
+      <div id="extras-list"></div>
+    </div>
     <div id="blocked-section" class="wb-block blocked-section" hidden>
       <div class="blocked-head"><h3>Blocked items <span id="blocked-count" class="blocked-total"></span></h3>
         <span class="hint">Never rolled. Unblock one here, or with its Block button in the list above. You can also mark an item owned or not owned here.</span></div>
@@ -154,6 +164,8 @@
 <datalist id="dl-secondary"></datalist>
 <datalist id="dl-throwable"></datalist>
 <datalist id="dl-strat"></datalist>
+<datalist id="dl-passive"></datalist>
+<datalist id="dl-booster"></datalist>
 
 <script src="gear-data.js"></script>
 <script src="engine.js"></script>

@@ -42,6 +42,9 @@ function check(label, cond, extra) {
     doc.querySelector('input[name="faction"][value="' + v + '"]').dispatchEvent(new win.Event("change", { bubbles: true }));
   };
   const change = () => new win.Event("change", { bubbles: true });
+  const setExtras = (on) => { $("use-extras").checked = on; $("use-extras").dispatchEvent(new win.Event("change", { bubbles: true })); };
+  const extrasDefaultOn = $("use-extras").checked;
+  setExtras(false);   // the older tests below are about weapons and stratagems: they run with the armor passive / booster switch off
   const gearBox = (name) => doc.querySelector('#gear-list input[data-item="' + name + '"]');
   const blockBtn = (name) => doc.querySelector('#gear-list .block-btn[data-block="' + name + '"]');
   const rowOf = (name) => gearBox(name).closest(".gear-row");
@@ -71,7 +74,7 @@ function check(label, cond, extra) {
   const defaultOf = (name) => DEFAULTS[name];
   const customCount = () => doc.querySelectorAll("#gear-list .gear-row.fac-custom").length;
   check("first visit wrote the owned list to localStorage", Object.keys(JSON.parse(win.localStorage.getItem("hd2_tracker"))).length === ACTIVE - win.HD2_DATA.items.filter((i) => (i.warbond === "base" || i.alwaysOwned) && i.factions.indexOf("none") === -1).length); // everything except the always-owned Base Game items
-  check("7 lock inputs", doc.querySelectorAll("#lock-grid input").length === 7);
+  check("9 lock inputs (7 slots, armor passive, booster)", doc.querySelectorAll("#lock-grid input").length === 9);
   check("datalists filled", $("dl-primary").children.length > 40 && $("dl-strat").children.length > 60);
   check("the rule builder lists the 44 titled tags, in sections from hd2tags.csv, in file order inside each", (() => {
     const tagGroups = Array.from(doc.querySelectorAll('#builder-body .b-row[data-role="must"] optgroup')).filter((g) => g.label !== "Categories" && !/^Item: /.test(g.label));
@@ -929,6 +932,10 @@ function check(label, cond, extra) {
     click(doc.querySelector('.tab[data-view="randomizer"]'));
     setv(bRow("odds").querySelector(".b-sel"), "cat:eagle"); setv(bRow("odds").querySelector(".b-scope"), "strats"); bRow("odds").querySelector(".b-n").value = "2"; click($("odds-add"));
     click(doc.querySelector('.tab[data-view="gear"]'));
+    const xKey = (list, name) => ({ armor: "a", passives: "p", boosters: "b" })[list] + win.HD2_DATA[list].find((e) => e.name === name).id;
+    const XA = xKey("armor", "CE-67 Titan"), XB = xKey("boosters", "Dead Sprint");
+    click(doc.querySelector('#extras-list [data-x-block="' + XA + '"]'));
+    click(doc.querySelector('#extras-list input[data-x-item="' + XB + '"]'));   // not owned
     click($("data-export"));
     check("Export my data makes a download", downloads === 1 && !!captured && /Exported/.test($("data-msg").textContent), $("data-msg").textContent);
     const text = await readBlob(captured);
@@ -936,12 +943,16 @@ function check(label, cond, extra) {
     check("the file has the app marker, a version and the four sections", data.app === "hd2-slopinator" && data.version === 1 && !!data.owned && Array.isArray(data.blocked) && !!data.factions && !!data.settings, Object.keys(data).join());
     check("...items are saved by permanent id: the unowned item is missing, the blocked one is listed, the edit is there", !data.owned[idOf("Eagle Airstrike")] && data.owned[idOf("EAT-17 Expendable Anti-Tank")] === true && data.blocked.includes(idOf(AA)) && JSON.stringify(data.factions[idOf(CONC)]) === '["bug","bot"]', JSON.stringify(data.blocked) + JSON.stringify(data.factions));
     check("...and the rules (an odds rule here) travel with it", (data.settings.weights || []).some((w) => w.sel === "cat:eagle" && w.factor === 2), JSON.stringify(data.settings));
+    check("...armor and boosters travel too: the blocked armor, and the booster that isn't owned", !!data.extras && data.extras.blocked.includes(XA) && !data.extras.owned.includes(XB) && data.extras.owned.length > 100, JSON.stringify(data.extras && data.extras.blocked));
     // change everything, then bring it back
+    click(doc.querySelector('#extras-list [data-x-block="' + XA + '"]')); click(doc.querySelector('#extras-list input[data-x-item="' + XB + '"]'));
     click(gearBox("Eagle Airstrike")); click(blockBtn(AA)); click(rowOf(CONC).querySelector(".fac-revert"));
     click(doc.querySelector('.tab[data-view="randomizer"]')); click($("custom-clear")); click(doc.querySelector('.tab[data-view="gear"]'));
     check("(the data really was changed first)", gearBox("Eagle Airstrike").checked && itemFactions(CONC) === "bug" && !JSON.parse(win.localStorage.getItem("hd2_settings")).weights.length);
     await importText(text);
     check("importing the file restores owned, blocked, faction edit and rules", !gearBox("Eagle Airstrike").checked && blockBtn(AA).getAttribute("aria-pressed") === "true" && itemFactions(CONC) === "bug,bot" && chipTexts().includes("Eagle ×2 odds"), $("data-msg").textContent);
+    check("...including the blocked armor and the unowned booster", doc.querySelector('#extras-list [data-x-block="' + XA + '"]').getAttribute("aria-pressed") === "true" && doc.querySelector('#extras-list input[data-x-item="' + XB + '"]').checked === false);
+    click(doc.querySelector('#extras-list [data-x-block="' + XA + '"]')); click(doc.querySelector('#extras-list input[data-x-item="' + XB + '"]'));   // tidy up for the later tests
     check("...the page says what came in", /Imported: \d+ owned items, \d+ blocked, 1 faction edit/.test($("data-msg").textContent), $("data-msg").textContent);
     check("...and it is saved in this browser", JSON.parse(win.localStorage.getItem("hd2_blocked")).includes(idOf(AA)) && JSON.parse(win.localStorage.getItem("hd2_settings")).weights.length === 1);
     // bad files change nothing
@@ -1064,6 +1075,7 @@ function check(label, cond, extra) {
     }
   }
   console.log("Shared loadouts and markers");
+  setExtras(false);   // (the Reset options test earlier switched them back on)
   {
     let copied = null;
     Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { writeText: (t) => { copied = t; return Promise.resolve(); } } });
@@ -1119,6 +1131,120 @@ function check(label, cond, extra) {
     generate();
     check("Generate afterwards makes a normal loadout again", !doc.querySelector("#results .shared-banner"));
   }
+  console.log("Armor passive and booster in loadouts");
+  {
+    const D = win.HD2_DATA;
+    const xkey = (list, name) => ({ armor: "a", passives: "p", boosters: "b" })[list] + D[list].find((e) => e.name === name).id;
+    const los = () => Array.from(doc.querySelectorAll("#results .loadout"));
+    const passiveName = (i) => los()[i].querySelector(".x-passive .x-name").textContent;
+    const boosterName = (i) => los()[i].querySelector(".x-booster .item-name").textContent;
+    const weapons = (i) => Array.from(los()[i].querySelectorAll(".item-card .item-name, .item-card2 .item-name")).map((e) => e.textContent).join("|");
+    const pbtn = (i, cls) => los()[i].querySelector(".x-passive ." + cls);
+    const bbtn = (i, cls) => los()[i].querySelector(".x-booster ." + cls);
+    const stored = (k) => JSON.parse(win.localStorage.getItem(k));
+    const free = (i) => Number(/\((\d+)\)/.exec(los()[i].querySelector(".reroll-all-btn").textContent)[1]);
+    setFaction("any"); $("count").value = "1";
+    click($("gear-select-all"));
+    check("the armor passive & booster switch is on by default, and the page says what it does", extrasDefaultOn === true && /Armor passive/.test(doc.querySelector(".extras-switch").textContent));
+    setExtras(false); generate();
+    check("switched off: no Passives section and no extras on the loadout", !doc.querySelector("#results .x-card") && free(0) === 7);
+    setExtras(true); generate();
+    check("switched on: the loadout has an armor passive card and a booster card", !!doc.querySelector("#results .x-passive") && !!doc.querySelector("#results .x-booster") && /Passives/.test(los()[0].textContent));
+    check("...the seven weapon / stratagem cards are unchanged", doc.querySelectorAll("#results .item-card, #results .item-card2").length === 7);
+    check("...Reroll all counts nine free slots", free(0) === 9, free(0));
+    check("...the setting is saved only when it is off", stored("hd2_settings").noExtras === undefined);
+    // Lock slots panel
+    const someP = D.passives[2].name, someB = D.boosters[3].name;
+    $("count").value = "3";
+    $("lock-xpassive").value = someP; $("lock-xbooster").value = someB; $("lock-xbooster").dispatchEvent(new win.Event("input", { bubbles: true })); generate();
+    check("Lock slots: a locked passive is on every loadout, a locked booster on the first only", errors().length === 0 && [0, 1, 2].every((i) => passiveName(i) === someP) && boosterName(0) === someB && boosterName(1) !== someB && boosterName(2) !== someB, [0, 1, 2].map(passiveName).join() + " / " + [0, 1, 2].map(boosterName).join());
+    check("...they show as locked on the card, and the summary counts them", pbtn(0, "lock-btn").getAttribute("aria-pressed") === "true" && bbtn(0, "lock-btn").getAttribute("aria-pressed") === "true" && bbtn(1, "lock-btn").getAttribute("aria-pressed") === "false" && /2 locked/.test($("lock-summary").textContent), [pbtn(0, "lock-btn").getAttribute("aria-pressed"), bbtn(0, "lock-btn").getAttribute("aria-pressed"), bbtn(1, "lock-btn").getAttribute("aria-pressed"), $("lock-summary").textContent].join());
+    check("...and the seven weapon / stratagem cards are unaffected", doc.querySelectorAll("#results .item-card, #results .item-card2").length === 21);
+    $("lock-xpassive").value = "No Such Passive"; generate();
+    check("Lock slots: an unknown passive name is an error", errors().some((e) => /unknown armor passive/.test(e)), errors());
+    $("lock-xpassive").value = ""; $("lock-xbooster").value = "Nope"; generate();
+    check("...and so is an unknown booster", errors().some((e) => /unknown booster/.test(e)), errors());
+    setExtras(false); $("lock-xbooster").value = someB; generate();
+    check("Lock slots: with the switch off, a passive / booster lock says to turn it on", errors().some((e) => /turn on/.test(e)), errors());
+    setExtras(true); $("lock-xbooster").value = ""; $("lock-xpassive").value = ""; $("count").value = "1"; generate();
+    // armor shown on the card = owned, unblocked armor of that passive
+    const cur = () => D.passives.find((p) => p.name === passiveName(0));
+    const tilesNow = () => Array.from(los()[0].querySelectorAll(".x-passive .x-tile")).map((t) => t.getAttribute("title"));
+    check("the card lists exactly the owned armor that carries the passive", (() => { const want = D.armor.filter((a) => a.passive === cur().name).map((a) => a.name).sort(); return want.join() === tilesNow().sort().join(); })(), tilesNow().join());
+    check("...in Light / Medium / Heavy rows", los()[0].querySelectorAll(".x-passive .x-wsec").length === 3);
+    // single rerolls
+    let w0 = weapons(0), b0 = boosterName(0), always = true, only = true;
+    for (let n = 0; n < 15; n++) { const before = passiveName(0); click(pbtn(0, "reroll-btn")); if (passiveName(0) === before) always = false; if (weapons(0) !== w0 || boosterName(0) !== b0) only = false; }
+    check("rerolling the passive always gives a different one (15 rerolls)", always);
+    check("...and changes nothing else on the loadout", only);
+    always = true; only = true; let p0 = passiveName(0);
+    for (let n = 0; n < 15; n++) { const before = boosterName(0); click(bbtn(0, "reroll-btn")); if (boosterName(0) === before) always = false; if (weapons(0) !== w0 || passiveName(0) !== p0) only = false; }
+    check("rerolling the booster always gives a different one (15 rerolls)", always);
+    check("...and changes nothing else on the loadout", only);
+    // locks
+    click(pbtn(0, "lock-btn"));
+    check("locking the passive disables its reroll and drops the free count to 8", pbtn(0, "reroll-btn").disabled === true && free(0) === 8);
+    p0 = passiveName(0); let kept = true, moved = false; const b1 = boosterName(0), w1 = weapons(0);
+    for (let n = 0; n < 12; n++) { click(los()[0].querySelector(".reroll-all-btn")); if (passiveName(0) !== p0) kept = false; if (boosterName(0) !== b1 || weapons(0) !== w1) moved = true; }
+    check("Reroll all unlocked keeps a locked passive (12 rerolls)", kept);
+    check("...and does reroll the booster and the weapons", moved);
+    click(pbtn(0, "lock-btn"));
+    // blocking the passive on its card
+    const blockedP = passiveName(0), pkey = xkey("passives", blockedP);
+    click(pbtn(0, "block-slot-btn"));
+    check("Block on the passive card blocks it in My Gear (saved by its own id)", stored("hd2_x_blocked").includes(pkey));
+    check("...and rolls another passive", passiveName(0) !== blockedP);
+    let back = false;
+    for (let n = 0; n < 25; n++) { click(pbtn(0, "reroll-btn")); if (passiveName(0) === blockedP) back = true; }
+    check("a blocked passive never comes back on later rerolls (25 rerolls)", !back);
+    click(doc.querySelector('#blocked-list [data-x-unblock="' + pkey + '"]'));
+    // blocking one armor tile
+    click(pbtn(0, "lock-btn")); const keepP = passiveName(0);
+    const tile = los()[0].querySelector(".x-passive .x-tile"), tileName = tile.getAttribute("title"), akey = xkey("armor", tileName);
+    check("an armor tile has a block button", !!tile.querySelector(".x-tile-block"));
+    click(tile); click(tile.querySelector(".x-tile-block"));
+    check("blocking an armor tile blocks only that armor in My Gear", stored("hd2_x_blocked").includes(akey) && !stored("hd2_x_blocked").includes(xkey("passives", keepP)));
+    check("...the tile is gone from the card but the passive stays", !tilesNow().includes(tileName) && passiveName(0) === keepP);
+    click(doc.querySelector('#blocked-list [data-x-unblock="' + akey + '"]'));
+    check("unblocking the armor puts the tile back", tilesNow().includes(tileName));
+    click(pbtn(0, "lock-btn"));
+    // the pool follows what you own
+    click($("gear-clear")); click($("gear-select-all"));
+    D.armor.forEach((a) => { const cb = doc.querySelector('#extras-list input[data-x-item="a' + a.id + '"]'); if (cb && !cb.disabled && cb.checked && a.warbond !== "polar_patriots") click(cb); });
+    const allowed = new Set(D.armor.filter((a) => a.warbond === "polar_patriots" || a.warbond === "base").map((a) => a.passive));
+    let seen = new Set(), outside = false;
+    for (let n = 0; n < 40; n++) { generate(); const nm = passiveName(0); seen.add(nm); if (!allowed.has(nm)) outside = true; }
+    check("only passives you own armor for are rolled (Polar Patriots + the starting armor)", !outside && seen.size > 1, Array.from(seen).join());
+    click($("gear-select-all"));
+    // several loadouts: squadmates carry different boosters
+    $("count").value = "4"; let dup = false;
+    for (let n = 0; n < 15; n++) { generate(); const names = los().map((l, i) => boosterName(i)); if (new Set(names).size !== names.length) dup = true; }
+    check("four loadouts never share a booster when there are enough (15 runs)", !dup);
+    // an empty pool
+    $("count").value = "1";
+    click(doc.querySelector('#extras-list [data-x-block-all="boosters"]')); generate();
+    check("no booster in the pool: the card says so instead of leaving a gap", !!los()[0].querySelector(".x-booster.x-card-empty"), los()[0].querySelector(".x-booster") && los()[0].querySelector(".x-booster").textContent);
+    click(doc.querySelector('#extras-list [data-x-block-none="boosters"]'));
+    // share link round trip
+    let copied = null;
+    Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { writeText: (t) => { copied = t; return Promise.resolve(); } } });
+    generate();
+    const sp = passiveName(0), sb = boosterName(0);
+    click(los()[0].querySelector(".share-btn"));
+    await new Promise((r) => setTimeout(r, 20));
+    check("a loadout with a passive and booster shares as an l2 link (7 items + 2 ids)", /#l2=\d+(\.\d+){8}$/.test(copied || ""), copied);
+    click($("gear-clear"));
+    win.location.hash = copied.slice(copied.indexOf("#") + 1);
+    await new Promise((r) => setTimeout(r, 50));
+    check("opening it shows the same passive and booster", los().length === 1 && passiveName(0) === sp && boosterName(0) === sb, sp + " / " + sb);
+    check("...with a NOT OWNED marker on the booster (the viewer owns only the starting gear)", !!los()[0].querySelector(".x-booster .not-owned"));
+    win.location.hash = "l2=1.2.3";
+    await new Promise((r) => setTimeout(r, 30));
+    check("a damaged l2 link says so", /damaged/.test($("messages").textContent), $("messages").textContent);
+    click($("gear-select-all"));
+    setExtras(false);
+  }
+
   console.log("Saved images");
   {
     // a page whose data lists saved copies: those are used for every kind of picture; anything not listed keeps its wiki link
@@ -1149,6 +1275,74 @@ function check(label, cond, extra) {
       check("the single-file build shows every saved picture from inside the file (no network needed)", saved > 0 && thumbs.length === ACTIVE && thumbs.filter((t) => t.startsWith("data:image/")).length >= 150, thumbs.filter((t) => t.startsWith("data:image/")).length + " of " + thumbs.length + " thumbnails are embedded");
       domR.window.close();
     }
+  }
+
+  console.log("Armor, armor passives and boosters in My Gear");
+  {
+    const D = win.HD2_DATA, nArmor = D.armor.length, nPass = D.passives.length, nBoost = D.boosters.length;
+    const xrow = (key) => doc.querySelector('#extras-list [data-x-block="' + key + '"]').closest(".gear-row");
+    const keyOf = (kind, name) => ({ armor: "a", passive: "p", booster: "b" })[kind] + D[{ armor: "armor", passive: "passives", booster: "boosters" }[kind]].find((e) => e.name === name).id;
+    const xb = (key) => doc.querySelector('#extras-list [data-x-block="' + key + '"]');
+    const xcb = (key) => doc.querySelector('#extras-list input[data-x-item="' + key + '"]');
+    const poolOf = (id) => Number(doc.querySelector('#extras-list [data-x-block-id="' + id + '"] > .wb-header .pool-count').textContent);
+    const stored = (k) => JSON.parse(win.localStorage.getItem(k));
+    check("the armor / passive / booster section is shown, with 3 top-level blocks", !$("extras-section").hidden && doc.querySelectorAll("#extras-list > .wb-block").length === 3);
+    check("every armor, passive and booster has a row (" + nArmor + " / " + nPass + " / " + nBoost + ")", doc.querySelectorAll("#extras-list .gear-row").length === nArmor + nPass + nBoost);
+    check("none of them are counted in the item rows or the owned total", doc.querySelectorAll("#gear-list .gear-row").length === ACTIVE && /items owned/.test($("grand-total").textContent) && !/113/.test($("grand-total").textContent));
+    check("a first visit owns all armor and boosters (starting armor is locked on)", poolOf("armor") === nArmor && poolOf("boosters") === nBoost && poolOf("passives") === nPass && xcb(keyOf("armor", "B-01 Tactical")).disabled === true);
+    // blocking one armor hides just that armor
+    const ce67 = keyOf("armor", "CE-67 Titan"), ek = keyOf("passive", "Engineering Kit");
+    const blockedBefore = doc.querySelectorAll("#blocked-list .blocked-row").length;   // items blocked by the earlier tests
+    click(xb(ce67));
+    check("blocking one armor takes just that armor out of the pool", poolOf("armor") === nArmor - 1 && poolOf("passives") === nPass && xrow(ce67).classList.contains("is-blocked"));
+    check("...and its passive stays in the pool with one fewer armor", /^9 of 10 armor/.test(xrow(ek).querySelector(".tr-type").textContent), xrow(ek).querySelector(".tr-type").textContent);
+    check("...the block is saved by the armor's own id", stored("hd2_x_blocked").includes(ce67));
+    // blocking a passive takes its armor with it
+    click(xb(ek));
+    check("blocking a passive takes the passive and all its armor out of the pool", poolOf("passives") === nPass - 1 && poolOf("armor") === nArmor - 10 && /^0 of 10 armor/.test(xrow(ek).querySelector(".tr-type").textContent), poolOf("armor"));
+    check("...its armor rows are dimmed, not struck through", xrow(keyOf("armor", "CE-74 Breaker")).classList.contains("passive-blocked") && !xrow(keyOf("armor", "CE-74 Breaker")).classList.contains("is-blocked"));
+    check("the Blocked items section lists the armor and the passive", (() => { const t = Array.from(doc.querySelectorAll("#blocked-list .blocked-row .tr-name")).map((e) => e.textContent); return t.includes("CE-67 Titan") && t.includes("Engineering Kit") && t.length === blockedBefore + 2 && $("blocked-count").textContent === "(" + (blockedBefore + 2) + ")"; })(), $("blocked-count").textContent);
+    // owned / not owned from the Blocked items section
+    const ownBox = () => doc.querySelector('#blocked-list [data-x-blocked-owned="' + ce67 + '"]');
+    check("a blocked armor has an Owned checkbox there, ticked", ownBox() && ownBox().checked === true && !ownBox().disabled);
+    ownBox().checked = false; ownBox().dispatchEvent(new win.Event("change", { bubbles: true }));
+    check("unticking it marks the armor not owned in the list too", xcb(ce67).checked === false && !stored("hd2_x_owned")[ce67]);
+    ownBox().checked = true; ownBox().dispatchEvent(new win.Event("change", { bubbles: true }));
+    check("ticking it again owns it", xcb(ce67).checked === true);
+    click(doc.querySelector('#blocked-list [data-x-unblock="' + ek + '"]'));
+    click(doc.querySelector('#blocked-list [data-x-unblock="' + ce67 + '"]'));
+    check("Unblock in the section brings the passive and armor back", poolOf("armor") === nArmor && poolOf("passives") === nPass && doc.querySelectorAll("#blocked-list .blocked-row").length === blockedBefore);
+    // own none / own all for a warbond's armor
+    const polar = doc.querySelector('#extras-list [data-x-block-id="armor_polar_patriots"]');
+    click(polar.querySelector("[data-x-none]"));
+    check("Own None on a warbond's armor drops it out of the pool and keeps the others", poolOf("armor_polar_patriots") === 0 && poolOf("armor") === nArmor - D.armor.filter((a) => a.warbond === "polar_patriots").length);
+    click(polar.querySelector("[data-x-all]"));
+    check("Own All brings it back", poolOf("armor") === nArmor);
+    // layout: lists start open (two columns on a wide screen); the Superstore is split into collapsed weight menus
+    const isOpen = (id) => doc.querySelector('#extras-list [data-x-block-id="' + id + '"] > .wb-items').classList.contains("open");
+    check("armor, passives, boosters and a normal warbond start open, in the two-column layout", ["armor", "passives", "boosters", "armor_polar_patriots"].every((id) => isOpen(id)) && doc.querySelector('#extras-list [data-x-block-id="passives"] > .wb-items').classList.contains("x-list"));
+    const ssSub = (wt) => doc.querySelector('#extras-list [data-x-block-id="armor_superstore_' + wt + '"]');
+    const ssAll = D.armor.filter((a) => a.warbond === "superstore");
+    check("Superstore is open and holds Light / Medium / Heavy menus, all collapsed", isOpen("armor_superstore") && ["light", "medium", "heavy"].every((wt) => ssSub(wt) && !isOpen("armor_superstore_" + wt)));
+    check("...each menu holds just its weight class, and together they hold every Superstore armor", ["light", "medium", "heavy"].every((wt) => ssSub(wt).querySelectorAll(".gear-row").length === ssAll.filter((a) => a.weight === wt).length) && doc.querySelectorAll('#extras-list [data-x-block-id="armor_superstore"] .gear-row').length === ssAll.length);
+    check("...a normal warbond is one flat list with no weight menus", !doc.querySelector('#extras-list [data-x-block-id="armor_polar_patriots"] .wb-block'));
+    click(ssSub("light").querySelector("[data-x-none]"));
+    check("Own None on the Light menu drops only the Light armor from the pool", poolOf("armor_superstore_light") === 0 && poolOf("armor_superstore") === ssAll.length - ssAll.filter((a) => a.weight === "light").length && poolOf("armor_superstore_heavy") === ssAll.filter((a) => a.weight === "heavy").length);
+    click(ssSub("light").querySelector("[data-x-all]"));
+    check("...and Own All brings it back", poolOf("armor") === nArmor);
+    $("gear-search").value = "juggernaut"; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true }));
+    check("searching opens the collapsed Superstore menu that holds the match", isOpen("armor_superstore_medium") && !ssSub("medium").hidden && ssSub("light").hidden);
+    $("gear-search").value = ""; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true }));
+    // search finds armor, passives and boosters
+    $("gear-search").value = "scout"; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true }));
+    const found = Array.from(doc.querySelectorAll("#extras-list .gear-row")).filter((r) => !r.hidden).map((r) => r.querySelector(".tr-name").textContent);
+    check("searching 'scout' finds the Scout passive and the armor that carries it", found.includes("Scout") && found.includes("SC-34 Infiltrator") && found.includes("CW-4 Arctic Ranger"), found.join(", "));
+    $("gear-search").value = ""; $("gear-search").dispatchEvent(new win.Event("input", { bubbles: true }));
+    // export carries them; an older file works out the rest from the gear
+    click(xb(keyOf("booster", "Dead Sprint")));
+    check("a booster can be blocked", poolOf("boosters") === nBoost - 1);
+    click(doc.querySelector('#blocked-list [data-x-unblock="' + keyOf("booster", "Dead Sprint") + '"]'));
+    check("...and unblocked again", poolOf("boosters") === nBoost);
   }
 
   console.log("Reset");
