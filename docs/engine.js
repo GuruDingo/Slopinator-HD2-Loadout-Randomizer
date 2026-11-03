@@ -873,7 +873,14 @@
       function without(test) { var rest = cands.filter(function (e) { return !test(e); }); return rest.length ? rest : cands; }
       if (o.taken) cands = without(function (e) { return o.taken.has(e.name); });
       if (o.avoid) cands = without(function (e) { return e.name === o.avoid; });
-      return { item: randomChoice(cands), offFaction: offFaction };
+      // Synergy: an entry whose tags match a tag on one of the loadout's items (o.items) is rolled `o.synergy` times as often
+      // (default 3; 1 = off). Entries with no tags are never boosted, so nothing changes until tags are filled in.
+      var factor = o.synergy === undefined ? 3 : o.synergy, have = {};
+      (o.items || []).forEach(function (it) { ((it && it.tags) || []).forEach(function (t) { have[t] = true; }); });
+      var pick = factor !== 1 && Object.keys(have).length
+        ? weightedChoice(cands, function (e) { return (e.tags || []).some(function (t) { return have[t]; }) ? factor : 1; })
+        : randomChoice(cands);
+      return { item: pick, offFaction: offFaction };
     }
 
     return {

@@ -784,6 +784,15 @@ test("pickExtra: faction-specific entries are preferred for their faction, and u
   assert.strictEqual(r.item, bug); assert.strictEqual(r.offFaction, true);
   assert.strictEqual(engine.pickExtra([{ name: "off", factions: ["none"] }], {}), null);
 });
+test("pickExtra: entries whose tags match the loadout are rolled more often; untagged lists stay uniform", () => {
+  const a = { name: "a", tags: ["mobility"] }, b = { name: "b", tags: [] };
+  const count = (o) => { let n = 0; for (let i = 0; i < 6000; i++) if (engine.pickExtra([a, b], o).item === a) n++; return n / 6000; };
+  const items = [{ tags: ["mobility", "x"] }];
+  assert(Math.abs(count({ items }) - 0.75) < 0.05, "default factor 3 gives about 75%");
+  assert(Math.abs(count({ items, synergy: 1 }) - 0.5) < 0.05, "synergy 1 is off");
+  assert(Math.abs(count({ items: [{ tags: ["other"] }] }) - 0.5) < 0.05, "no matching tag: no boost");
+  assert(Math.abs(count({}) - 0.5) < 0.05, "no items: no boost");
+});
 test("pickExtra is uniform over a list (every entry shows up)", () => {
   const list = globalThis.HD2_DATA.passives, seen = new Set();
   for (let i = 0; i < 3000; i++) seen.add(engine.pickExtra(list, {}).item.name);
