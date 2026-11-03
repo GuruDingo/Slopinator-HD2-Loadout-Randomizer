@@ -9,6 +9,9 @@ no longer hotlinks them.
 
 What it collects (the wiki address stays the source of truth; nothing in the CSVs changes):
     hd2gear.csv        img_url          -> docs/img/items/       (resized, WebP)
+    hd2armor.csv       img_url          -> docs/img/armor/       (resized, WebP)
+    hd2passives.csv    img_url          -> docs/img/icons/       (SVG kept as it is)
+    hd2boosters.csv    img_url          -> docs/img/icons/       (SVG kept as it is)
     docs/app.js        every wiki image the page links (faction emblems, warbond title icons, requisition slip)
                        plus the 13 armor-penetration icons          -> docs/img/icons/ (kept as they are: SVG stays SVG)
 
@@ -40,6 +43,9 @@ IMG = DOCS / "img"
 MANIFEST = IMG / "manifest.json"
 GEAR_CSV = ROOT / "hd2gear.csv"
 WARBOND_CSV = ROOT / "hd2warbonds.csv"
+ARMOR_CSV = ROOT / "hd2armor.csv"
+PASSIVE_CSV = ROOT / "hd2passives.csv"
+BOOSTER_CSV = ROOT / "hd2boosters.csv"
 APP_JS = DOCS / "app.js"
 
 WIKI = "https://helldivers.wiki.gg/images/"
@@ -48,7 +54,7 @@ DELAY = 0.4  # seconds between downloads
 AP_LEVELS = range(-1, 12)  # armor-penetration icons, -1 .. 11
 
 # kind -> (folder, longest side in pixels or None to keep as is)
-KINDS = {"items": ("items", 320), "icons": ("icons", None)}
+KINDS = {"items": ("items", 320), "armor": ("armor", 240), "icons": ("icons", None)}
 RASTER = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 
@@ -89,6 +95,9 @@ def plan():
     jobs, seen = [], {}
     wanted = (
         [(u, "items") for u in read_csv_urls(GEAR_CSV, "img_url")]
+        + [(u, "armor") for u in read_csv_urls(ARMOR_CSV, "img_url")]
+        + [(u, "icons") for u in read_csv_urls(PASSIVE_CSV, "img_url")]
+        + [(u, "icons") for u in read_csv_urls(BOOSTER_CSV, "img_url")]
         + [(u, "icons") for u in app_icon_urls()]
     )
     taken = {}

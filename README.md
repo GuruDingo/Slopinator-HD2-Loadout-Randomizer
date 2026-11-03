@@ -87,11 +87,11 @@ The site appears at `https://<your-user>.github.io/<repo-name>/` after a minute 
 
 ## Saved images
 
-The page shows pictures from the Helldivers wiki: item art (about 200), the faction emblems, the warbond title icons, the Requisition slip and the 13 armor-penetration icons. `tools/fetch_images.py` saves them all into `docs/img/` so the published site serves its own copies and keeps working if the wiki changes a file or blocks hotlinking.
+The page shows pictures from the Helldivers wiki: item art (about 200), the armor pictures (about 110), the armor passive and booster icons, the faction emblems, the warbond title icons, the Requisition slip and the 13 armor-penetration icons. `tools/fetch_images.py` saves them all into `docs/img/` so the published site serves its own copies and keeps working if the wiki changes a file or blocks hotlinking.
 
 ```
 pip install pillow                       # once, for resizing
-python tools/fetch_images.py             # download what is missing (about 250 files, a few minutes; polite rate limit)
+python tools/fetch_images.py             # download what is missing (about 400 files, a few minutes; polite rate limit)
 python tools/build_gear.py               # copies the list into docs/gear-data.js
 python tools/fetch_images.py --list      # what is saved / still missing, no downloading
 python tools/fetch_images.py --from-dir D   # use pictures you downloaded yourself into folder D (by wiki file name)
