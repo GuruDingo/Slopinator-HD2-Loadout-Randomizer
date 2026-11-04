@@ -870,16 +870,23 @@
         var fit = cands.filter(function (e) { return worksFor({ factions: e.factions || ["any"] }, o.faction); });
         if (fit.length) cands = fit; else offFaction = true;
       }
+      // Odds (o.items = the loadout's weapons and stratagems): an entry with no tags has weight 1; an entry with tags has a weight
+      // equal to the number of those items that share at least one of its tags (an item counts once, however many tags match),
+      // so an entry whose tags match nothing is never rolled. When every entry in the list has weight 0 they are rolled equally.
+      var items = o.items || [];
+      function weightOf(e) {
+        var tags = e.tags || [];
+        if (!tags.length) return 1;
+        return items.filter(function (it) { return ((it && it.tags) || []).some(function (t) { return tags.indexOf(t) !== -1; }); }).length;
+      }
+      var weights = new Map();
+      cands.forEach(function (e) { weights.set(e, weightOf(e)); });
+      var live = cands.filter(function (e) { return weights.get(e) > 0; });
+      if (live.length) cands = live;   // a weight of 0 stays 0 as long as anything else can roll
       function without(test) { var rest = cands.filter(function (e) { return !test(e); }); return rest.length ? rest : cands; }
       if (o.taken) cands = without(function (e) { return o.taken.has(e.name); });
       if (o.avoid) cands = without(function (e) { return e.name === o.avoid; });
-      // Synergy: an entry whose tags match a tag on one of the loadout's items (o.items) is rolled `o.synergy` times as often
-      // (default 3; 1 = off). Entries with no tags are never boosted, so nothing changes until tags are filled in.
-      var factor = o.synergy === undefined ? 3 : o.synergy, have = {};
-      (o.items || []).forEach(function (it) { ((it && it.tags) || []).forEach(function (t) { have[t] = true; }); });
-      var pick = factor !== 1 && Object.keys(have).length
-        ? weightedChoice(cands, function (e) { return (e.tags || []).some(function (t) { return have[t]; }) ? factor : 1; })
-        : randomChoice(cands);
+      var pick = live.length ? weightedChoice(cands, function (e) { return weights.get(e); }) : randomChoice(cands);
       return { item: pick, offFaction: offFaction };
     }
 

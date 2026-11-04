@@ -784,14 +784,28 @@ test("pickExtra: faction-specific entries are preferred for their faction, and u
   assert.strictEqual(r.item, bug); assert.strictEqual(r.offFaction, true);
   assert.strictEqual(engine.pickExtra([{ name: "off", factions: ["none"] }], {}), null);
 });
-test("pickExtra: entries whose tags match the loadout are rolled more often; untagged lists stay uniform", () => {
-  const a = { name: "a", tags: ["mobility"] }, b = { name: "b", tags: [] };
-  const count = (o) => { let n = 0; for (let i = 0; i < 6000; i++) if (engine.pickExtra([a, b], o).item === a) n++; return n / 6000; };
-  const items = [{ tags: ["mobility", "x"] }];
-  assert(Math.abs(count({ items }) - 0.75) < 0.05, "default factor 3 gives about 75%");
-  assert(Math.abs(count({ items, synergy: 1 }) - 0.5) < 0.05, "synergy 1 is off");
-  assert(Math.abs(count({ items: [{ tags: ["other"] }] }) - 0.5) < 0.05, "no matching tag: no boost");
-  assert(Math.abs(count({}) - 0.5) < 0.05, "no items: no boost");
+test("pickExtra odds: no tags = weight 1; tags = number of rolled items sharing a tag; no match = never; all zero = equal", () => {
+  const share = (list, o, who, n = 8000) => { let c = 0; for (let i = 0; i < n; i++) if (engine.pickExtra(list, o).item === who) c++; return c / n; };
+  const plain = { name: "plain", tags: [] }, one = { name: "one", tags: ["mobility"] }, two = { name: "two", tags: ["fire", "explosive"] }, none = { name: "none", tags: ["stealth"] };
+  const items = [{ tags: ["mobility"] }, { tags: ["fire", "explosive"] }, { tags: ["fire"] }, { tags: ["other"] }];
+  // weights: plain 1, one 1 (one item), two 2 (the item with both tags counts once, the fire-only item once), none 0
+  const list = [plain, one, two, none];
+  assert(Math.abs(share(list, { items }, plain) - 1 / 4) < 0.03, "untagged = 1 of 4");
+  assert(Math.abs(share(list, { items }, one) - 1 / 4) < 0.03, "one match = 1 of 4");
+  assert(Math.abs(share(list, { items }, two) - 2 / 4) < 0.03, "two items with a shared tag = 2 of 4, an item counts once");
+  assert.strictEqual(share(list, { items }, none, 3000), 0, "a tag nothing carries is never rolled while anything else can roll");
+  assert(Math.abs(share([plain, one], {}, plain) - 1) < 1e-9, "no items: only the untagged entry has odds");
+  assert.strictEqual(share([one, none], { items: [{ tags: ["x"] }] }, one, 3000) > 0.4 && share([one, none], { items: [{ tags: ["x"] }] }, one, 3000) < 0.6, true, "every weight 0: rolled equally");
+  const sameTag = { name: "three", tags: ["fire"] };
+  assert(Math.abs(share([sameTag, plain], { items: [{ tags: ["fire"] }, { tags: ["fire"] }, { tags: ["fire"] }] }, sameTag) - 3 / 4) < 0.03, "three matching items = weight 3");
+});
+test("pickExtra odds: a zero weight stays zero when avoid / taken narrow the list; positive entries are reused before a zero one", () => {
+  const a = { name: "a", tags: ["fire"] }, b = { name: "b", tags: ["stealth"] };
+  const items = [{ tags: ["fire"] }];
+  for (let i = 0; i < 200; i++) {
+    assert.strictEqual(engine.pickExtra([a, b], { items, taken: new Set(["a"]) }).item, a, "the only entry with odds is taken: reused, never the zero one");
+    assert.strictEqual(engine.pickExtra([a, b], { items, avoid: "a" }).item, a);
+  }
 });
 test("pickExtra is uniform over a list (every entry shows up)", () => {
   const list = globalThis.HD2_DATA.passives, seen = new Set();
