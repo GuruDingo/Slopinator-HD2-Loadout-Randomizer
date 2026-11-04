@@ -784,33 +784,67 @@ test("pickExtra: faction-specific entries are preferred for their faction, and u
   assert.strictEqual(r.item, bug); assert.strictEqual(r.offFaction, true);
   assert.strictEqual(engine.pickExtra([{ name: "off", factions: ["none"] }], {}), null);
 });
-test("pickExtra odds: no tags = weight 1; tags = number of rolled items sharing a tag; no match = never; all zero = equal", () => {
-  const share = (list, o, who, n = 8000) => { let c = 0; for (let i = 0; i < n; i++) if (engine.pickExtra(list, o).item === who) c++; return c / n; };
-  const plain = { name: "plain", tags: [] }, one = { name: "one", tags: ["mobility"] }, two = { name: "two", tags: ["fire", "explosive"] }, none = { name: "none", tags: ["stealth"] };
+// Roll weights for armor passives and boosters (see pickExtra): an entry's weight comes from its role and how many of the
+// loadout's items share one of its tags. These tests measure the share each entry gets against known weights.
+const shareOf = (list, o, who, n = 12000) => { let c = 0; for (let i = 0; i < n; i++) if (engine.pickExtra(list, o).item === who) c++; return c / n; };
+const near = (got, want, what, tol = 0.025) => assert(Math.abs(got - want) < tol, what + ": got " + got.toFixed(3) + ", wanted " + want.toFixed(3));
+test("pickExtra odds: tagless = 2, general = 1 + matching items, niche = 3 x matching items, no match = never", () => {
   const items = [{ tags: ["mobility"] }, { tags: ["fire", "explosive"] }, { tags: ["fire"] }, { tags: ["other"] }];
-  // weights: plain 1, one 1 (one item), two 2 (the item with both tags counts once, the fire-only item once), none 0
-  const list = [plain, one, two, none];
-  assert(Math.abs(share(list, { items }, plain) - 1 / 4) < 0.03, "untagged = 1 of 4");
-  assert(Math.abs(share(list, { items }, one) - 1 / 4) < 0.03, "one match = 1 of 4");
-  assert(Math.abs(share(list, { items }, two) - 2 / 4) < 0.03, "two items with a shared tag = 2 of 4, an item counts once");
-  assert.strictEqual(share(list, { items }, none, 3000), 0, "a tag nothing carries is never rolled while anything else can roll");
-  assert(Math.abs(share([plain, one], {}, plain) - 1) < 1e-9, "no items: only the untagged entry has odds");
-  assert.strictEqual(share([one, none], { items: [{ tags: ["x"] }] }, one, 3000) > 0.4 && share([one, none], { items: [{ tags: ["x"] }] }, one, 3000) < 0.6, true, "every weight 0: rolled equally");
-  const sameTag = { name: "three", tags: ["fire"] };
-  assert(Math.abs(share([sameTag, plain], { items: [{ tags: ["fire"] }, { tags: ["fire"] }, { tags: ["fire"] }] }, sameTag) - 3 / 4) < 0.03, "three matching items = weight 3");
+  const plain = { name: "plain", tags: [] }, gen = { name: "gen", tags: ["mobility"] }, gen2 = { name: "gen2", tags: ["fire", "explosive"] },
+    niche = { name: "niche", tags: ["fire"], role: "niche" }, dead = { name: "dead", tags: ["stealth"], role: "niche" }, deadGen = { name: "deadGen", tags: ["stealth"] };
+  // weights: plain 2, gen 1 + 1 = 2, gen2 1 + 2 = 3 (the item with both tags counts once), niche 3 x 2 = 6, dead 0, deadGen 1 + 0 = 1
+  const list = [plain, gen, gen2, niche, dead, deadGen], total = 2 + 2 + 3 + 6 + 1;
+  near(shareOf(list, { items }, plain), 2 / total, "tagless");
+  near(shareOf(list, { items }, gen), 2 / total, "general, one match");
+  near(shareOf(list, { items }, gen2), 3 / total, "general, an item with both tags counts once");
+  near(shareOf(list, { items }, niche), 6 / total, "niche");
+  near(shareOf(list, { items }, deadGen), 1 / total, "general with no match still has its base 1");
+  assert.strictEqual(shareOf(list, { items }, dead, 3000), 0, "niche with no match is never rolled while anything else can roll");
+  near(shareOf([plain, niche], {}, plain), 1, "no items: a niche entry has no odds", 1e-9);
+});
+test("pickExtra odds: bad = a third of the general weight; every weight 0 = equal", () => {
+  const items = [{ tags: ["fire"] }];
+  const good = { name: "good", tags: ["fire"] }, bad = { name: "bad", tags: ["fire"], role: "bad" }, badPlain = { name: "badPlain", tags: [], role: "bad" }, plain = { name: "plain", tags: [] };
+  // good 1 + 1 = 2, bad 2 / 3, badPlain 2 / 3, plain 2
+  const total = 2 + 2 / 3 + 2 / 3 + 2;
+  near(shareOf([good, bad, badPlain, plain], { items }, bad), (2 / 3) / total, "bad, tagged");
+  near(shareOf([good, bad, badPlain, plain], { items }, badPlain), (2 / 3) / total, "bad, tagless");
+  const n1 = { name: "n1", tags: ["x"], role: "niche" }, n2 = { name: "n2", tags: ["y"], role: "niche" };
+  near(shareOf([n1, n2], { items }, n1, 6000), 0.5, "every weight 0: equal", 0.04);
+});
+test("pickExtra odds: firebomb is niche, but a flat 5 while the worn passive is tagged self_fire", () => {
+  const items = [{ tags: ["fire", "self_fire"] }, { tags: ["fire"] }];
+  const fb = { name: "fb", tags: ["fire"], role: "firebomb" }, other = { name: "other", tags: [] };   // other = 2
+  near(shareOf([fb, other], { items }, fb), 6 / 8, "no passive: niche 3 x 2 = 6 against 2");
+  near(shareOf([fb, other], { items, passive: { tags: ["stealth"] } }, fb), 6 / 8, "a passive without self_fire changes nothing");
+  near(shareOf([fb, other], { items, passive: { tags: ["self_fire"] } }, fb), 5 / 7, "a self_fire passive: flat 5 against 2");
+  near(shareOf([fb, other], { items: [], passive: { tags: ["self_fire"] } }, fb), 5 / 7, "...even when the loadout holds nothing with fire");
+  near(shareOf([fb, other], { items: [] }, fb, 3000), 0, "without the passive and without fire items it never rolls", 1e-9);
+});
+test("pickExtra odds: suicide / heal entries weigh a flat 5 while the loadout holds a suicide or heal item", () => {
+  const sui = { name: "sui", tags: ["suicide"] }, hl = { name: "hl", tags: ["heal"], role: "niche" }, plain = { name: "plain", tags: [] };   // plain = 2
+  const bomb = [{ tags: ["suicide", "explosive"] }], stim = [{ tags: ["heal"] }], none = [{ tags: ["fire"] }];
+  near(shareOf([sui, hl, plain], { items: bomb }, sui), 5 / 12, "the Hellbomb boosts a suicide entry (flat 5, replacing 1 + 1)");
+  near(shareOf([sui, hl, plain], { items: bomb }, hl), 5 / 12, "...and a heal entry: either tag is enough");
+  near(shareOf([sui, hl, plain], { items: stim }, hl), 5 / 12, "the Stim Pistol boosts them too");
+  near(shareOf([sui, hl, plain], { items: none }, sui), 1 / 3, "nothing special in the loadout: general 1 + 0 = 1 against 2 and niche 0");
+  near(shareOf([sui, { name: "badheal", tags: ["heal"], role: "bad" }, plain], { items: stim }, sui), 5 / (5 + 5 / 3 + 2), "a bad entry still weighs a third");
 });
 test("pickExtra odds: a zero weight stays zero when avoid / taken narrow the list; positive entries are reused before a zero one", () => {
-  const a = { name: "a", tags: ["fire"] }, b = { name: "b", tags: ["stealth"] };
+  const a = { name: "a", tags: ["fire"], role: "niche" }, b = { name: "b", tags: ["stealth"], role: "niche" };
   const items = [{ tags: ["fire"] }];
   for (let i = 0; i < 200; i++) {
     assert.strictEqual(engine.pickExtra([a, b], { items, taken: new Set(["a"]) }).item, a, "the only entry with odds is taken: reused, never the zero one");
     assert.strictEqual(engine.pickExtra([a, b], { items, avoid: "a" }).item, a);
   }
 });
-test("pickExtra is uniform over a list (every entry shows up)", () => {
+test("pickExtra with no items: every general / tagless entry shows up, niche ones (weight 0) do not", () => {
   const list = globalThis.HD2_DATA.passives, seen = new Set();
-  for (let i = 0; i < 3000; i++) seen.add(engine.pickExtra(list, {}).item.name);
-  assert.strictEqual(seen.size, list.length);
+  for (let i = 0; i < 4000; i++) seen.add(engine.pickExtra(list, {}).item.name);
+  const live = list.filter(e => !(e.tags || []).length || (e.role || "general") !== "niche" && (e.role || "general") !== "firebomb");
+  const dead = list.filter(e => (e.tags || []).length && ((e.role || "general") === "niche" || e.role === "firebomb"));
+  assert(live.every(e => seen.has(e.name)), "every general / tagless passive is reachable");
+  assert(dead.every(e => !seen.has(e.name)), "a niche passive with tags never rolls on an empty loadout");
 });
 
 console.log("\n" + passed + " engine rule tests passed" + (process.exitCode ? " (with failures)" : ""));

@@ -70,6 +70,12 @@ with tempfile.TemporaryDirectory() as tmp:
     check("a bad weight class is an error", "must be light, medium or heavy" in build(work).stdout)
     reset()
 
+    def badrole(rows):
+        rows[1][rows[0].index("role")] = "legendary"
+    edit(work / "hd2boosters.csv", badrole)
+    check("an unknown role is an error", "must be one of general, niche, bad, firebomb" in build(work).stdout)
+    reset()
+
     def badwb(rows):
         rows[1][rows[0].index("warbond")] = "nope_wb"
     edit(work / "hd2armor.csv", badwb)

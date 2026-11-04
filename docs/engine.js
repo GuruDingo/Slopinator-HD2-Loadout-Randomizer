@@ -870,14 +870,28 @@
         var fit = cands.filter(function (e) { return worksFor({ factions: e.factions || ["any"] }, o.faction); });
         if (fit.length) cands = fit; else offFaction = true;
       }
-      // Odds (o.items = the loadout's weapons and stratagems): an entry with no tags has weight 1; an entry with tags has a weight
-      // equal to the number of those items that share at least one of its tags (an item counts once, however many tags match),
-      // so an entry whose tags match nothing is never rolled. When every entry in the list has weight 0 they are rolled equally.
-      var items = o.items || [];
-      function weightOf(e) {
-        var tags = e.tags || [];
-        if (!tags.length) return 1;
+      // Odds. o.items = the loadout's weapons and stratagems; o.passive = the armor passive already rolled (boosters only).
+      // m = how many of those items share at least one of the entry's tags (an item counts once, however many tags match).
+      //   no tags            weight 2
+      //   general (default)  1 + m
+      //   niche              3 * m (so 0, never rolled, when nothing in the loadout matches)
+      //   bad                a third of what a general entry would get (boosters that tend to lose the game)
+      //   firebomb           niche, but a flat 5 while the worn armor passive is tagged self_fire (the passive wants fire around)
+      // Special rule: an entry tagged suicide or heal weighs a flat 5 (replacing the above) while the loadout holds an item tagged
+      // suicide or heal (the Portable Hellbomb, the Stim Pistol). When every entry has weight 0 they are rolled equally.
+      var items = o.items || [], SPECIAL = ["suicide", "heal"];
+      function shares(tags) {
         return items.filter(function (it) { return ((it && it.tags) || []).some(function (t) { return tags.indexOf(t) !== -1; }); }).length;
+      }
+      var specialMet = items.some(function (it) { return ((it && it.tags) || []).some(function (t) { return SPECIAL.indexOf(t) !== -1; }); });
+      function weightOf(e) {
+        var tags = e.tags || [], role = e.role || "general", w;
+        if (role === "firebomb" && o.passive && (o.passive.tags || []).indexOf("self_fire") !== -1) return 5;
+        if (!tags.length) w = 2;
+        else if (specialMet && tags.some(function (t) { return SPECIAL.indexOf(t) !== -1; })) w = 5;
+        else if (role === "niche" || role === "firebomb") w = 3 * shares(tags);
+        else w = 1 + shares(tags);
+        return role === "bad" ? w / 3 : w;
       }
       var weights = new Map();
       cands.forEach(function (e) { weights.set(e, weightOf(e)); });

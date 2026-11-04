@@ -1,21 +1,21 @@
-id,name,description,tags,factions,warbond,img_url,release_date,notes
-1,Hellpod Space Optimization,"Start with full ammo, grenades and stims at drop",,any,helldivers_mobilize,https://helldivers.wiki.gg/images/Hellpod_Space_Optimization_Booster_Icon.svg,2024-02-08,P3
-2,Vitality Enhancement,Slightly reduced damage taken,,any,helldivers_mobilize,https://helldivers.wiki.gg/images/Vitality_Enhancement_Booster_Icon.svg,2024-02-08,P4
-3,UAV Recon Booster,Larger radar range,,any,helldivers_mobilize,https://helldivers.wiki.gg/images/UAV_Recon_Booster_Booster_Icon.svg,2024-02-08,P6
-4,Stamina Enhancement,Larger stamina capacity and faster recovery,,any,helldivers_mobilize,https://helldivers.wiki.gg/images/Stamina_Enhancement_Booster_Icon.svg,2024-02-08,P7
-5,Muscle Enhancement,Terrain slows you less,,any,helldivers_mobilize,https://helldivers.wiki.gg/images/Muscle_Enhancement_Booster_Icon.svg,2024-02-08,P9
-6,Increased Reinforcement Budget,More reinforcements available,,any,helldivers_mobilize,https://helldivers.wiki.gg/images/Increased_Reinforcement_Budget_Booster_Icon.svg,2024-02-08,P10
-7,Flexible Reinforcement Budget,Shorter wait between reinforcements,,any,steeled_veterans,https://helldivers.wiki.gg/images/Flexible_Reinforcement_Budget_Booster_Icon.svg,2024-02-08,P3
-8,Localization Confusion,Longer gaps between enemy encounters,,any,cutting_edge,https://helldivers.wiki.gg/images/Localization_Confusion_Booster_Icon.svg,2024-03-12,P1
-9,Expert Extraction Pilot,Faster extraction,,any,democratic_detonation,https://helldivers.wiki.gg/images/Expert_Extraction_Pilot_Booster_Icon.svg,2024-04-11,P2
-10,Motivational Shocks,Faster recovery from slowing attacks,,any,polar_patriots,https://helldivers.wiki.gg/images/Motivational_Shocks_Booster_Icon.svg,2024-05-09,P1
-11,Experimental Infusion,Stims boost speed and damage reduction,,any,viper_commandos,https://helldivers.wiki.gg/images/Experimental_Infusion_Booster_Icon.svg,2024-06-13,P3
-12,Firebomb Hellpods,Hellpods start fires on impact,,any,freedoms_flame,https://helldivers.wiki.gg/images/Firebomb_Hellpods_Booster_Icon.svg,2024-08-06,P3
-13,Dead Sprint,"Sprint past empty stamina, draining health instead",,any,truth_enforcers,https://helldivers.wiki.gg/images/Dead_Sprint_Booster_Icon.svg,2024-10-31,P1
-14,Armed Resupply Pods,Resupply pods are armed,,any,urban_legends,https://helldivers.wiki.gg/images/Armed_Resupply_Pods_Booster_Icon.svg,2024-12-05,P2
-15,Sample Extricator,Large enemies drop samples,,any,borderline_justice,https://helldivers.wiki.gg/images/Sample_Extricator_Booster_Icon.svg,2025-03-18,P3
-16,Sample Scanner,15% chance of double samples,,any,masters_of_ceremony,https://helldivers.wiki.gg/images/Sample_Scanner_Booster_Icon.svg,2025-05-13,P3
-17,Stun Pods,Hellpods stun nearby enemies,,any,force_of_law,https://helldivers.wiki.gg/images/Stun_Pods_Booster_Icon.svg,2025-06-12,P2
-18,Concealed Insertion,Smoke at drop,,any,redacted_regiment,https://helldivers.wiki.gg/images/Concealed_Insertion_Booster_Icon.svg,2026-01-22,P3
-19,Surplus EAT Allocation,Two free EAT uses,,any,ironclad_democracy,https://helldivers.wiki.gg/images/Surplus_EAT_Allocation_Booster_Icon.svg,2026-09-22,P2
-20,Integrated Extinguishers,Extinguishes fire automatically,,any,ironclad_democracy,https://helldivers.wiki.gg/images/Integrated_Extinguishers_Booster_Icon.svg,2026-09-22,P3
+id,name,description,tags,factions,warbond,img_url,release_date,notes,role
+1,Hellpod Space Optimization,"Start with full ammo, grenades and stims at drop",,any,helldivers_mobilize,https://helldivers.wiki.gg/images/Hellpod_Space_Optimization_Booster_Icon.svg,2024-02-08,P3,
+2,Vitality Enhancement,Slightly reduced damage taken,,any,helldivers_mobilize,https://helldivers.wiki.gg/images/Vitality_Enhancement_Booster_Icon.svg,2024-02-08,P4,
+3,UAV Recon Booster,Larger radar range,stealth,any,helldivers_mobilize,https://helldivers.wiki.gg/images/UAV_Recon_Booster_Booster_Icon.svg,2024-02-08,P6,
+4,Stamina Enhancement,Larger stamina capacity and faster recovery,,any,helldivers_mobilize,https://helldivers.wiki.gg/images/Stamina_Enhancement_Booster_Icon.svg,2024-02-08,P7,
+5,Muscle Enhancement,Terrain slows you less,,any,helldivers_mobilize,https://helldivers.wiki.gg/images/Muscle_Enhancement_Booster_Icon.svg,2024-02-08,P9,
+6,Increased Reinforcement Budget,More reinforcements available,,any,helldivers_mobilize,https://helldivers.wiki.gg/images/Increased_Reinforcement_Budget_Booster_Icon.svg,2024-02-08,P10,bad
+7,Flexible Reinforcement Budget,Shorter wait between reinforcements,,any,steeled_veterans,https://helldivers.wiki.gg/images/Flexible_Reinforcement_Budget_Booster_Icon.svg,2024-02-08,P3,bad
+8,Localization Confusion,Longer gaps between enemy encounters,,any,cutting_edge,https://helldivers.wiki.gg/images/Localization_Confusion_Booster_Icon.svg,2024-03-12,P1,
+9,Expert Extraction Pilot,Faster extraction,,any,democratic_detonation,https://helldivers.wiki.gg/images/Expert_Extraction_Pilot_Booster_Icon.svg,2024-04-11,P2,bad
+10,Motivational Shocks,Faster recovery from slowing attacks,,any,polar_patriots,https://helldivers.wiki.gg/images/Motivational_Shocks_Booster_Icon.svg,2024-05-09,P1,
+11,Experimental Infusion,Stims boost speed and damage reduction,heal,any,viper_commandos,https://helldivers.wiki.gg/images/Experimental_Infusion_Booster_Icon.svg,2024-06-13,P3,
+12,Firebomb Hellpods,Hellpods start fires on impact,,any,freedoms_flame,https://helldivers.wiki.gg/images/Firebomb_Hellpods_Booster_Icon.svg,2024-08-06,P3,firebomb
+13,Dead Sprint,"Sprint past empty stamina, draining health instead",,any,truth_enforcers,https://helldivers.wiki.gg/images/Dead_Sprint_Booster_Icon.svg,2024-10-31,P1,bad
+14,Armed Resupply Pods,Resupply pods are armed,,any,urban_legends,https://helldivers.wiki.gg/images/Armed_Resupply_Pods_Booster_Icon.svg,2024-12-05,P2,
+15,Sample Extricator,Large enemies drop samples,armor,any,borderline_justice,https://helldivers.wiki.gg/images/Sample_Extricator_Booster_Icon.svg,2025-03-18,P3,niche
+16,Sample Scanner,15% chance of double samples,,any,masters_of_ceremony,https://helldivers.wiki.gg/images/Sample_Scanner_Booster_Icon.svg,2025-05-13,P3,
+17,Stun Pods,Hellpods stun nearby enemies,,any,force_of_law,https://helldivers.wiki.gg/images/Stun_Pods_Booster_Icon.svg,2025-06-12,P2,bad
+18,Concealed Insertion,Smoke at drop,stealth,any,redacted_regiment,https://helldivers.wiki.gg/images/Concealed_Insertion_Booster_Icon.svg,2026-01-22,P3,niche
+19,Surplus EAT Allocation,Two free EAT uses,,any,ironclad_democracy,https://helldivers.wiki.gg/images/Surplus_EAT_Allocation_Booster_Icon.svg,2026-09-22,P2,
+20,Integrated Extinguishers,Extinguishes fire automatically,self_fire,any,ironclad_democracy,https://helldivers.wiki.gg/images/Integrated_Extinguishers_Booster_Icon.svg,2026-09-22,P3,niche

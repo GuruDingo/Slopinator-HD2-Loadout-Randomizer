@@ -1,33 +1,33 @@
-id,name,description,tags,factions,img_url,armor_count
-1,Stationary Shroud,"-35% weapon sway when aiming, -15% movement noise, 75% less noticeable when still and crouched/prone",,any,https://helldivers.wiki.gg/images/Stationary_Shroud_Armor_Passive_Icon.svg,3
-2,Blunt-Force Mitigation,"Resist knockdown, 30% less impact/collision damage, higher armor rating",,any,https://helldivers.wiki.gg/images/Blunt-Force_Mitigation_Armor_Passive_Icon.svg,3
-3,True Grit,"Support weapon reload +30%, better ergonomics",,any,https://helldivers.wiki.gg/images/True_Grit_Armor_Passive_Icon.svg,2
-4,Kinetic Displacement Mitigation,"50% fire resistance, 50% chance to avoid grievous limb injury, 30% less impact damage",,any,https://helldivers.wiki.gg/images/Kinetic_Displacement_Mitigation_Armor_Passive_Icon.svg,1
-5,Oxygenator,"Faster walk/run speed, longer and faster slides",,any,https://helldivers.wiki.gg/images/Oxygenator_Armor_Passive_Icon.svg,3
-6,"Concussive Padding, Grenadier","50% explosive resistance, +2 throwables",,any,https://helldivers.wiki.gg/images/Concussive_Padding_Armor_Passive_Icon.svg,1
-7,"Concussive Padding, Hazmat","50% explosive resistance, 25% gas resistance, -30% sidearm recoil",,any,https://helldivers.wiki.gg/images/Concussive_Padding_Armor_Passive_Icon.svg,1
-8,"Concussive Padding, Reinforced","50% explosive resistance, higher armor rating",,any,https://helldivers.wiki.gg/images/Concussive_Padding_Armor_Passive_Icon.svg,1
-9,Reduced Signature,"50% less movement noise, enemy detection range -40%",,any,https://helldivers.wiki.gg/images/Reduced_Signature_Armor_Passive_Icon.svg,3
-10,Supplemental Adrenaline,"Regain stamina when damaged, higher armor rating",,any,https://helldivers.wiki.gg/images/Supplemental_Adrenaline_Armor_Passive_Icon.svg,2
-11,Rock Solid,"Melee damage +40%, resist knockdown",,any,https://helldivers.wiki.gg/images/Rock_Solid_Armor_Passive_Icon.svg,3
-12,Desert Stormer,"40% fire/gas/acid/electrical resistance, throw range +20%",,any,https://helldivers.wiki.gg/images/Desert_Stormer_Armor_Passive_Icon.svg,3
-13,Feet First,"50% less movement noise, POI identification range +30%, immune to leg injuries",,any,https://helldivers.wiki.gg/images/Feet_First_Armor_Passive_Icon.svg,2
-14,Adreno-Defibrillator,"One-time resuscitation on death if body intact, stim duration +2.0s, 50% arc resistance",,any,https://helldivers.wiki.gg/images/Adreno-Defibrillator_Armor_Passive_Icon.svg,3
-15,Ballistic Padding,"25% chest and explosive resistance, stops chest bleeding",,any,https://helldivers.wiki.gg/images/Ballistic_Padding_Armor_Passive_Icon.svg,3
-16,Reinforced Epaulettes,"Primary reload +30%, 50% chance to avoid limb injury, melee damage +20%",,any,https://helldivers.wiki.gg/images/Reinforced_Epaulettes_Armor_Passive_Icon.svg,3
-17,Gunslinger,"Sidearm reload +40%, draw/holster +50%, recoil -70%",,any,https://helldivers.wiki.gg/images/Gunslinger_Armor_Passive_Icon.svg,3
-18,Integrated Explosives,"Armor explodes 1.5s after death, +2 throwables",,any,https://helldivers.wiki.gg/images/Integrated_Explosives_Armor_Passive_Icon.svg,3
-19,Acclimated,50% fire/gas/acid/electrical resistance,,any,https://helldivers.wiki.gg/images/Acclimated_Armor_Passive_Icon.svg,2
-20,Siege-Ready,"Primary reload +30%, ammo +20% for all weapons (not backpacks)",,any,https://helldivers.wiki.gg/images/Siege-Ready_Armor_Passive_Icon.svg,4
-21,Unflinching,"Less flinching, higher armor rating, map markers radar-scan every 2.0s",,any,https://helldivers.wiki.gg/images/Unflinching_Armor_Passive_Icon.svg,3
-22,Advanced Filtration,80% gas resistance,,any,https://helldivers.wiki.gg/images/Advanced_Filtration_Armor_Passive_Icon.svg,4
-23,Inflammable,75% fire resistance,,any,https://helldivers.wiki.gg/images/Inflammable_Armor_Passive_Icon.svg,4
-24,Peak Physique,"Melee damage +40%, less weapon-movement drag",,any,https://helldivers.wiki.gg/images/Peak_Physique_Armor_Passive_Icon.svg,3
-25,Electrical Conduit,95% arc resistance,,any,https://helldivers.wiki.gg/images/Electrical_Conduit_Armor_Passive_Icon.svg,3
-26,Fortified,"Recoil -30% more when crouched/prone, 50% explosive resistance",,any,https://helldivers.wiki.gg/images/Fortified_Armor_Passive_Icon.svg,8
-27,Scout,"Map markers radar-scan every 2.0s, enemy detection range -30%",,any,https://helldivers.wiki.gg/images/Scout_Armor_Passive_Icon.svg,4
-28,Engineering Kit,"Recoil -30% more when crouched/prone, +2 throwables",,any,https://helldivers.wiki.gg/images/Engineering_Kit_Armor_Passive_Icon.svg,10
-29,Med-Kit,"+2 stims, stim duration +2.0s",,any,https://helldivers.wiki.gg/images/Med-Kit_Armor_Passive_Icon.svg,6
-30,Servo-Assisted,"Throw range +30%, limb health +50%",,any,https://helldivers.wiki.gg/images/Servo-Assisted_Armor_Passive_Icon.svg,7
-31,Democracy Protects,"50% chance to survive lethal damage, stops chest bleeding",,any,https://helldivers.wiki.gg/images/Democracy_Protects_Armor_Passive_Icon.svg,6
-32,Extra Padding,Higher armor rating,,any,https://helldivers.wiki.gg/images/Extra_Padding_Armor_Passive_Icon.svg,6
+id,name,description,tags,factions,img_url,armor_count,role
+1,Stationary Shroud,"-35% weapon sway when aiming, -15% movement noise, 75% less noticeable when still and crouched/prone","marksman rifle,stealth",any,https://helldivers.wiki.gg/images/Stationary_Shroud_Armor_Passive_Icon.svg,3,niche
+2,Blunt-Force Mitigation,"Resist knockdown, 30% less impact/collision damage, higher armor rating",frv,any,https://helldivers.wiki.gg/images/Blunt-Force_Mitigation_Armor_Passive_Icon.svg,3,
+3,True Grit,"Support weapon reload +30%, better ergonomics","recoil_support,ergo",any,https://helldivers.wiki.gg/images/True_Grit_Armor_Passive_Icon.svg,2,niche
+4,Kinetic Displacement Mitigation,"50% fire resistance, 50% chance to avoid grievous limb injury, 30% less impact damage","self_fire,frv",any,https://helldivers.wiki.gg/images/Kinetic_Displacement_Mitigation_Armor_Passive_Icon.svg,1,niche
+5,Oxygenator,"Faster walk/run speed, longer and faster slides",jump,any,https://helldivers.wiki.gg/images/Oxygenator_Armor_Passive_Icon.svg,3,
+6,"Concussive Padding, Grenadier","50% explosive resistance, +2 throwables","self_explosive,ammo_throw",any,https://helldivers.wiki.gg/images/Concussive_Padding_Armor_Passive_Icon.svg,1,niche
+7,"Concussive Padding, Hazmat","50% explosive resistance, 25% gas resistance, -30% sidearm recoil","self_explosive,self_gas,sidearm",any,https://helldivers.wiki.gg/images/Concussive_Padding_Armor_Passive_Icon.svg,1,niche
+8,"Concussive Padding, Reinforced","50% explosive resistance, higher armor rating",self_explosive,any,https://helldivers.wiki.gg/images/Concussive_Padding_Armor_Passive_Icon.svg,1,
+9,Reduced Signature,"50% less movement noise, enemy detection range -40%",stealth,any,https://helldivers.wiki.gg/images/Reduced_Signature_Armor_Passive_Icon.svg,3,
+10,Supplemental Adrenaline,"Regain stamina when damaged, higher armor rating",,any,https://helldivers.wiki.gg/images/Supplemental_Adrenaline_Armor_Passive_Icon.svg,2,
+11,Rock Solid,"Melee damage +40%, resist knockdown",melee,any,https://helldivers.wiki.gg/images/Rock_Solid_Armor_Passive_Icon.svg,3,niche
+12,Desert Stormer,"40% fire/gas/acid/electrical resistance, throw range +20%","self_fire,self_gas,self_arc,servo",any,https://helldivers.wiki.gg/images/Desert_Stormer_Armor_Passive_Icon.svg,3,niche
+13,Feet First,"50% less movement noise, POI identification range +30%, immune to leg injuries",stealth,any,https://helldivers.wiki.gg/images/Feet_First_Armor_Passive_Icon.svg,2,
+14,Adreno-Defibrillator,"One-time resuscitation on death if body intact, stim duration +2.0s, 50% arc resistance","self_arc,suicide",any,https://helldivers.wiki.gg/images/Adreno-Defibrillator_Armor_Passive_Icon.svg,3,niche
+15,Ballistic Padding,"25% chest and explosive resistance, stops chest bleeding",self_explosive,any,https://helldivers.wiki.gg/images/Ballistic_Padding_Armor_Passive_Icon.svg,3,
+16,Reinforced Epaulettes,"Primary reload +30%, 50% chance to avoid limb injury, melee damage +20%","reload,melee",any,https://helldivers.wiki.gg/images/Reinforced_Epaulettes_Armor_Passive_Icon.svg,3,niche
+17,Gunslinger,"Sidearm reload +40%, draw/holster +50%, recoil -70%",sidearm,any,https://helldivers.wiki.gg/images/Gunslinger_Armor_Passive_Icon.svg,3,niche
+18,Integrated Explosives,"Armor explodes 1.5s after death, +2 throwables",ammo_throw,any,https://helldivers.wiki.gg/images/Integrated_Explosives_Armor_Passive_Icon.svg,3,niche
+19,Acclimated,50% fire/gas/acid/electrical resistance,"self_fire,self_gas,self_arc",any,https://helldivers.wiki.gg/images/Acclimated_Armor_Passive_Icon.svg,2,
+20,Siege-Ready,"Primary reload +30%, ammo +20% for all weapons (not backpacks)","ammo_siege,reload",any,https://helldivers.wiki.gg/images/Siege-Ready_Armor_Passive_Icon.svg,4,
+21,Unflinching,"Less flinching, higher armor rating, map markers radar-scan every 2.0s",,any,https://helldivers.wiki.gg/images/Unflinching_Armor_Passive_Icon.svg,3,
+22,Advanced Filtration,80% gas resistance,self_gas,any,https://helldivers.wiki.gg/images/Advanced_Filtration_Armor_Passive_Icon.svg,4,niche
+23,Inflammable,75% fire resistance,self_fire,any,https://helldivers.wiki.gg/images/Inflammable_Armor_Passive_Icon.svg,4,niche
+24,Peak Physique,"Melee damage +40%, less weapon-movement drag",,any,https://helldivers.wiki.gg/images/Peak_Physique_Armor_Passive_Icon.svg,3,
+25,Electrical Conduit,95% arc resistance,self_arc,any,https://helldivers.wiki.gg/images/Electrical_Conduit_Armor_Passive_Icon.svg,3,niche
+26,Fortified,"Recoil -30% more when crouched/prone, 50% explosive resistance","recoil,self_explosive",any,https://helldivers.wiki.gg/images/Fortified_Armor_Passive_Icon.svg,8,
+27,Scout,"Map markers radar-scan every 2.0s, enemy detection range -30%",stealth,any,https://helldivers.wiki.gg/images/Scout_Armor_Passive_Icon.svg,4,
+28,Engineering Kit,"Recoil -30% more when crouched/prone, +2 throwables","ammo_throw,recoil",any,https://helldivers.wiki.gg/images/Engineering_Kit_Armor_Passive_Icon.svg,10,
+29,Med-Kit,"+2 stims, stim duration +2.0s",heal,any,https://helldivers.wiki.gg/images/Med-Kit_Armor_Passive_Icon.svg,6,
+30,Servo-Assisted,"Throw range +30%, limb health +50%",servo,any,https://helldivers.wiki.gg/images/Servo-Assisted_Armor_Passive_Icon.svg,7,niche
+31,Democracy Protects,"50% chance to survive lethal damage, stops chest bleeding",suicide,any,https://helldivers.wiki.gg/images/Democracy_Protects_Armor_Passive_Icon.svg,6,
+32,Extra Padding,Higher armor rating,,any,https://helldivers.wiki.gg/images/Extra_Padding_Armor_Passive_Icon.svg,6,
