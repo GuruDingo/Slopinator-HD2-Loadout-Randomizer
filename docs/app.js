@@ -377,7 +377,7 @@
   }
   function pickX(kind, faction, o) {
     var list = (kind === "passive" ? PASSIVES : BOOSTERS).filter(xInPool);
-    var r = engine.pickExtra(list, { faction: faction, avoid: o && o.avoid && !o.avoid.empty ? o.avoid.name : null, taken: o && o.taken, items: o && o.items });
+    var r = engine.pickExtra(list, { faction: faction, avoid: o && o.avoid && !o.avoid.empty ? o.avoid.name : null, taken: o && o.taken, items: o && o.items, passive: o && o.passive });
     return r ? r.item : emptyExtra(kind);
   }
   function loItems(lo) { return [lo.primary, lo.secondary, lo.throwable].concat(lo.strategems || []); }
@@ -385,7 +385,7 @@
     if (!extrasOn()) { lo.passive = null; lo.booster = null; return; }
     forced = forced || {};
     lo.passive = forced.passive || pickX("passive", faction, { items: loItems(lo) });
-    lo.booster = forced.booster || pickX("booster", faction, { taken: taken, items: loItems(lo) });
+    lo.booster = forced.booster || pickX("booster", faction, { taken: taken, items: loItems(lo), passive: lo.passive });
     if (!lo.booster.empty) taken.add(lo.booster.name);
   }
   function xStatus(e) {
@@ -493,7 +493,7 @@
   function rerollExtra(entry, key) {
     if (entry.locks[key]) return;
     var cur = entry.lo[key];
-    var next = pickX(key, lastRun.faction, { avoid: cur, taken: key === "booster" ? takenBoosters(entry) : null, items: loItems(entry.lo) });
+    var next = pickX(key, lastRun.faction, { avoid: cur, taken: key === "booster" ? takenBoosters(entry) : null, items: loItems(entry.lo), passive: entry.lo.passive });
     var note = !next.empty && cur && !cur.empty && next.name === cur.name ? "There is no other " + (key === "passive" ? "armor passive" : "booster") + " in your pool." : null;
     entry.lo[key] = next;
     showMessages(note ? [note] : [], "info");
@@ -512,10 +512,10 @@
       var it = other.lo[key];
       if (!it || it.key !== item.key) return;
       if (other.locks[key]) { kept++; return; }
-      other.lo[key] = pickX(key, lastRun.faction, { avoid: it, taken: key === "booster" ? takenBoosters(other) : null, items: loItems(other.lo) });
+      other.lo[key] = pickX(key, lastRun.faction, { avoid: it, taken: key === "booster" ? takenBoosters(other) : null, items: loItems(other.lo), passive: other.lo.passive });
       others++;
     });
-    entry.lo[key] = pickX(key, lastRun.faction, { avoid: item, taken: key === "booster" ? takenBoosters(entry) : null, items: loItems(entry.lo) });
+    entry.lo[key] = pickX(key, lastRun.faction, { avoid: item, taken: key === "booster" ? takenBoosters(entry) : null, items: loItems(entry.lo), passive: entry.lo.passive });
     var msg = "Blocked " + item.name + " in My Gear" + (key === "passive" ? " (with all its armor)" : "") + ". Unblock it there to roll it again.";
     if (others) msg += " Also replaced in " + others + " other loadout" + (others === 1 ? "" : "s") + ".";
     if (kept) msg += " Kept in " + kept + " locked slot" + (kept === 1 ? "" : "s") + ".";
@@ -626,7 +626,7 @@
     SLOT_KEYS.forEach(function (k) { if (entry.locks[k]) itemLocks[k] = entry.locks[k]; });
     ["passive", "booster"].forEach(function (k) {
       if (keys.indexOf(k) === -1 || entry.locks[k]) return;
-      entry.lo[k] = pickX(k, lastRun.faction, { taken: k === "booster" ? takenBoosters(entry) : null, items: loItems(entry.lo) });
+      entry.lo[k] = pickX(k, lastRun.faction, { taken: k === "booster" ? takenBoosters(entry) : null, items: loItems(entry.lo), passive: entry.lo.passive });
     });
     if (Object.keys(itemLocks).length < SLOT_KEYS.length) rebuild(entry, itemLocks, null, "");
     else redraw(entry);   // only the passive / booster were free
@@ -1837,6 +1837,7 @@
           var arms = ARMOR_OF[e.name] || [];
           var n = arms.filter(xInPool).length;
           row.querySelector(".tr-type").textContent = n + " of " + arms.length + " armor in your pool";
+          row.classList.toggle("passive-live", n > 0 && !isBl);   // green name while at least one owned, unblocked armor carries it
         }
       });
     });

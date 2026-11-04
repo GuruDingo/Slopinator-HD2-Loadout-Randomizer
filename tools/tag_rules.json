@@ -25,5 +25,5 @@
   ],
 
   "min_items_per_tag": 3,
-  "acknowledged_rare_tags": ["heal", "handheld", "supply", "tank", "taunt"]
+  "acknowledged_rare_tags": ["heal", "handheld", "supply", "tank", "taunt", "suicide"]
 }

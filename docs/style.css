@@ -327,6 +327,7 @@ hr.divider { border: none; border-top: 1px solid var(--accent); margin: 1.5rem 0
 .blocked-row:last-child { border-bottom: none; }
 .blocked-row .tr-name { flex: 1; min-width: 0; }
 .x-row.is-blocked .tr-name { color: #e57373; text-decoration: line-through; }
+.x-row.passive-live .tr-name { color: #4caf50; }
 .x-row.passive-blocked:not(.is-blocked) { opacity: .55; }
 .gear-main.x-static { cursor: default; }
 .blocked-own { display: flex; align-items: center; gap: .3rem; font-size: .75rem; color: #aaa; cursor: pointer; flex-shrink: 0; }

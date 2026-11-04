@@ -30,6 +30,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 GEAR_CSV = ROOT / "hd2gear.csv"
 WARBOND_CSV = ROOT / "hd2warbonds.csv"
+EXTRA_ROLES = ("general", "niche", "bad", "firebomb")   # passive / booster roll roles (docs/engine.js pickExtra)
 TAGS_CSV = ROOT / "hd2tags.csv"
 ID_LOCK = ROOT / "hd2ids.lock.json"
 EXTRAS = {"armor": ROOT / "hd2armor.csv", "passives": ROOT / "hd2passives.csv", "boosters": ROOT / "hd2boosters.csv"}
@@ -413,6 +414,15 @@ def check_extras(warbond_keys):
         for k, r in by_id.items():
             merged.setdefault(k, {"name": r["name"]})
         new_lock[kind] = dict(sorted(merged.items(), key=lambda kv: int(kv[0])))
+    # role (passives and boosters): how the entry's roll weight is built from its tags (see pickExtra in docs/engine.js)
+    for fname, kind in (("passives", "passive"), ("boosters", "booster")):
+        if fname in rows:
+            for n, r in rows[fname]:
+                role = (r.get("role") or "").strip().lower()
+                if role and role not in EXTRA_ROLES:
+                    errors.append(f"{present[fname].name} line {n}: role '{role}' for '{r['name']}' must be one of {', '.join(EXTRA_ROLES)} (or blank for general).")
+                elif role in ("bad", "firebomb") and kind == "passive":
+                    warnings.append(f"{present[fname].name}: role '{role}' on the passive '{r['name']}' is meant for boosters.")
     # every passive needs an armor that carries it, and every armor needs a passive that exists
     if "armor" in rows and "passives" in rows:
         pnames = {r["name"] for _, r in rows["passives"]}
@@ -442,9 +452,10 @@ def load_extras_data():
                            released=r.get("release_date", ""), imgUrl=r.get("img_url", ""), alwaysOwned=r["warbond"] == "base")
             elif kind == "passives":
                 row.update(description=r.get("description", ""), tags=split_list(r.get("tags")), factions=split_list(r.get("factions")) or ["any"],
-                           imgUrl=r.get("img_url", ""))
+                           role=(r.get("role") or "").strip().lower() or "general", imgUrl=r.get("img_url", ""))
             else:
                 row.update(description=r.get("description", ""), tags=split_list(r.get("tags")), factions=split_list(r.get("factions")) or ["any"],
+                           role=(r.get("role") or "").strip().lower() or "general",
                            warbond=r["warbond"], released=r.get("release_date", ""), imgUrl=r.get("img_url", ""))
             rows.append(row)
         out[kind] = rows
