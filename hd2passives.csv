@@ -22,7 +22,7 @@ id,name,description,tags,factions,img_url,armor_count,role
 21,Unflinching,"Less flinching, higher armor rating, map markers radar-scan every 2.0s",,any,https://helldivers.wiki.gg/images/Unflinching_Armor_Passive_Icon.svg,3,
 22,Advanced Filtration,80% gas resistance,self_gas,any,https://helldivers.wiki.gg/images/Advanced_Filtration_Armor_Passive_Icon.svg,4,niche
 23,Inflammable,75% fire resistance,self_fire,any,https://helldivers.wiki.gg/images/Inflammable_Armor_Passive_Icon.svg,4,niche
-24,Peak Physique,"Melee damage +40%, less weapon-movement drag",,any,https://helldivers.wiki.gg/images/Peak_Physique_Armor_Passive_Icon.svg,3,
+24,Peak Physique,"Melee damage +40%, less weapon-movement drag","melee,ergo",any,https://helldivers.wiki.gg/images/Peak_Physique_Armor_Passive_Icon.svg,3,niche
 25,Electrical Conduit,95% arc resistance,self_arc,any,https://helldivers.wiki.gg/images/Electrical_Conduit_Armor_Passive_Icon.svg,3,niche
 26,Fortified,"Recoil -30% more when crouched/prone, 50% explosive resistance","recoil,self_explosive",any,https://helldivers.wiki.gg/images/Fortified_Armor_Passive_Icon.svg,8,
 27,Scout,"Map markers radar-scan every 2.0s, enemy detection range -30%",stealth,any,https://helldivers.wiki.gg/images/Scout_Armor_Passive_Icon.svg,4,
