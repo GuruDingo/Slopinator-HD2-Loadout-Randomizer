@@ -127,7 +127,9 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 .loadout-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 1.5rem 0 .5rem; flex-wrap: wrap; }
 .loadout-bar h2 { margin: 0; }
 .loadout-bar-title { font-size: 1.2rem; color: #aaa; text-transform: uppercase; letter-spacing: .1em; }
-.reroll-all-btn:disabled { opacity: .4; cursor: not-allowed; }
+.reroll-all-btn:disabled, .lock-all-btn:disabled, .unlock-all-btn:disabled { opacity: .4; cursor: not-allowed; }
+.results-bar { margin: 1rem 0 0; }
+.lock-all-btn { margin-left: auto; }
 .status-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .status-badge { font-size: .6rem; font-weight: 700; letter-spacing: .04em; padding: 1px 6px; border-radius: 9px; border: 1px solid; }
 .status-badge.not-owned { color: #bbb; border-color: #666; background: #262626; }
