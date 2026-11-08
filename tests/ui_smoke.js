@@ -255,8 +255,33 @@ function check(label, cond, extra) {
   check("...and keeps loadout 2's locked slot", slotNames(1)[0] === rb[0]);
   check("...and it moved something", slotNames(1).join("|") !== rb.join("|"));
   check("locks on one loadout don't appear on the others", lockBtnAt(0, 0).getAttribute("aria-pressed") === "false");
+  {
+    const lockBtns = (i, v) => loadoutEls()[i].querySelectorAll('.lock-btn[aria-pressed="' + v + '"]').length;
+    const lockAllBtn = (i) => loadoutEls()[i].querySelector(".lock-all-btn"), unlockAllBtn = (i) => loadoutEls()[i].querySelector(".unlock-all-btn");
+    check("with 3 loadouts there is one Reroll all loadouts button", doc.querySelectorAll("#results .reroll-every-btn").length === 1);
+    click(lockAllBtn(2));
+    check("Lock all locks every slot of that loadout only", lockBtns(2, "false") === 0 && lockBtns(2, "true") >= 7 && lockBtns(0, "true") === 0, lockBtns(2, "false") + " free");
+    check("...Lock all is then disabled and Unlock all is enabled", lockAllBtn(2).disabled === true && unlockAllBtn(2).disabled === false);
+    check("...and the other loadouts keep Unlock all disabled (nothing locked)", unlockAllBtn(0).disabled === true && lockAllBtn(0).disabled === false);
+    const f0 = slotNames(0).join("|"), f2 = slotNames(2).join("|"); let moved0 = false, kept2 = true, keptLocks = true;
+    for (let n = 0; n < 8; n++) {
+      click(doc.querySelector("#results .reroll-every-btn"));
+      if (slotNames(0).join("|") !== f0) moved0 = true;
+      if (slotNames(2).join("|") !== f2) kept2 = false;
+      if (lockBtns(2, "false") !== 0) keptLocks = false;
+    }
+    check("Reroll all loadouts rerolls the free loadouts (8 clicks)", moved0);
+    check("...and leaves a fully locked loadout exactly as it was", kept2 && keptLocks);
+    click(unlockAllBtn(2));
+    check("Unlock all frees every slot", lockBtns(2, "true") === 0 && unlockAllBtn(2).disabled === true && lockAllBtn(2).disabled === false);
+    click(lockAllBtn(0)); click(lockAllBtn(1)); click(lockAllBtn(2));
+    click(doc.querySelector("#results .reroll-every-btn"));
+    check("Reroll all loadouts with everything locked says so and changes nothing", /Every slot in every loadout is locked/.test($("messages").textContent));
+    [0, 1, 2].forEach((i) => click(unlockAllBtn(i)));
+  }
   $("count").value = "1"; generate();
   check("generating again starts with nothing locked", doc.querySelectorAll("#results .lock-btn[aria-pressed=\"true\"]").length === 0);
+  check("a single loadout has no Reroll all loadouts button", doc.querySelectorAll("#results .reroll-every-btn").length === 0);
   // the faction a loadout was made for travels with its rerolls, even if you switch faction afterwards
   setFaction("bot"); generate();
   setFaction("squid");

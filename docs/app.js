@@ -279,10 +279,22 @@
     }
     var unlockedCount = slotKeysFor(entry).filter(function (k) { return !locks[k]; }).length;
 
+    var lockable = slotKeysFor(entry).filter(function (k) { var it = itemAt(entry.lo, k); return it && !it.empty; });
+    var lockedCount = lockable.filter(function (k) { return locks[k]; }).length;
     var box = h("div", { class: "loadout", "data-idx": String(idx) });
     var title = total > 1 ? "Loadout " + (idx + 1) : "Loadout";
     box.appendChild(h("div", { class: "loadout-bar" },
       total > 1 ? h("h2", null, title) : h("span", { class: "loadout-bar-title" }, title),
+      h("button", {
+        type: "button", class: "ctrl-btn lock-all-btn", disabled: lockedCount < lockable.length ? null : true,
+        title: "Lock every slot of this loadout",
+        onclick: function () { lockAll(entry, true); },
+      }, "\uD83D\uDD12 Lock all"),
+      h("button", {
+        type: "button", class: "ctrl-btn unlock-all-btn", disabled: lockedCount ? null : true,
+        title: "Unlock every slot of this loadout",
+        onclick: function () { lockAll(entry, false); },
+      }, "\uD83D\uDD13 Unlock all"),
       h("button", {
         type: "button", class: "ctrl-btn reroll-all-btn", disabled: unlockedCount ? null : true,
         title: unlockedCount ? "Keep the locked slots, reroll all the others" : "Every slot is locked",
@@ -529,6 +541,11 @@
     // Results keep the colour of the faction they were generated for, even if you switch faction afterwards.
     results.style.setProperty("--accent", FACTION_COLORS[faction] || FACTION_COLORS.any);
     lastRun = { faction: faction, requirements: JSON.parse(JSON.stringify(requirements)), disabledRules: (disabledRules || []).slice(), customRules: JSON.parse(JSON.stringify(customRules || [])), weights: JSON.parse(JSON.stringify(weights || [])), entries: [] };
+    if (loadouts.length > 1) {
+      results.appendChild(h("div", { class: "results-bar" },
+        h("button", { type: "button", class: "ctrl-btn reroll-every-btn", title: "Reroll every loadout, keeping each one's locked slots", onclick: rerollEveryLoadout },
+          "\uD83C\uDFB2 Reroll all loadouts")));
+    }
     loadouts.forEach(function (lo, idx) {
       var entry = { lo: lo, locks: Object.assign({}, locks), node: null, shared: !!shared };
       lastRun.entries.push(entry);
@@ -543,6 +560,23 @@
     var node = loadoutNode(entry, idx, lastRun.entries.length);
     entry.node.replaceWith(node);
     entry.node = node;
+  }
+
+  // Lock (or unlock) every slot of one loadout. Empty slots have nothing to lock.
+  function lockAll(entry, on) {
+    slotKeysFor(entry).forEach(function (k) {
+      var it = itemAt(entry.lo, k);
+      if (on) { if (it && !it.empty) entry.locks[k] = it; } else delete entry.locks[k];
+    });
+    redraw(entry);
+  }
+  // The "Reroll all loadouts" button above a batch: every loadout keeps its own locks and rebuilds the rest.
+  function rerollEveryLoadout() {
+    if (!lastRun) return;
+    var open = lastRun.entries.filter(function (e) { return slotKeysFor(e).some(function (k) { return !e.locks[k]; }); });
+    if (!open.length) { showMessages(["Every slot in every loadout is locked."], "info"); return; }
+    open.forEach(rerollUnlocked);
+    showMessages(["Rerolled " + open.length + " loadout" + (open.length === 1 ? "" : "s") + ". Locked slots were kept."], "info");
   }
 
   function toggleLock(entry, key) {
